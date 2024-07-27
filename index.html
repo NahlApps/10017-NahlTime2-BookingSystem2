@@ -1,0 +1,2369 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Primary Meta Tags -->
+<title>حجوزات المواعيد</title>
+<meta name="title" content="حجوزات المواعيد">
+<meta name="description" content="الحجز صار أسهل
+سهل عملية الحجز واستخدم
+نحل تايم لإدارة حجوزاتك
+نتمنى لكم تجربة ممتعة وناجحة معنا!">
+
+<!-- Google / Search Engine Tags -->
+<meta itemprop="name" content="حجوزات المواعيد">
+<meta itemprop="description" content="الحجز صار أسهل
+سهل عملية الحجز واستخدم
+نحل تايم لإدارة حجوزاتك
+نتمنى لكم تجربة ممتعة وناجحة معنا!">
+<meta itemprop="image" content="https://www.dropbox.com/scl/fi/5pguekvpfry733hrzhjnx/logo.png?rlkey=jzrav9rneqdnh4wxpco538mnw&raw=1">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="nahl.app">
+<meta property="og:title" content="حجوزات المواعيد">
+<meta property="og:description" content="الحجز صار أسهل
+سهل عملية الحجز واستخدم
+نحل تايم لإدارة حجوزاتك
+نتمنى لكم تجربة ممتعة وناجحة معنا!">
+<meta property="og:image" content="https://www.dropbox.com/scl/fi/5pguekvpfry733hrzhjnx/logo.png?rlkey=jzrav9rneqdnh4wxpco538mnw&raw=1">
+<meta property="og:image:src" content="https://www.dropbox.com/scl/fi/5pguekvpfry733hrzhjnx/logo.png?rlkey=jzrav9rneqdnh4wxpco538mnw&raw=1">
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="nahl.app">
+<meta property="twitter:title" content="حجوزات المواعيد">
+<meta property="twitter:description" content="الحجز صار أسهل
+سهل عملية الحجز واستخدم
+نحل تايم لإدارة حجوزاتك
+نتمنى لكم تجربة ممتعة وناجحة معنا!">
+<meta property="twitter:image" content="https://www.dropbox.com/scl/fi/5pguekvpfry733hrzhjnx/logo.png?rlkey=jzrav9rneqdnh4wxpco538mnw&raw=1">
+<meta property="twitter:image:src" content="https://www.dropbox.com/scl/fi/5pguekvpfry733hrzhjnx/logo.png?rlkey=jzrav9rneqdnh4wxpco538mnw&raw=1">
+<link rel="shortcut icon" href="https://www.dropbox.com/scl/fi/5pguekvpfry733hrzhjnx/logo.png?rlkey=jzrav9rneqdnh4wxpco538mnw&raw=1" type="image/x-icon">
+<link rel="icon" type="image/png" sizes="32x32" href="">
+<link rel="icon" type="image/png" sizes="16x16" href="">
+
+<meta name="keywords" content="متنقله,متنقلة,مغسلة,سيارات,مغاسل سيارات,برنامج حجز,">
+<meta name="robots" content="index, follow">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="language" content="Arabic">
+    <title>حجز موعد</title>
+
+    <script src="https://code.jquery.com/jquery-3.6.3.slim.min.js" integrity="sha256-ZwqZIVdD3iXNyGHbSYdsmWP//UBokj2FHAxKuSBKDSo=" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <!-- date-fns -->
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  
+  <!-- <script src="
+  https://unpkg.com/date-fns
+  "></script> -->
+  
+    <!-- Font Awesome -->
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+  rel="stylesheet"
+/>
+<!-- Google Fonts -->
+<link
+  href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+  rel="stylesheet"
+/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
+
+
+<script src="
+https://cdn.jsdelivr.net/npm/kute.js@2.2.4/dist/kute.min.js
+"></script>
+</head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+  body,
+  html {
+    margin: 0%;
+    height: 100%;
+    font-family: 'Comic Sans MS', 'Cairo', 'Comic Neue', sans-serif;
+        position: fixed;
+    width: 100vw;
+    height: 100vh;
+       
+  }
+  input, select{
+     text-align: center;
+  }
+  body{
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      /* background-image: url("background2.jpg"); */
+      background-size: cover;
+  }
+  .bg-image {
+      position: absolute;
+      width: 100%;
+      z-index: -1;
+      /* The image used */
+      /* https://drive.google.com/file/d/1DazdJNMnU5YFS784XMtKr61525LFBFrk/view?usp=share_link */
+      background-image: url("https://www.dropbox.com/s/s9bxuykl0w49dqa/background2.jpg?raw=1");
+
+      /* Add the blur effect */
+      filter: blur(8px);
+      -webkit-filter: blur(8px);
+
+      /* Full height */
+      height: 100%;
+
+      /* Center and scale the image nicely */
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+  }
+  h1{
+      margin-bottom:5.3%;
+  }
+  #banner, #form{
+      flex-basis: 50%;
+      height: 100%;
+  }
+
+  #form{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      /* background: rgba(255, 255, 255, 0.981); */
+      background: #fffce7;
+      color:  #000000;
+      /* box-shadow: 0 0 5px 10px rgba(255, 255, 255, 0.981), 10px 0px 70px 0px rgba(68, 68, 68, 0.426);; */
+      box-shadow: 0 0 5px 10px rgba(255,252,231, 0.981), 10px 0px 70px 0px rgba(255,252,231, 0.426);;
+
+      /* box-shadow: 10px 0px 50px 0px rgba(68, 68, 68, 0.426); */
+      /* box-shadow: 0px 4px 80px 10px rgba(255, 255, 255, 0.2), 0 6px 20px 0 rgba(255, 255, 255, 0.19); */
+      
+  }
+  #form-content{
+      width: 100%;
+      overflow: auto;
+      flex-basis: 100%;
+      display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  #form-content #page1, #form-content #page2, #form-content #page3, #form-content #page4, #form-content #page5, #form-content #page6, #form-content #page7{
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2;
+      position: relative;
+      justify-content: space-evenly;
+      height: auto;
+  }
+  #page1, #page2,#page3,#page4,#page5,#page6, #page7{
+    justify-content: space-evenly;
+    height: 100%;
+    /* overflow-y: auto; */
+  }
+  #page1, #page2,#page4,#page5,#page6, #page7{
+    height: 70%;
+  }
+  .header {
+    z-index: 2;
+    /* padding: 60px; */
+  text-align: center;
+  color: #000000;
+  /* font-size: 30px; */
+  font-weight: bold;
+  flex-basis: 10%;
+  margin: 0;
+    padding: 0;
+    padding-top: 10%;
+  }
+  .header h1 {
+    vertical-align: -webkit-baseline-middle;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    font-size: 40px;
+  }
+  .header img {
+    width:30px;
+  }
+  .header-grid1 {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .header-grid3 {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
+  .header-grid2 {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: center;
+    font-size: 10px;
+  }
+  .social {
+    width: 12% !important;
+  }
+  a.nostyle:link {
+    text-decoration: inherit;
+    color: inherit;
+    cursor: auto;
+}
+
+a.nostyle:visited {
+    text-decoration: inherit;
+    color: inherit;
+    cursor: auto;
+}
+/* CSS */
+.radio-buttons{
+  align-items: center;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: transparent 0 0 0 3px, rgba(18, 18, 18, .1) 0 6px 20px;
+  box-sizing: border-box;
+  color: #40bfb7;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  outline: none;
+  padding: 1rem 1.2rem;
+  text-align: center;
+  text-decoration: none;
+  transition: box-shadow .2s, -webkit-box-shadow .2s;
+  border: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  width: 50%;
+}
+.radios:checked + img{
+ /* box-shadow: #105bd3 0 0 0 3px, transparent 0 0 0 0; */
+  /* background-color: rgb(126 204 255); */
+  background: linear-gradient(45deg, rgba(255,171,1,1) 0%, rgba(255,255,255,1) 100%);
+    color: #493a68;
+  /* color: white; */
+}
+.radios:checked + svg{
+ /* box-shadow: #105bd3 0 0 0 3px, transparent 0 0 0 0; */
+  /* background-color: rgb(126 204 255); */
+  /* background-color: rgb(64 191 184); */
+  background: linear-gradient(45deg, rgba(73,58,104,1) 0%, rgba(64,191,184,1) 100%);
+  color: #493a68;
+  /* color: white; */
+}
+.radios:checked + svg g{
+ /* box-shadow: #105bd3 0 0 0 3px, transparent 0 0 0 0; */
+  /* background-color: rgb(126 204 255); */
+
+  /* background-color: rgb(64 191 184);
+  color: #493a68;
+  filter: invert(23%) sepia(12%) saturate(2174%) hue-rotate(218deg) brightness(92%) contrast(89%);
+   */
+  /* color: white; */
+}
+.radio-label{
+  width: 80%;
+}
+.filter-button {
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: transparent 0 0 0 3px, rgba(18, 18, 18, .1) 0 6px 20px;
+  box-sizing: border-box;
+  color:#FFAB01;
+  cursor: pointer;
+  display: inline-flex;
+  /* flex: 1 1 auto; */
+  font-family: 'Comic Sans MS', 'Cairo', 'Comic Neue', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  justify-content: center;
+  line-height: 1;
+  margin: 0;
+  outline: none;
+  padding: 1rem 1.2rem;
+  text-align: center;
+  text-decoration: none;
+  transition: box-shadow .2s, -webkit-box-shadow .2s;
+  white-space: nowrap;
+  border: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.filter-button-wrap{
+  max-width: 250px;
+  padding: 1rem;
+  position: relative;
+  background: linear-gradient(to right, #FFAB01, #FFAB01);
+  padding: 3px;
+  border-radius: 15px;
+}
+
+.filter-button:hover {
+  /* box-shadow: #105bd3 0 0 0 3px, transparent 0 0 0 0; */
+  /* background-color: rgb(126 204 255); */
+    background-color: rgb(255,223,13);
+    color: #81807F;
+  /* color: white; */
+}
+.time-date-box {
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  width: 100%;
+  margin-top: 30px;
+  padding: 10px;
+}
+.time-date-header { 
+    display: flex;
+    flex-direction: row;
+    justify-content: stretch;
+    align-items: center;
+    color: black;
+}
+.time-date-header div{
+  padding-top: 15px;
+  padding-bottom: 15px;
+  background-color: white; 
+  flex-basis: 33.333%;  
+  box-shadow: transparent 0 0 0 3px, rgba(18, 18, 18, .1) 0 6px 20px;  
+  transition: all 1s;
+  cursor: pointer;
+  
+  }
+  .time-date-header div:hover{
+      /* background-color: rgb(216, 216, 216); */
+    background-color: rgb(255,223,13);
+    color: #81807F;
+  }
+  .time-date-header .choosed{
+    background-color: rgb(255,223,13);
+    color: #81807F;
+  }
+  .spinner-border{
+    border-color:rgb(255,223,13);
+    border-right-color: transparent;
+  }
+#department-spinner{
+  color: #493a68;
+
+}
+.time-container {
+  display: grid;
+  /* grid-template-columns: 1fr 1fr 1fr; */
+    /* display: flex; */
+    grid-template-columns:  minmax(0, 1fr)  minmax(0, 1fr)  minmax(0, 1fr);
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    align-items: center;
+    background-color: white;
+    height: 23rem;
+    overflow: auto;
+        /* align-content: center; */
+    
+}
+
+.time-button {
+  align-items: center;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: transparent 0 0 0 3px, rgba(18, 18, 18, .1) 0 6px 20px;
+  box-sizing: border-box;
+  color: #121212;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 1 1 auto;
+  font-family: Inter, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  justify-content: center;
+  line-height: 1;
+  margin: 3%;
+  outline: none;
+  padding: 1.5rem 1.2rem;
+  text-align: center;
+  text-decoration: none;
+  transition: box-shadow .2s, -webkit-box-shadow .2s;
+  white-space: nowrap;
+  border: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  align-self: start;
+  flex-grow: 0;
+}
+
+.time-button:hover {
+  /* box-shadow: #105bd3 0 0 0 3px, transparent 0 0 0 0; */
+  /* background-color: rgb(126 204 255); */
+  /* color: white; */
+    background-color: rgb(255,223,13);
+    color: #81807F;
+}
+#date {
+  padding: 2rem;
+  /* line-height: 38px; */
+}
+form input {
+  margin: 3%;
+
+}
+.banner-content {
+  display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+
+}
+.banner-content-holder {display: flex;
+          flex-direction: column;
+          align-items: center;
+          /* background: #ffffff91; */
+          /* width: 50%; */
+          height: 50%;
+          justify-content: center;
+          /* clip-path: circle(); */
+      }
+@-webkit-keyframes fadeOut {
+          0% {opacity: 1;}
+          100% {opacity: 0;}
+       }
+       
+       @keyframes fadeOut {
+          0% {opacity: 1;}
+          100% {opacity: 0;}
+       }
+       
+       .fadeOut {
+          /* -webkit-animation-name: fadeOut;
+          animation-name: fadeOut ease 3s; */
+          animation: fadeOut 1s forwards ;
+          /* animation: name duration timing-function delay iteration-count direction fill-mode; */
+       }
+       @keyframes fadeIn {
+          0% {opacity: 0;}
+          100% {opacity: 1;}
+       }
+       
+       .fadeIn {
+          /* -webkit-animation-name: fadeOut;
+          animation-name: fadeOut ease 3s; */
+          animation: fadeIn 1s forwards ;
+          /* animation: name duration timing-function delay iteration-count direction fill-mode; */
+       }
+       #select2-container {
+width: 100% !important;
+}
+/* .selection , .selection:first-child {
+  width: 100%;
+} */
+
+
+.whatsapp-button{
+  position: fixed;
+  bottom: 15px;
+  left: 15px;
+  z-index: 99;
+  background-color: #25d366;
+  border-radius: 50px;
+  color: #ffffff;
+  text-decoration: none;
+  width: 50px;
+  height: 50px;
+  font-size: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  -webkit-box-shadow: 0px 0px 25px -6px rgba(0,0,0,1);
+  -moz-box-shadow: 0px 0px 25px -6px rgba(0,0,0,1);
+  box-shadow: 0px 0px 25px -6px rgba(0,0,0,1);
+  animation: effect 5s ease-in;
+}
+.whatsapp-button:hover {
+width: 55px;
+height: 55px;
+font-size: 35px;
+}
+.page6-contact {
+  margin: 2% 20% 0 20%;
+  font-size: smaller;
+  display: none;
+}
+
+@keyframes effect {
+  20%, 100% {
+      width: 50px;
+      height: 50px;
+      font-size: 30px;
+  }
+  0%, 10%{
+      width: 55px;
+      height: 55px;
+      font-size: 35px;
+  }
+  5%{
+      width: 50px;
+      height: 50px;
+      font-size: 30px;
+  }
+}
+svg { 
+  left: -0%;
+    width: 47%;
+
+}
+@media only screen and (max-width: 1000px) {
+  #banner {
+      position: absolute;
+      display: none;
+      flex-basis: 0%;
+      /* z-index: -1; */
+      filter: blur(7px);
+  }
+  .banner-content {
+    z-index: -1;
+  }
+  #form {
+      flex-basis: 100%;
+  }
+  .banner-content-holder {
+      width: 100%;
+      height: 100%;
+  }
+  svg{
+    left: -3%;
+    width: 100%;
+  }
+  svg g path {
+      fill: #d6d6d6;
+      /* fill: #ffffffd4; */
+  }
+  #time-container{
+     display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+        /* display: flex; */
+  flex-direction: row;
+  flex-wrap: wrap;
+  }
+  .radio-buttons{
+    width: 60%;
+  }
+}
+
+@media only screen and (max-width: 450px) {
+  #date { 
+    padding-top: 0.5rem;
+  padding-bottom: 2rem;
+  }
+  .radio-buttons{
+    width: 80%;
+  }
+}
+
+@media only screen and (max-height: 775px) {
+  
+  #page3 {
+    padding-top: 10%;
+    /* padding-bottom: 50%; */
+    margin-bottom: 10%;
+  }
+  
+  #page5, #page4{
+    padding-top: 10%;
+    margin-bottom: 10%;
+  }
+  #page1,#page2 {
+    margin-bottom: 10%;
+    height: 60%;
+  }
+  #page6, #page7{
+    height: 50%;
+  }
+  .radio-buttons{
+    width: 80%;
+  }
+
+}
+#mobile {
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="30"><text x="5" y="19" style="font: bold 16px inherit;">+966</text></svg>') no-repeat;
+    border: 1px solid #fff;
+    box-sizing: border-box;
+    /* font: 16px "Arial"; */
+    /* height: 30px; */
+    /* padding-left: 50px; */
+    /* width: 300px; */
+    background-color: white;
+}
+#service, #serviceCat {
+  margin: 3%;
+}
+input:focus{
+    outline: none;
+}
+.select2-selection__rendered {
+line-height: 32px !important;
+}
+
+.select2-selection {
+height: 37px !important;
+}
+#page6-resend{
+  position: relative;
+  background: linear-gradient(45deg, rgba(73,58,104,1) 0%, rgba(64,191,184,1) 100%);              
+  transition: all 1s ;
+}
+#page6-resend:hover{
+  /* background: linear-gradient(45deg,rgba(64,191,184,1) 0%, rgba(73,58,104,1) 100%);               */
+  transition: all 1s ;
+  color: rgb(43 37 57);
+}
+#page6-resend span {
+  z-index: 3;
+}
+#page6-resend:after {
+  position: absolute;
+  content: '';
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  background-image:  linear-gradient(45deg,rgba(64,191,184,1) 0%, rgba(73,58,104,1) 100%);       
+  transition: opacity 0.5s ease-out;
+  z-index: 2;
+  opacity: 0;
+}
+#page6-resend:hover:after {
+  opacity: 1;
+}
+</style>
+<body>
+    <div class="bg-image">
+    </div>
+    <div id="banner" >
+        <div class="banner-content">
+            <div class="banner-content-holder" style="">
+            <img
+            style="margin-left: 20px; margin-right: 20px; width: 25%;"
+            src="https://www.dropbox.com/scl/fi/5pguekvpfry733hrzhjnx/logo.png?rlkey=jzrav9rneqdnh4wxpco538mnw&raw=1"
+            />
+            <!-- <h2> تطبيقات نحل</h2> -->
+            <svg id="visual" viewBox="0 0 900 600" width="500" height="600" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="position: absolute; z-index: -1;">
+                <g transform="translate(460.6560045766935 330.46230543970523)">
+                    <path id="blob1"
+                    d="M179.7 -253.3C226.1 -213.6 252.4 -152 270.9 -89.4C289.4 -26.7 300.2 37.2 279.3 87.5C258.5 137.8 205.9 174.5 154.1 198.3C102.3 222.1 51.1 233.1 -3.7 238.2C-58.6 243.3 -117.2 242.6 -161.4 216.3C-205.6 190 -235.5 138.1 -265.6 78.5C-295.8 18.9 -326.2 -48.5 -304.9 -94.5C-283.7 -140.5 -210.7 -165 -151.3 -200.6C-91.8 -236.1 -45.9 -282.5 10.3 -296.8C66.6 -311 133.2 -293 179.7 -253.3" fill="#ffffffd4">
+                    </path>
+                </g>
+                <g transform="translate(412.8686509605503 289.1871898626427)" style="visibility: hidden;">
+                    <path id="blob2"
+                    d="M137.5 -199C174.6 -162.2 198.8 -117.3 233.1 -63.5C267.5 -9.7 312.1 53.1 300 99.7C287.9 146.3 219.2 176.7 159.8 209.6C100.3 242.4 50.2 277.7 -5.5 285.3C-61.1 292.8 -122.3 272.6 -159.5 232.5C-196.8 192.5 -210.1 132.6 -219 77.7C-227.9 22.8 -232.4 -27.1 -220.8 -74.5C-209.2 -122 -181.6 -167 -142.1 -203C-102.7 -239 -51.3 -266 -0.6 -265.2C50.2 -264.4 100.3 -235.7 137.5 -199" fill="#ffffffd4"></path>
+                </g>
+            </svg>
+        </div>
+        </div>
+    </div>
+    <div id="form">
+
+        <div id="form-content">
+          <div class="header">
+            <div class="header-grid1">
+              <img src="https://www.dropbox.com/scl/fi/5pguekvpfry733hrzhjnx/logo.png?rlkey=jzrav9rneqdnh4wxpco538mnw&raw=1" alt="">
+            <h1 style="display: inline-block;">Nahl Time</h1>
+            </div>
+            <div class="header-grid2">
+              <a class="nostyle" href="nahl.app"><Span style="color: #FFAB01;">www.</Span><span style="font-weight: bold;">Nahl</span><span style="font-weight: normal;">.app</span></a>
+              <div class="header-grid3">
+              <img class="social" src="" alt=""> 
+     <img class="social" src="https://www.dropbox.com/scl/fi/6nhtxruo0qctgwjtzgh51/tik-tok.png?rlkey=b9rvg0uqadhhsckrmu9krxdo5&st=zkobmg85&raw=1" alt=""> <img class="social" src="https://www.dropbox.com/scl/fi/yuw8zd98282knix18bgpi/instagram.png?rlkey=ti0e1hqs2bx5lyfyqkbe1qw42&st=4pwkthmh&raw=1" alt=""> <span>nahl.app</span>
+            </div>
+            </div>
+          </div>
+            <div id="page1" style="display: flex;">
+              <div dir="rtl">
+                <h1 >
+                    الحجز صار أسهل<br>
+                    سهل عملية الحجز واستخدم<br>
+                    نحل تايم لإدارة حجوزاتك<br>
+                </h1>
+                <br>
+                <h2>
+                 نتمنى لكم تجربة ممتعة وناجحة معنا!               
+                </h2>
+              </div>
+              <div class="filter-button-wrap">
+                <button id="page1-button" class="filter-button"> احجز موعدك </button>
+              </div>
+            </div>  
+            <div id="page2" class="fadeIn" style="display: none;">
+                <h1 dir="rtl">
+وين مكانك؟
+                  <br>
+                    اختيار المنطقة
+                </h1>
+                <form onsubmit="handleSubmit(event)" id="page2-form" action="" style="width: 100%;">
+                    <div id="select2-container" style="position: relative;">
+                        <select id="area" class="js-example-basic-single" style="width: 50%" name="state" required>
+                            <!-- <option value="1">SAM</option>
+                            <option value="2">bob</option> -->
+                        </select>
+                        <div id="page2-spinner" style=" position: absolute; top: 0; left: 47.6%; display: none  ;">
+                      
+                          <div class="spinner-border" role="status" style="width: 1.5rem; height: 1.5rem;margin-top:19%;">
+                            <span class="sr-only">Loading...</span>
+                          </div>
+                        </div>
+                </div>
+                <div style="display: flex; flex-direction: column; margin-top:30px;width: 100%;    align-items: center;
+                ">
+                    <!--<input id="googleMap" type="text" style="margin: 3%; width: 50%;" required></input> -->
+                    
+                </div>
+            </form>
+            <div class="filter-button-wrap">
+                <button id="page2-button" class="filter-button" style=""> التالي </button>
+                </div>
+            </div>
+            <div id="page3" class="fadeIn" style="display: none;">
+                <h1 dir="rtl">
+اختارالمنطقة
+                  <br>
+                    اختيار الموعد
+                </h1>
+                <input type="date" id="date" name="date" class="date form-control" style="text-align: center; width: 50%; vertical-align: middle;">
+                <!-- <button id="page3-button" class="filter-button" style="margin-top:30px"> التالي </button> -->
+                <!-- <input type="date" id="date" name="date" style="text-align: center;"> -->
+                <div class="time-date-box" >
+                    <div id="time-date-header" class="time-date-header" dir="rtl">
+                        <div id="dayHeader1" class="choosed" style="border-radius: 0px 10px 0px 0px;">
+                            <span id="day1" >sunday</span>
+                            <br>
+                            <span id="day1date">02\11\2013</span>
+                        </div>
+                        <div id="dayHeader2">
+                            <span id="day2">monday</span>
+                            <br>
+                            <span id="day2date">02\12\2013</span>
+                        </div>
+                        <div id="dayHeader3" style="border-radius: 10px 0px 0px 0px;">
+                            <span id="day3">tuesday</span>
+                            <br>
+                            <span id="day3date">02\13\2013</span>
+                        </div>
+                    </div>
+                    <div id="time-container" class="time-container" dir="rtl">
+                        <!-- <button class="time-button">
+                            10:30AM
+                        </button><button class="time-button">
+                            10:40AM
+                        </button><button class="time-button">
+                            10:50AM
+                        </button><button class="time-button">
+                            11:00AM
+                        </button><button class="time-button">
+                            11:10AM
+                        </button><button class="time-button">
+                            11:20AM
+                        </button><button class="time-button">
+                            11:30AM
+                        </button><button class="time-button">
+                            11:40AM
+                        </button><button class="time-button">
+                            11:50AM
+                        </button><button class="time-button">
+                            12:00PM
+                        </button> -->
+                    </div>
+                    <div id="fail-alert-3" class="alert alert-danger" role="alert" style="display:none;margin-top: 30px;margin-bottom: 0px;">
+                      <span></span>
+                      <br>
+                      <span></span>
+                    </div>
+                </div>
+                <div class="filter-button-wrap">
+                <button id="page3-return" class="filter-button" style=""> السابق </button>
+                </div>
+
+            </div> 
+
+            <div id="page4" class="fadeIn" style="display: none;" >
+
+                <form onsubmit="handleSubmit(event)"id="page4-form" action="" style="display: flex; flex-direction:column;">
+                  <h2>
+                    معلومات الاتصال
+                </h2>
+                    <label for="name">الإسم</label>
+                    <input id="name" type="text" required></input>
+                    <label for="mobile">رقم الجوال</label>
+                    <input id="mobile" type="text" maxlength="9" required placeholder="5XXXXXXXX"></input>
+                    <h2>
+                        الخدمات المطلوبة
+                    </h2>
+                    <label for="serviceCat">صنف الخدمة</label>
+                    <select id="serviceCat" type="text" required></select>
+                    <label for="service">الخدمة</label>
+                    <select id="service" type="text" required></select>
+                    <h2>
+                      طريقة الدفع
+                    </h2>
+                    <div style="display: flex; flex-direction: row-reverse; justify-content: space-evenly; align-content: center; align-items: center;">
+                      <div style="flex-grow: 1; flex-basis:0;" >
+                        <label for="STCPay"  class="radio-label" style="position: relative;">
+                          <input style="position: absolute; opacity: 0;width: 50%;margin: 0;height: 100%;padding: 0;" type="radio" name="payingMethod" class="radios" id="card" value="ApplePay" required>
+                       <img class="radio-buttons" src="https://www.dropbox.com/scl/fi/k0kcfw7kgcoinsjy06gq0/STC-Pay.png?rlkey=g6yfw0nof4di1xd44639271l8&st=2bzfmqkn&raw=1" alt="" width="125px">
+                        </label>
+                      </div>
+                      <div style="flex-grow: 1; flex-basis:0;">
+                        <label for="ApplePay"  class="radio-label" style="position: relative;">
+                          <input style="position: absolute; opacity: 0;width: 50%;margin: 0;height: 100%;padding: 0;" type="radio" name="payingMethod" class="radios" id="card" value="ApplePay" required>
+                          <img   class="radio-buttons" src="https://www.currensea.com/hs-fs/hubfs/Apple_Pay_logo_blk_020519-ai.png?width=700&height=700&name=Apple_Pay_logo_blk_020519-ai.png" alt="" width="125px">
+                          <!-- <svg class="radio-buttons" enable-background="new 0 0 24 24" id="Layer_1" version="1.1" viewBox="0 0 24 24" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g><path clip-rule="evenodd" d="   M22,20.5H2c-0.8284271,0-1.5-0.6715736-1.5-1.5V5c0-0.8284273,0.6715729-1.5,1.5-1.5h20c0.8284264,0,1.5,0.6715727,1.5,1.5v14   C23.5,19.8284264,22.8284264,20.5,22,20.5z" fill="none" fill-rule="evenodd" stroke="#303C42" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"/><g><path d="M12.7913666,10.4264708c0.8848925,0,1.5107918,0.6115103,1.5107918,1.5035973    c0,0.892086-0.6330938,1.5107908-1.5323744,1.5107908h-1.0575533v1.5611515H11v-4.5755396H12.7913666z M11.7122307,12.8437366    h0.892086c0.6115103,0,0.9712229-0.3309355,0.9712229-0.9064751s-0.3525181-0.9136686-0.9712229-0.9136686h-0.892086V12.8437366z" fill="#303C42"/><path d="M14.4388485,14.0163984c0-0.6043167,0.4676256-0.9496403,1.3165464-1.0071945l0.9280577-0.0503597    v-0.2661867c0-0.3956833-0.2661877-0.6115112-0.7194242-0.6115112c-0.3741007,0-0.6474819,0.1942453-0.7050362,0.4892092    h-0.6402884c0.0215826-0.6115112,0.5971222-1.0575542,1.3669071-1.0575542c0.8417263,0,1.3812943,0.446043,1.3812943,1.1223021    v2.3597126h-0.6546764v-0.5755396h-0.014389c-0.1870499,0.3741007-0.6187038,0.6115112-1.0863304,0.6115112    C14.9136686,15.037981,14.4388485,14.6279097,14.4388485,14.0163984z M16.6834526,13.7070465v-0.2661877l-0.8345318,0.0575542    c-0.4676256,0.0287771-0.7122297,0.2014389-0.7122297,0.5107908c0,0.2949638,0.2589931,0.4820147,0.6546764,0.4820147    C16.2949638,14.484024,16.6834526,14.1602831,16.6834526,13.7070465z" fill="#303C42"/><path d="M18.1151085,16.2322254v-0.5611515c0.0503578,0.014389,0.1582718,0.014389,0.215826,0.014389    c0.3237419,0,0.5107918-0.1366911,0.6259003-0.5035973l0.0503578-0.1798563l-1.2517967-3.4532375h0.7410069l0.8848915,2.8129501    h0.014389l0.8848915-2.8129501H21l-1.2877693,3.6043167c-0.2949638,0.8273382-0.6187057,1.093524-1.32374,1.093524    C18.338129,16.253809,18.1726627,16.2394199,18.1151085,16.2322254z" fill="#303C42"/></g><path clip-rule="evenodd" d="M8.4404516,12.2502041   c-0.0096636-1.0116596,0.8265867-1.4992275,0.8643255-1.522336c-0.4695835-0.6884193-1.2022104-0.7826586-1.4631195-0.7936764   c-0.6228209-0.0625381-1.2155018,0.3671761-1.5317101,0.3671761c-0.315351,0-0.8036313-0.3576498-1.3197641-0.3474808   c-0.6796045,0.00945-1.3056238,0.3945313-1.6555226,1.0024157c-0.7051229,1.2243242-0.1802404,3.0375566,0.5073946,4.0307989   c0.3356128,0.485013,0.7367554,1.0321436,1.2627664,1.0123787c0.5073986-0.0198946,0.6984434-0.3272266,1.3103909-0.3272266   c0.6124377,0,0.784441,0.3272266,1.3211188,0.3171339c0.5444903-0.0098019,0.8906932-0.4953814,1.2242398-0.9823761   c0.3855791-0.5641098,0.5443525-1.1101761,0.5535955-1.1385336C9.5024366,13.8642159,8.4514704,13.4607325,8.4404516,12.2502041   L8.4404516,12.2502041z" fill="#303C42" fill-rule="evenodd"/><path clip-rule="evenodd" d="M7.433908,9.2777643   C7.7134409,8.9389524,7.9010043,8.4687986,7.8496151,8C7.4472675,8.0159845,6.9594197,8.2685757,6.671217,8.6063318   c-0.2590652,0.2997179-0.4857898,0.778327-0.4243121,1.2373085C6.6957407,9.87854,7.154233,9.6159248,7.433908,9.2777643   L7.433908,9.2777643z" fill="#303C42" fill-rule="evenodd"/></g><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/><g/></svg>                       -->
+                        </label>
+                      </div>
+              
+                    </div>
+                </form>
+                
+                <div id="page4-buttons" >
+                  <div id="fail-alert-4" class="alert alert-danger" role="alert" style="display:none;margin-top: 30px;margin-bottom: 0px;">
+                    <span></span>
+                    <br>
+                    <span></span>
+                  </div>
+                <button id="page4-button" class="filter-button" style="margin-top:30px"> التالي </button>
+                <button id="page4-return" class="filter-button" style="margin-top:30px"> السابق </button>
+                <!-- <div id="page4-spinner" class="spinner-border" role="status" style="display:none;margin-top: 30px;">
+                  <span class="sr-only">Loading...</span>
+                </div> -->
+            </div>
+            </div>
+            <div id="page5" class="fadeIn" style="display: none;" >
+            <label for="googleMap" style="font-size: 1.5em;">الموقع على خريطة قوقل</label>
+            <div id="googleMap" style="width:100%;height:400px;margin-top: 3%;margin-bottom: 3%;;color: #493a68"></div>
+            <button class="filter-button" id="show-my-location" style="border-radius: 0px;width: 100%;"> اظهار موقعي</button> 
+            <div id="page5-buttons" >
+              <div id="fail-alert-5" class="alert alert-danger" role="alert" style="display:none;margin-top: 30px;margin-bottom: 0px;">
+                <span></span>
+                <br>
+                <span></span>
+              </div>
+                <button id="page5-button" class="filter-button" style="margin-top:30px"> التالي </button>
+                <button id="page5-return" class="filter-button" style="margin-top:30px"> السابق </button>
+                <div id="page5-spinner" style="display: none; flex-direction: column; align-items: center;">
+                  <span class="mt-3">
+                    <!-- جاري ارسال رقم التوثيق الى الرقم المدخل عن طريق الواتساب -->
+                  </span>
+                  <div  class="spinner-border" role="status" style="display:none;margin-top: 30px;">
+                    <span class="sr-only">Loading...</span>
+                  </div>
+                </div>
+
+            </div>
+            </div>
+            <div id="page6" class="fadeIn" style="display: none;" >
+              <label for="code" style="font-size: 1.5em;">أدخل الرمز المُرسل إلى هاتفك عن طريق الواتساب</label>
+              <br>
+              <div style="font-size: 1.5em;">
+                +<span id="mobileNumbLoading"> </span>
+              </div>
+              <br>
+              <form onsubmit="handleSubmit(event)" id="page6-form" action="" style="width: 100%;">
+              <input id="code" type="text" minlength="4" maxlength="4" required></input>
+              <div></div>
+              <div id="page6-spinner" class="spinner-border" role="status" style="display:none;margin-top: 30px;">
+                <span class="sr-only">Loading...</span>
+              </div>
+              <div id="resend-objects" style="font-size: 1.5em;">
+                <div>لإعادة الارسال الرجاء الإنتظار</div>
+                <div id="resendTimer"></div>
+              </div>
+              <div class="page6-contact">
+                <span>
+                  في حال عدم قدرتك على استلام الرسالة بامكانك التواصل معنا عن طريق <a href="https://wa.me/966577320591" target="_blank"> الضغط هنا
+                  </a>
+                </span>
+              </div>
+              </form>
+              <div id="page6-buttons" >
+                <div id="fail-alert" class="alert alert-danger" role="alert" style="display:none;margin-top: 30px;margin-bottom: 0px;">
+                  <span></span>
+                  <br>
+                  <span></span>
+                  </div>
+                  <button id="page6-button" class="filter-button" style="margin-top:30px"> التالي </button>
+                  <!-- <button id="page6-return" class="filter-button" style="margin-top:30px"> السابق </button> -->
+              </div>
+              </div>
+            
+            <div id="page7" class="fadeIn" style="display: none;" >
+                <h1>
+شكرا لكم
+                </h1>
+               <h2 dir="rtl">
+تم حجز الموعد بشكل مبدئي، وراح نأكده لكم على الواتساب
+               </h2>
+               <h3>متحمسين نجيكم!! </h3>
+            </div>  
+            <footer dir="rtl" style="text-align: center; margin-top: 20px;">
+              <p>
+NAHL.APP
+              </p>
+              <p>
+            Demo Version 2.2
+              </p>
+              <p>
+
+              </p>
+            </footer>
+        </div>
+
+    </div>
+    <a target="_blank" href="https://wa.me/966570698531" class="whatsapp-button"><i class="fab fa-whatsapp"></i></a> 
+</body>
+
+<script>
+var DateTime = luxon.DateTime;
+    var userLang = navigator.language || navigator.userLanguage; 
+    if(userLang.includes("ar")){
+    // alert ("The language is:AR " + userLang);
+    document.getElementById("date").setAttribute("dir","rtl")
+
+    } else{
+    document.getElementById("date").setAttribute("dir","ltr")
+
+    }
+let locale = "ar"
+const translations = {
+  // English translations
+  "en": {
+    "app-title": "Departements List",
+    "add-new": "Add new",
+    "show-added": "Show Added",
+      "search-box": {
+     "attribute":"placeholder",
+     "search" : "Search"
+    },
+    "service-category-id": "Service Category ID",
+    "cat-num": "Category No.",
+
+    "arabic-name": "Arabic Name",
+    "english-name": "English Name",
+
+    "service-name-ar": "Service Name in Arabic",
+    "service-name-en": "Service Name in English",
+    "cat-name": "Category Name",
+    "price": "Price",
+    "price-no-vat":"Service Price w/o VAT",
+    "vat":"VAT",  
+    "vat-amount":"VAT Amount",
+    "price-with-vat": "Price with VAT",
+    "serial-num":"Serial Number",
+    "data-submitted":"Data Has Been Submitted Successfully",
+    "cancel" : "Cancel",
+    "save" : "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleted":"Deleted",
+    "confirm-deletion":"Confirm Deletion",
+    "add-loc" :"Add Location",
+    "location" : "Location",
+    "locations" : "Locations",
+    "servicesCat":{},
+    "services":{},
+    "locationsTrans":{},
+  },
+  // Arabic translations
+  "ar": {
+    "app-title": "قائمة الأقسام",
+    "add-new": "اضافة قسم",
+    "show-added": "عرض الأقسم",
+      "search-box": {
+     "attribute":"placeholder",
+     "search" : "ابحث"
+    },
+    "service-category-id": "رقم الصنف",
+    "cat-num": "رقم القسم",
+
+    "arabic-name": "الاسم باللغة العربية",
+    "english-name": "الاسم باللغة الانجليزية",
+
+    "service-name-ar": "اسم الخدمة باللغة العربية",
+    "service-name-en": "اسم الخدمة باللغة الإنجليزية",
+    "cat-name": "اسم الصنف",
+    "price": "السعر",
+    "price-no-vat":"سعر الخدمة بدون الضريبة",
+    "vat":"الضريبة",
+    "vat-amount":"قيمة الضريبة",
+    "price-with-vat": "السعر مع الضريبة",
+    "serial-num":"الرقم التسلسلي",
+    "data-submitted":"تم إرسال البيانات بنجاح",
+    "cancel" : "إلغاء",
+    "save" : "حفظ",
+     "edit": "تعديل",
+    "delete": "حذف",
+    "deleted":"تم الحذف",
+    "confirm-deletion":"تأكيد الحذف",
+    "add-loc" :"اضافة منطقة",
+    "location" : "منطقة",
+    "locations" : "المناطق",
+    "servicesCat":{},
+    "services":{},
+    "locationsTrans":{},
+  },
+};
+// load user data 
+try {
+  document.getElementById("name").value = localStorage.getItem("name")
+  document.getElementById("mobile").value = localStorage.getItem("mobile")
+} catch (error) {
+  console.log("new uesr")
+}
+//     const tween = KUTE.fromTo(
+//     '#blob1',
+//     {path: '#blob1'},
+//     {path: '#blob2'},
+//     {repeat: 999, duration: 3000, yoyo:true}
+// )
+// tween.start()
+document.getElementById("date").setAttribute("min", new Date().toLocaleDateString("fr-ca"))
+// const defaultLink = "https://script.google.com/macros/s/AKfycbyQVnKXb6U_XD9ZS2AllJSV20kCGr6G55dq2q8Fy3qRIHuQnM1O6vIUJ7D3DHaLOszoFw/exec";
+const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${'d461169e-d537-4b6c-93de-8d3799eec492'}/form`
+const acceptedHourdiff = 1;
+const acceptedMindiff = 30;
+var mydata = ""
+let controllers = []
+let services 
+let serviceCategories
+async function callContent(routText, callback,abortable = false){
+  let signal = ''
+  if (abortable) {
+    if( controllers.length > 0 ){
+    for (let i = 0; i < controllers.length; i++) {
+      const element = controllers[i];
+      // console.log(controllers)
+      // console.log(element)
+      element[0].abort()
+    }
+    controllers = []
+    }
+    const controller = new AbortController()
+    signal = controller.signal
+    controllers.push([controller, signal])
+  }
+  await new Promise(resolve => setTimeout(resolve, 1000)); // Sleep for 2 seconds (2000 milliseconds)
+
+	fetch(defaultLink +`?content=${routText}`, {
+		   redirect: "follow",
+		   method: "GET",
+       ...(abortable && { signal }), // Include signal if condition is true
+		 }).then(async (response) => {
+		//  console.log("Response:", response);
+     let originalResponse = response
+		//  let htmlResponse = await originalResponse.text()
+     let jsonresponse = await originalResponse.json()
+    //  console.log("Response:", jsonresponse);
+    //  // console.log("text", originalResponse.text())
+		//  htmlResponse = JSON.parse(htmlResponse)
+		 //// console.log("Response:", htmlResponse);
+		 
+		  callback(jsonresponse);
+	 }).catch(err => {
+		 console.log("Error:" + err);
+	 });
+}
+async function callContent2(routText, callback,abortable = false, retries=3){
+  let signal = ''
+  if (abortable) {
+    if( controllers.length > 0 ){
+    for (let i = 0; i < controllers.length; i++) {
+      const element = controllers[i];
+      // console.log(controllers)
+      // console.log(element)
+      element[0].abort()
+    }
+    controllers = []
+    }
+    const controller = new AbortController()
+    signal = controller.signal
+    controllers.push([controller, signal])
+  }
+  await new Promise(resolve => setTimeout(resolve, 1000)); // Sleep for 1 seconds (1000 milliseconds)
+
+	fetch(defaultLink2 +`${routText}`, {
+		   redirect: "follow",
+		   method: "GET",
+       ...(abortable && { signal }), // Include signal if condition is true
+		 }).then(async (response) => {
+      if (!response.ok) {
+        if (retries > 0) {
+          console.log("retry: ", retries)
+          return callContent2(routText, callback, abortable, retries-1)
+        }else {
+          throw new Error('Network response was not ok');
+        }
+      }
+		//  console.log("Response:", response);
+     let originalResponse = response
+		//  let htmlResponse = await originalResponse.text()
+     let jsonresponse = await originalResponse.json()
+    //  console.log("Response:", jsonresponse);
+    //  // console.log("text", originalResponse.text())
+		//  htmlResponse = JSON.parse(htmlResponse)
+		 //// console.log("Response:", htmlResponse);
+		 
+		  callback(jsonresponse);
+	 }).catch(err => {
+		 console.log("Error:" + err);
+     if(!err.message.includes("aborted")){
+      setTimeout(()=>{
+      if (retries > 0) {
+          console.log("retry: ", retries)
+          return callContent2(routText, callback, abortable, retries-1)
+        }else {
+          throw new Error('Network response was not ok');
+        }
+     }, 2000);
+     }
+	 });
+}
+// gets active locations
+document.getElementById("page2-spinner").style.display = "block"
+let nLocations = callContent2(`/locations`,(data) => {
+  // Access the object retrieved from the API
+  console.log(data); // This will log the retrieved object
+    // You can now access properties of the object like data.propertyName
+    if(!data.success){
+      // handle error cases
+    }
+    let locations = data.data
+    let selectData = [{id:0, text:"test"}]
+    for(let i=0; i<locations.length; i++){
+        selectData[i] = {id:locations[i]["id"], text:locations[i]["TS_location_arabic_name"]}
+      }
+    $('.js-example-basic-single').select2({
+          data:selectData,
+          width: "50%"
+      });
+      $('#area').trigger('change')
+    for(let i=0; i<locations.length; i++){
+      translations.en["locationsTrans"][locations[i]["TS_location_english_name"].toLowerCase()] = locations[i]["TS_location_english_name"];
+      translations.ar["locationsTrans"][locations[i]["TS_location_english_name"].toLowerCase()] = locations[i]["TS_location_arabic_name"]; 
+    }
+    document.getElementById("page2-spinner").style.display = "none"
+})
+
+
+    // $("#date").datepicker({
+    //     format: "dd-mm-yyyy",
+    //   });
+    var data = [
+    {
+        id: 0,
+        text: 'enhancement'
+    },
+    {
+        id: 1,
+        text: 'bug'
+    },
+    {
+        id: 2,
+        text: 'duplicate'
+    },
+    {
+        id: 3,
+        text: 'invalid'
+    },
+    {
+        id: 4,
+        text: 'wontfix'
+    }
+];
+
+var formData = [];
+var nForm =  {
+                date:'' ,
+                time:'' ,
+                location:'',
+                service: '',
+                serviceCat: '',
+                customerM: '',
+                customerN: '',
+                paymentMethod:'',
+                urlLocation:''
+              }
+let day1 = new Date()
+day1= dayjs()
+day1 = DateTime.now()
+// day1 =DateTime.fromISO('2024-10-01')
+let day2 = new Date()
+// day2.setDate(day1.getDate() + 1)
+day2 =  dayjs().add(1, 'day')
+day2 = day1.plus({days:1})
+let day3 = new Date()
+// day3.setDate(day1.getDate() + 2)
+day3 =  dayjs().add(2, 'day')
+day3 = day1.plus({days:2})
+let dates =[day1,day2,day3]
+let weekdays = [];
+weekdays[0] = "الأحد";
+weekdays[1] = "الإثنين";
+weekdays[2] = "الثلاثاء";
+weekdays[3] = "الأربعاء";
+weekdays[4] = "الخميس";
+weekdays[5] = "الجمعة";
+weekdays[6] = "السبت";
+weekdays[7] = "الأحد";
+
+let weekdaysEn = [];
+weekdaysEn[0] = "Sunday";
+weekdaysEn[1] = "Monday";
+weekdaysEn[2] = "Tuesday";
+weekdaysEn[3] = "Wednesday";
+weekdaysEn[4] = "Thursday";
+weekdaysEn[5] = "Friday";
+weekdaysEn[6] = "Saturday";
+let appointments = [[],[],[]]
+let ActualTimes = [[],[],[]]
+let timesLoaded = false;
+document.getElementById('date').onchange = () => {
+  document.getElementById('date').disabled = true;
+  $("#time-contaier").empty()
+  document.getElementById('time-container').innerHTML =''
+  document.getElementById('time-container').innerHTML = `
+  <div id="department-spinner" class="spinner-border" role="status" style="grid-column-start: span 3;justify-self: center;">
+              <span class="sr-only">Loading...</span>
+            </div>
+            `
+  ActualTimes = [[],[],[]]            
+  appointments = [[],[],[]]
+  timesLoaded = false;
+  // let day1 = dayjs(new Date('2024-10-01'))
+  // let day1 = DateTime.fromISO('2024-10-01')
+  day1 = DateTime.fromISO(document.getElementById('date').value)
+  // day1 = DateTime.now()
+  // let day2 = dayjs(new Date('2024-10-01')).add(1, 'day')
+  day2 = day1.plus({days:1})
+  // let day3 = dayjs(new Date(document.getElementById('date').value)).add(2, 'day')
+  day3 = day1.plus({days:2})
+  let datesSet = [day1,day2,day3]
+  // let datesSubmit =[day1.toLocaleString("en-GB"),day2.toLocaleString("en-GB"),day3.toLocaleString("en-GB")]
+  // let datesSubmit =[day1.format('DD/MM/YYYY, HH:mm:ss'),day2.format('DD/MM/YYYY, HH:mm:ss'),day3.format('DD/MM/YYYY, HH:mm:ss')]
+  // console.log(datesSubmit);
+  // console.log("dates")
+  // console.log(datesSet)
+  for(let i = 1; i <= 3 ; i ++){
+    document.getElementById(`day${i}`).innerText = weekdays[datesSet[i-1].weekday];
+    // document.getElementById(`day${i}date`).innerText = datesSet[i-1].toLocaleDateString('pt-br').split( '/' ).reverse( ).join( '-' ); 
+    document.getElementById(`day${i}date`).innerText = datesSet[i-1].toFormat('yyyy-MM-dd');
+    // console.log("----");
+    // console.log(weekdays[datesSet[i-1].weekday]);
+    // console.log(datesSet[i-1].toFormat('yyyy-MM-dd'));
+    // console.log("----");
+  }
+  // let urlDatesSubmit = encodeURIComponent(JSON.stringify(datesSubmit), "UTF-8")
+  // let urlElementValue = encodeURIComponent(JSON.stringify([document.getElementById("area").value]), "UTF-8")
+  // &dates=${urlDatesSubmit}&current=${urlElementValue}
+  // ?startDate=2024-10-01&location=1
+  // console.log("dataes");
+  // console.log(day1.format('YYYY-MM-DD'));
+  // document.getElementById("area").value
+  callContent2(`/appointments?startDate=${day1.toFormat('yyyy-MM-dd')}&location=${document.getElementById("area").value}`, (data) => {
+
+    // set loading 
+    document.getElementById('time-container').innerHTML = `
+  <div id="department-spinner" class="spinner-border" role="status" style="grid-column-start: span 3;justify-self: center;">
+              <span class="sr-only">Loading...</span>
+            </div>
+            `
+    appointments = [[],[],[]]
+      let recievedDates = data.data.appointments; 
+      services = data.data.services
+      serviceCategories = data.data.servicesCat
+      console.log(data);
+      let tempActualTimes = []
+      for(let i = 0; i < recievedDates.length ; i ++){
+        let x = DateTime.fromISO(recievedDates[i]['TS_appointment_date'], { setZone: true });
+        let y = DateTime.fromISO(recievedDates[i]['TS_appointment_time'], { setZone: true });
+        // console.log("time: ", y.toFormat('hh:mm a'))
+        recievedDates[i]['TS_appointment_date'] = x.toISODate()
+        recievedDates[i]['TS_appointment_time'] = y.toLocaleString(DateTime.TIME_SIMPLE).replace(" ", " ")
+        tempActualTimes[i] = y.toFormat('hh:mm a')
+        // console.log(x.toISODate());
+      }
+      console.log(day1.toFormat('yyyy-MM-dd'),day2.toFormat('yyyy-MM-dd'),day3.toFormat('yyyy-MM-dd'));
+      console.log(recievedDates);
+      // console.log(recievedDates[0]['TS_appointment_time'].toLocaleString(DateTime.TIME_SIMPLE));
+      for(let i = 0; i < recievedDates.length ; i ++){
+        // // console.log("datesCompare")
+        // // console.log(recievedDates[i][0], day1)
+        if (recievedDates[i]["TS_appointment_date"] == day1.toFormat('yyyy-MM-dd')){
+          appointments[0].push(recievedDates[i]['TS_appointment_time'])
+          ActualTimes[0].push(tempActualTimes[i])
+        }else if (recievedDates[i]["TS_appointment_date"] == day2.toFormat('yyyy-MM-dd')){
+          appointments[1].push(recievedDates[i]['TS_appointment_time'])
+          ActualTimes[1].push(tempActualTimes[i])
+        }else if (recievedDates[i]["TS_appointment_date"] == day3.toFormat('yyyy-MM-dd')){
+          appointments[2].push(recievedDates[i]['TS_appointment_time'])
+          ActualTimes[2].push(tempActualTimes[i])
+        }
+      }
+      console.log(appointments);
+      timesLoaded = true;
+      $("#dayHeader1").trigger("click")
+      // timesSetter(0)
+      document.getElementById('date').disabled = false;
+      // get services and cats 
+      // Define an object to store categories and their corresponding services and locations
+      const categoriesWithServices = {};
+
+      // Iterate over services and group them by category
+      services.forEach(service => {
+        const categoryID = service.TS_category_id;
+        if (!categoriesWithServices[categoryID]) {
+          // If the category is not already in the object, add it
+          categoriesWithServices[categoryID] = {
+            category: serviceCategories.find(cat => cat.TS_category_id === categoryID),
+            services: [],
+            locations: new Set()
+          };
+        }
+        // Add the service to the corresponding category
+        categoriesWithServices[categoryID].services.push(service);
+        // Add the locations associated with this service to the category's locations set
+        service.location.forEach(location => {
+          categoriesWithServices[categoryID].locations.add(location);
+        });
+      });
+      // console.log("!!!!!!!!!");
+      // console.log(data.data);
+      // console.log("!!!!!!!!!");
+      // console.log(categoriesWithServices);
+      // load translationn 
+      for (let j = 0; j < services.length; j++) {
+        const element = services[j];
+        translations.ar['services'][element.TS_service_english_name.toLowerCase()] = element.TS_service_arabic_name
+        translations.en['services'][element.TS_service_english_name.toLowerCase()] = element.TS_service_english_name
+      }
+      for (let j = 0; j < serviceCategories.length; j++) {
+        const element = serviceCategories[j];
+        translations.ar['servicesCat'][element.TS_category_english_name.toLowerCase()] = element.TS_category_arabic_name
+        translations.en['servicesCat'][element.TS_category_english_name.toLowerCase()] = element.TS_category_english_name
+      }
+      // now update the services and category based on the choosen location
+      servicesDropdownLoader2(categoriesWithServices)
+
+  }, abortable = true )
+
+ 
+
+ }
+
+function parse_Date(date = '13/02/2023, 06:26:39') {
+  // const date = date
+  //  date = "1/21/2023, 4:31:12 PM";
+  let [first, second] = date.split(',').map(item => item.trim());
+  first = first.split("/").reverse().join("-")
+  // console.log(first)
+  return first
+}
+// document.getElementById('date').value = day1.toISOString().substring(0, 10); 
+document.getElementById('date').value = DateTime.now().toFormat('yyyy-MM-dd');
+
+$("#area").on("change", () => {$('#date').trigger('change'); })
+
+function timesSetter (index) {
+  // change times here
+    let timeContainer = document.getElementById("time-container");
+    $("#time-container").empty()
+    timeContainer.innerHTML = "";
+    if(appointments[index].length == 0){
+        document.getElementById('time-container').innerHTML = `
+
+  <div id="department-spinner" class="" role="status" style="grid-column-start: span 3;justify-self: center;">
+              <span class="color:">لا توجد مواعيد متاحة</span>
+            </div>
+            `
+    }
+    // console.log("----time----")
+// fetch("https://worldtimeapi.org/api/timezone/Asia/Riyadh")
+//   .then(response => response.json())
+//   .then(data => {
+//     console.log(data)
+    // let current_time = new Date(data.datetime)
+    // check time validity    
+    for (let y = 0; y < appointments[index].length; y++) {
+      // let recievedtime1 = appointments[index][y].split(" ")[0].split(":")
+      // let recievedHours = parseInt(recievedtime1[0])
+      // let recievedMinutes = parseInt(recievedtime1[1])
+      // let recievedAmPm = appointments[index][y].split(" ")[1]
+      // console.log(recievedHours , recievedMinutes, recievedAmPm)
+      // if (recievedAmPm == "PM"){
+      //   recievedHours = recievedHours + 12;
+      // }
+      // if ( current_time.getHours() > recievedHours){
+      //   continue;
+      // }else if (current_time.getHours() == recievedHours){
+      //   if(current_time.getMinutes() >= recievedMinutes){
+      //     continue
+      //   }
+      // }
+      // let timediff =recievedHours -  current_time.getHours()
+      // if (timediff == 0){
+      //   let mindiff = recievedMinutes - current_time.getMinutes();
+      //   if(mindiff < acceptedMindiff){
+      //     continue;
+      //   }
+      // }else if(timediff < acceptedHourdiff){
+      //     continue;
+      // }
+        timeContainer.innerHTML += `<button onclick="choosedDate('${ActualTimes[index][y]}','${document.getElementById(`day${index+1}date`).innerText}')" class="time-button" dir="ltr">
+                    ${appointments[index][y]}
+                </button>`;
+                // console.log(appointments[index][y])
+                // console.log()
+    // console.log("----time----")
+  // }})
+
+}}
+
+
+for(let i = 1; i <= 3 ; i ++){
+  // console.log(i)
+  document.getElementById(`day${i}`).innerText = weekdays[dates[i-1].weekday];
+  // document.getElementById(`day${i}date`).innerText = dates[i-1].toISOString().substring(0, 10); 
+  document.getElementById(`day${i}date`).innerText = dates[i-1].toFormat('yyyy-MM-dd');; 
+}
+// let appointments = [1,2,3,4]
+    $(document).ready(function() {
+        // $('.js-example-basic-single').select2({
+        //     data:data,
+        //     width: "50%"
+        // });
+    });
+    $('#test').on('click', function(event) { 
+     $('.select2').select2({width: '100%'});
+    })
+
+    for (let i = 1; i < 7; i++) {
+        // console.log(i)
+        if( i == 3) continue;
+        let pb1 = document.getElementById(`page${i}-button`);
+        let p1 = document.getElementById(`page${i}`);
+        let p2 = document.getElementById(`page${i+1}`);
+        if ( i == 2){
+            pb1.onclick = async () => {
+            let field1 = document.getElementById("area")
+            // // console.log(await checkUrlValidity(true))
+            if (field1.value == "" ){
+                // field1.checkValidity()
+                // field2.checkValidity()
+                 infoWindow.setPosition(map.getCenter());
+                // infoWindow.setContent(
+                //   browserHasGeolocation
+                //     ? "Error: The Geolocation service failed."
+                //     : "Error: Your browser doesn't support geolocation."
+                // );
+                infoWindow.setContent(
+                  "الرجاء تحديد الموقع"
+                );
+                  infoWindow.open(map);
+
+                document.getElementById("page2-form").reportValidity()
+                return
+            }
+            // // console.log(, field2.value)
+            p1.classList.remove("fadeIn");
+            p1.classList.add("fadeOut");
+            p2.classList.remove("fadeOut");
+            p2.classList.add("fadeIn");
+            setTimeout(() => {
+                p1.style.display = "none";
+                p2.style.display = "flex";
+            }, "1000")
+            formData[0] = field1.value
+            nForm.location = document.getElementById("area").value
+          }
+             
+        }else if ( i == 4){
+            pb1.onclick = () => {
+            let field1 = document.getElementById("name")
+            let field2 = document.getElementById("mobile")
+            let field3 = document.getElementById("serviceCat")
+            let field4 = document.getElementById("service")
+            let payingMethod = ''
+            let form = document.getElementById("page4-form")
+            try {
+              payingMethod = document.querySelector('input[name="payingMethod"]:checked').value;
+              if(field1.value.trim() == ""){
+                if(locale == "en"){
+                  field1.setCustomValidity("Required field");
+                }else {
+                  field1.setCustomValidity("يُرجى ملئ هذا الحقل");
+                }
+                throw new Error("no name")
+              }
+            } catch (error) {
+              form.reportValidity()
+              return
+            }
+            if (!checkNumberValidity() ){
+                form.reportValidity()
+                return
+            }
+            nForm.paymentMethod = payingMethod
+            if (field3.value == "" || field4.value == "" ){
+              if ( field3.value == ""){
+                field3.style.borderColor='red';
+                field3.style.borderWidth='thin'; 
+              }else{
+                //// console.log("g-",k)
+                field3.style.borderColor='green';
+                field3.style.borderWidth='thin';
+              }
+              if ( field4.value == ""){
+                field4.style.borderColor='red';
+                field4.style.borderWidth='thin'; 
+              }else{
+                //// console.log("g-",k)
+                field4.style.borderColor='green';
+                field4.style.borderWidth='thin';
+              }
+              return
+            }else {
+              field3.style.borderColor='green';
+              field3.style.borderWidth='thin';
+              field4.style.borderColor='green';
+              field4.style.borderWidth='thin';
+            }
+            // // console.log(, field2.value)
+            // field1.disabled = true;
+            // field2.disabled = true;
+            // field3.disabled = true;
+            // field4.disabled = true;
+            // document.getElementById(`page${i}-return`).style.display = "none";
+            // pb1.style.display = "none";
+            // let pageSpinner = document.getElementById(`page${i}-spinner`);
+            // document.getElementById(`fail-alert`).style.display = "none";
+            // pageSpinner.style.display = "block"
+            
+            
+            formData[4] = field1.value
+            formData[5] = "966"+field2.value
+            formData[6] = field3.value
+            formData[7] = field4.value
+            formData[8] = payingMethod
+            
+            nForm.customerN = document.getElementById("name").value.trim()
+            nForm.customerM = "966"+document.getElementById("mobile").value
+            nForm.serviceCat = document.getElementById("serviceCat").value
+            nForm.service = document.getElementById("service").value
+
+            document.getElementById("mobileNumbLoading").textContent = formData[5]
+            // // send data
+            // // console.log(formData)
+
+                p1.classList.remove("fadeIn");
+                p1.classList.add("fadeOut");
+                p2.classList.remove("fadeOut");
+                p2.classList.add("fadeIn");
+                setTimeout(() => {
+                    p1.style.display = "none";
+                    p2.style.display = "flex";
+                }, "1000")
+            //   }else{
+            //     field1.disabled = false;
+            //     field2.disabled = false;
+            //     field3.disabled = false;
+            //     field4.disabled = false;
+            //     document.getElementById(`page${i}-return`).style.display = "inline-block";
+            //     pb1.style.display = "inline-block";
+            //     document.getElementById(`fail-alert`).style.display = "block";
+                
+            //   }
+             
+            // }).form_store(formData);
+            }
+        }else if ( i == 5){
+          pb1.onclick = () => {
+         
+            if (position == "") {
+               infoWindow.setPosition(map.getCenter());
+              //   // infoWindow.setContent(
+              //   //   browserHasGeolocation
+              //   //     ? "Error: The Geolocation service failed."
+              //   //     : "Error: Your browser doesn't support geolocation."
+              //   // );
+                infoWindow.setContent(
+                  "الرجاء تحديد الموقع"
+                );
+                  infoWindow.open(map);
+                return
+            }
+            document.getElementById(`page${i}-return`).style.display = "none";
+            pb1.style.display = "none";
+            let pageSpinner = document.getElementById(`page${i}-spinner`);
+            let failAlert = document.getElementById(`fail-alert-5`)
+            failAlert.style.display = "none";
+            pageSpinner.style.display = "flex"
+            pageSpinner.children[0].style.display = "block"
+            pageSpinner.children[1].style.display = "block"
+
+            formData[1] = position
+            nForm.urlLocation = position
+            // formData[0] = ""
+            // formData[2] = ""
+            // formData[3] = ""
+            // formData[4] = ""
+            // formData[5] = "966533466569"
+            // formData[6] = ""
+            // formData[7] = ""
+            // formData[8] = ""
+      
+            formData[9] = ""
+            formData[10] = ""
+            // p1.classList.remove("fadeIn");
+            //     p1.classList.add("fadeOut");
+            //     p2.classList.remove("fadeOut");
+            //     p2.classList.add("fadeIn");
+            //     setTimeout(() => {
+            //         p1.style.display = "none";
+            //         p2.style.display = "flex";
+            //     }, "1000")
+                
+              // send data
+            console.log(formData)
+            let submitFormData = encodeURIComponent(JSON.stringify(formData), "UTF-8")
+            mydata = {
+                      submitFormData: encodeURIComponent(JSON.stringify(formData), "UTF-8"),
+                      pageSpinner:document.getElementById(`page${i+1}-spinner`),
+                      failAlert: document.getElementById(`fail-alert`),
+                    }
+            fetch(defaultLink2 +`${'/reserveAppointment'}`, {
+              redirect: "follow",
+              method: "POST",
+              body: JSON.stringify(nForm)
+            }).then(async (response) => {
+              pageSpinner.style.display = 'none';
+              if (!response.ok) {
+              // throw new Error('Network response was not ok');
+              throw Object.assign(new Error('Custom error message'), { response });
+              }
+              response = await response.json()
+              if (response.success){
+                // to skip otp
+                p1 = document.getElementById(`page${i}`);
+                p2 = document.getElementById(`page${i+2}`);
+                // formData[10] = reply.signature
+                p1.classList.remove("fadeIn");
+                p1.classList.add("fadeOut");
+                p2.classList.remove("fadeOut");
+                p2.classList.add("fadeIn");
+                setTimeout(() => {
+                    p1.style.display = "none";
+                    p2.style.display = "flex";
+                    pageSpinner.style.display = "none"
+                    if(confirm(`عزيزنا/عزيزتنا, ودك نتذكر بياناتك على هذا الجهاز لتسهيل الغسلات الجاية ؟`)){
+                      localStorage.setItem("name", document.getElementById("name").value);
+                      localStorage.setItem("mobile", document.getElementById("mobile").value);
+                    }else {
+                      localStorage.removeItem("name")
+                      localStorage.removeItem("mobile")
+                    }
+                    // document.getElementById(`page${i}-return`).style.display = "inline-block";
+                    // pb1.style.display = "inline-block";
+                    
+                    // startTimer(3*60,document.getElementById("resendTimer"))
+                }, "1000")
+              
+              }
+          }).catch(async err => {
+            console.log("Error:" + err.message);
+            console.log(err.response);
+            err.response =  await err.response.json()
+            document.getElementById(`page${i}-return`).style.display = "inline-block";
+            pb1.style.display = "inline-block";
+
+            // failAlert.style.display = "block";
+            // failAlert.children[0].innerHTML = reply.msg
+
+            // skip otp
+            p1.classList.remove("fadeIn");
+            p1.classList.add("fadeOut");
+            p1.style.display = "none"
+            let p2 = document.getElementById(`page3`);
+            p2.classList.remove("fadeOut");
+            p2.classList.add("fadeIn");
+            p2.style.display = "flex"
+            let failAlert3 = document.getElementById(`fail-alert-3`)
+            failAlert3.style.display = "block";
+            if(locale == "en"){
+              failAlert3.children[0].innerHTML = err.response.msgEN ? err.response.msgEN : "Unexpected error, Please contact us"
+            }else if (locale == "ar") {
+              failAlert3.children[0].innerHTML = err.response.msgAR ? err.response.msgAR : "عذرًا حصل خطأ غير متوقع الرجاء التواصل معنا"
+            }           
+            failAlert3.children[2].innerHTML = ""
+            $('#date').trigger('change');
+            setTimeout(() => {
+                p1.style.display = "none";
+                p2.style.display = "flex";
+                // clearInterval(time_counter)
+            }, "1000")
+          });
+
+            // callContent(`formSubmit&data=${submitFormData}`,(reply)=> {
+            //   // console.log("store")
+            //   // console.log(reply);
+            //   // console.log(reply.success);
+            //   pageSpinner.style.display = 'none';
+            //   if(reply.success){
+            //     // to skip otp
+            //     p1 = document.getElementById(`page${i}`);
+            //     p2 = document.getElementById(`page${i+2}`);
+            //     formData[10] = reply.signature
+            //     p1.classList.remove("fadeIn");
+            //     p1.classList.add("fadeOut");
+            //     p2.classList.remove("fadeOut");
+            //     p2.classList.add("fadeIn");
+            //     setTimeout(() => {
+            //         p1.style.display = "none";
+            //         p2.style.display = "flex";
+            //         pageSpinner.style.display = "none"
+            //         // if(confirm(`عزيزنا/عزيزتنا, ودك نتذكر بياناتك على هذا الجهاز لتسهيل الغسلات الجاية ؟`)){
+            //         //   localStorage.setItem("name", document.getElementById("name").value);
+            //         //   localStorage.setItem("mobile", document.getElementById("mobile").value);
+
+            //         // }
+            //         // document.getElementById(`page${i}-return`).style.display = "inline-block";
+            //         // pb1.style.display = "inline-block";
+                    
+            //         // startTimer(3*60,document.getElementById("resendTimer"))
+            //     }, "1000")
+            //   }else{
+            //     document.getElementById(`page${i}-return`).style.display = "inline-block";
+            //     pb1.style.display = "inline-block";
+
+            //     // failAlert.style.display = "block";
+            //     // failAlert.children[0].innerHTML = reply.msg
+
+            //     // skip otp
+            //     p1.classList.remove("fadeIn");
+            //     p1.classList.add("fadeOut");
+            //     p1.style.display = "none"
+            //     let p2 = document.getElementById(`page3`);
+            //     p2.classList.remove("fadeOut");
+            //     p2.classList.add("fadeIn");
+            //     p2.style.display = "flex"
+            //     let failAlert3 = document.getElementById(`fail-alert-3`)
+            //     failAlert3.style.display = "block";
+            //     failAlert3.children[0].innerHTML ="عذرا, لم يعد الموعد المراد متاح."
+            //     failAlert3.children[2].innerHTML = "الرجاء اختيار موعد آخر"
+            //     $('#date').trigger('change');
+            //     setTimeout(() => {
+            //         p1.style.display = "none";
+            //         p2.style.display = "flex";
+            //         // clearInterval(time_counter)
+            //     }, "1000")
+            //   }
+             
+            // })
+
+          }
+        }else if (i == 6 ){
+          pb1.onclick = () => {
+            let codeEl = document.getElementById(`code`)
+            let code = codeEl.value
+            let form = document.getElementById("page6-form")
+            codeEl.setCustomValidity("الرجاء ادخال الرقم المُرسل بالشكل الصحيح");
+            try {
+              code = parseInt(code)
+            } catch (error) {
+              form.reportValidity()
+              return
+            }
+            if (code.toString().length < 4 ){
+              form.reportValidity()
+              return
+            }
+            code = codeEl.value
+            // formData[0] = ""
+            // formData[1] = ""
+            // formData[2] = ""
+            // formData[3] = ""
+            // formData[4] = ""
+            // formData[5] = ""
+            // formData[6] = ""
+            // formData[7] = ""
+            formData[9] = document.getElementById(`code`).value
+            // document.getElementById(`page${i}-return`).style.display = "none";
+            pb1.style.display = "none";
+            let pageSpinner = document.getElementById(`page${i}-spinner`);
+            let failAlert = document.getElementById(`fail-alert`)
+            let failAlert3 = document.getElementById(`fail-alert-3`)
+            let failAlert4 = document.getElementById(`fail-alert-4`)
+            let failAlert5 = document.getElementById(`fail-alert-5`)
+            failAlert.style.display = "none";
+            failAlert3.style.display = "none";
+            failAlert4.style.display = "none";
+            failAlert5.style.display = "none";
+            pageSpinner.style.display = "inline-block"
+            
+              // send data
+            console.log(formData)
+            let submitFormData = encodeURIComponent(JSON.stringify(formData), "UTF-8")
+            // mydata = {submitFormData,pageSpinner,p1,p2,pb1,failAlert,failAlert3,failAlert4,failAlert5}
+            // resendData({submitFormData,pageSpinner,p1,p2,pb1,failAlert,failAlert3,failAlert4,failAlert5})
+            callContent(`formSubmit&data=${submitFormData}`,(reply)=> {
+              // console.log("store")
+              console.log(reply);
+              pageSpinner.style.display = 'none';
+              if(reply.success){
+                p1.classList.remove("fadeIn");
+                p1.classList.add("fadeOut");
+                p2.classList.remove("fadeOut");
+                p2.classList.add("fadeIn");
+                setTimeout(() => {
+                    p1.style.display = "none";
+                    p2.style.display = "flex";
+                    clearInterval(time_counter)
+                }, "1000")
+              }
+              // else{
+              //   // document.getElementById(`page${i}-return`).style.display = "inline-block";
+              //   pb1.style.display = "inline-block";
+              //   if( reply.signature == "badSig"){
+              //     p1.classList.remove("fadeIn");
+              //     p1.classList.add("fadeOut");
+              //     let p2 = document.getElementById(`page4`);
+              //     p2.classList.remove("fadeOut");
+              //     p2.classList.add("fadeIn");
+              //     failAlert4.style.display = "block";
+              //     failAlert4.children[0].innerHTML = reply.msg.split(",")[0]
+              //     failAlert4.children[2].innerHTML = reply.msg.split(",")[1] == undefined ? "":reply.msg.split(",")[1]
+              //     setTimeout(() => {
+              //         p1.style.display = "none";
+              //         p2.style.display = "flex";
+              //         clearInterval(time_counter)
+              //     }, "1000")
+              //   }else if( reply.signature == "timeout"){
+              //     p1.classList.remove("fadeIn");
+              //     p1.classList.add("fadeOut");
+              //     let p2 = document.getElementById(`page4`);
+              //     p2.classList.remove("fadeOut");
+              //     p2.classList.add("fadeIn");
+              //     failAlert4.style.display = "block";
+              //     failAlert4.children[0].innerHTML = reply.msg.split(",")[0]
+              //     failAlert4.children[2].innerHTML = reply.msg.split(",")[1] == undefined ? "":reply.msg.split(",")[1]
+              //     setTimeout(() => {
+              //         p1.style.display = "none";
+              //         p2.style.display = "flex";
+              //         clearInterval(time_counter)
+              //     }, "1000")
+              //     // p1.classList.remove("fadeIn");
+
+              //   }else if( reply.signature == "failed"){
+              //     failAlert.style.display = "block";
+              //     failAlert.children[0].innerHTML = reply.msg.split(",")[0]
+              //     failAlert.children[2].innerHTML = reply.msg.split(",")[1] == undefined ? "":reply.msg.split(",")[1]
+              //   }
+                else{
+
+                  p1.classList.remove("fadeIn");
+                  p1.classList.add("fadeOut");
+                  p1.style.display = "none"
+                  let p2 = document.getElementById(`page3`);
+                  p2.classList.remove("fadeOut");
+                  p2.classList.add("fadeIn");
+                  p2.style.display = "flex"
+                  let failAlert3 = document.getElementById(`fail-alert-3`)
+                  failAlert3.style.display = "block";
+                  failAlert3.children[0].innerHTML ="عذرا, لم يعد الموعد المراد متاح."
+                  failAlert3.children[2].innerHTML = "الرجاء اختيار موعد آخر"
+                  $('#date').trigger('change');
+                  setTimeout(() => {
+                      p1.style.display = "none";
+                      p2.style.display = "flex";
+                      clearInterval(time_counter)
+                  }, "1000")
+                }
+
+              }
+             
+            )
+          }
+        }else {
+            pb1.onclick = () => {
+            p1.classList.remove("fadeIn");
+            p1.classList.add("fadeOut");
+            p2.classList.remove("fadeOut");
+            p2.classList.add("fadeIn");
+            setTimeout(() => {
+                p1.style.display = "none";
+                p2.style.display = "flex";
+            }, "1000")
+            
+        }
+        }
+    }
+    for (let i = 3; i < 6; i++) {
+
+        let pb1 = document.getElementById(`page${i}-return`);
+        let p1 = document.getElementById(`page${i}`);
+        let p2 = document.getElementById(`page${i-1}`);
+        pb1.onclick = () => {
+        p1.classList.remove("fadeIn");
+        p1.classList.add("fadeOut");
+        p2.classList.remove("fadeOut");
+        p2.classList.add("fadeIn");
+        setTimeout(() => {
+            p1.style.display = "none";
+            p2.style.display = "flex";
+        }, "1000")
+    
+    }
+    }
+    for (let i = 1; i < 4; i++) {
+        let header = document.getElementById(`dayHeader${i}`);
+        // console.log(header)
+        header.onclick = () => {
+          if(!timesLoaded){return}
+            let headers = document.getElementById("time-date-header").children;
+            for (let j = 0; j < headers.length; j++) {
+                const element = headers[j];
+                element.classList.remove("choosed")
+            }
+            header.classList.add("choosed");
+            // change times here
+            timesSetter(i-1)
+            
+        }
+        
+    }
+    function resendData({submitFormData,pageSpinner,p1,p2,pb1,failAlert,failAlert3,failAlert4,failAlert5}){
+      // pageSpinner,p1,p2,pb1,failAlert,failAlert3,failAlert4,failAlert5
+      document.getElementById("resend-objects").style.display = "none"
+      try {
+      document.getElementById("page6-resend").remove()
+      } catch (error) {
+      }
+      pageSpinner.style.display = "inline-block"
+      failAlert.style.display = "none";
+      callContent(`formSubmit&data=${submitFormData}`,(reply)=> {
+              // console.log("store")
+              // console.log(reply);
+              // console.log(reply.success);
+              pageSpinner.style.display = 'none';
+              if(reply.success){
+                formData[10] = reply.signature
+                startTimer(3*60,document.getElementById("resendTimer"))
+              }else{
+                failAlert.style.display = "block";
+                failAlert.children[0].innerHTML = reply.msg
+              }
+             
+            })
+    }
+    function choosedDate(time,date){
+        // console.log(time)
+        formData[2] = date
+        formData[3] = time
+        nForm.date = date
+        // time = time.replace("ص", "AM")
+        // time = time.replace("م", "PM")
+        time = time.split(" ")
+        console.log("7:00 AM");
+        console.log(time);
+        console.log(formData);
+        let compare = "7:00 AM" == time
+        console.log(compare);
+        let parsedTime = DateTime.fromFormat(time.join(" "), "h:mm a");
+        console.log(parsedTime);
+        nForm.time =  parsedTime.toFormat("HH:mm");
+        console.log(nForm);
+        let p1 = document.getElementById(`page${3}`);
+        let p2 = document.getElementById(`page${3+1}`);
+        p1.classList.remove("fadeIn");
+        p1.classList.add("fadeOut");
+        p2.classList.remove("fadeOut");
+        p2.classList.add("fadeIn");
+        setTimeout(() => {
+            p1.style.display = "none";
+            p2.style.display = "flex";
+        }, "1000")
+
+    }
+
+function checkUrlValidity() {
+  const location = document.getElementById("googleMap");
+  let reg = /^(https?:\/\/.)[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/g;
+  let locationValue = location.value.trim()
+  if(locationValue == "" || locationValue == undefined){
+    if(locale == "en"){
+      location.setCustomValidity("Please Enter a URL");
+    }else if (locale == "ar") {
+      location.setCustomValidity("الرجاء ادخال رابط الموقع بالشكل الصحيح");
+    }
+    return false;
+  }
+  const regTest = reg.test(locationValue)
+  //// console.log(regTest);
+  if(  regTest == false){
+    if(locale == "en"){
+      location.setCustomValidity("Please Enter a URL");
+    }else if (locale == "ar") {
+      location.setCustomValidity("الرجاء ادخال رابط الموقع بالشكل الصحيح");
+    }
+    return false;
+  }
+  return true;
+}
+function checkNumberValidity() {
+  const number = document.getElementById("mobile");
+  const phoneNumber = number.value;
+  // If there is (at least) one file selected
+      // console.log(phoneNumber.slice( 0,4))
+  if (isNaN(phoneNumber)) { // Check begining = 9665
+    if(locale == "en"){
+      number.setCustomValidity("Please enter a phone number");
+    }else {
+      number.setCustomValidity("الرجاء ادخال رقم الهاتف بالشكل الصحيح");
+    }
+    return false;
+  }
+  if (phoneNumber.slice( 0,1) !=  "5" ) { // Check begining = 9665
+    if(locale == "en"){
+      number.setCustomValidity("Please enter your phone number in the following Format: 5XXXXXXXX");
+    }else {
+      number.setCustomValidity("الرجاء ادخال رقم الهاتف بالصيغة التالية :5XXXXXXXX");
+    }
+    return false;
+  }
+  if (phoneNumber.length != 9) {
+    if(locale == "en"){
+      number.setCustomValidity("Phone Number must consist of 9 digits");
+    }else {
+      number.setCustomValidity("لابد أن يتكون رقم الهاتف من 9 خانة");
+    }
+    return false;
+  }
+ 
+  // No custom constraint violation
+  number.setCustomValidity("");
+  return true;
+}
+
+
+function servicesDropdownLoader2(data) {
+  let categoriesID = Object.keys(data) // Array
+  let categoriesNames = []
+  for (id in categoriesID){
+    if(locale == "en"){
+      categoriesNames.push(data[categoriesID[id]].category.TS_category_english_name)
+    }else if(locale == "ar"){
+      categoriesNames.push(data[categoriesID[id]].category.TS_category_arabic_name)
+    }
+  } 
+  add_dropdown_list(categoriesNames, categoriesID,"serviceCat", "disabled", "servicesCat")
+  var parentElement = document.getElementById("service");
+  parentElement.innerHTML=""
+  document.getElementById('serviceCat').addEventListener('change',function(){
+    let currentCategory = document.getElementById("serviceCat").value;
+    let myServicesID = []
+    let myServiceNames = []
+    for (let i = 0; i < data[currentCategory].services.length; i++) {
+      const element = data[currentCategory].services[i];
+      myServicesID.push(element.TS_service_id)
+      if(locale == "en"){
+        myServiceNames.push(element.TS_service_english_name)
+      }else if(locale == "ar"){
+        myServiceNames.push(element.TS_service_arabic_name)
+      }
+    }
+    add_dropdown_list(myServiceNames,myServicesID,"service", "disabled", "services")// if ar lang
+  })
+}
+// function servicesDropdownLoader() {
+//   dropdown_8 =  Object.values(translations.ar['servicesCat'])
+
+//         for(i in dropdown_8){
+//           dropdown_8_values.push(getKeyByValue(service_ID_map,dropdown_8[i]));
+//         }
+//   let dropDownTimer = setInterval(function () {
+//           let result = dropdownLoadingVars.every(function (e) {
+//             return e == true;
+//           });
+//           //// console.log(dropdownLoadingVars)
+//           if( result ){
+//               add_dropdown_list(dropdown_8,dropdown_8_values,"serviceCat", "disabled", "servicesCat")
+//               document.getElementById('serviceCat').addEventListener('change',function(){setValuesForByLookUp(dropdown_2)})
+//             clearInterval(dropDownTimer)
+//           }
+//         }, 1000);
+
+// }
+  function setValuesForByLookUp(arrdropdown_2){
+    //// console.log(arrdropdown_2)
+    var tee = document.getElementById("serviceCat").value;
+    var dependent_list = valueLookUp(arrdropdown_2,["Active",tee],[1,5],2) // Service ID
+    var ar_list = valueLookUp(arrdropdown_2,["Active",tee],[1,5],3) // Service Name in ar
+    // var en_list = valueLookUp(arrdropdown_2,["Active",tee],[1,5],4) //  Service Name in en
+
+    if(dependent_list.length!=0){
+
+          add_dropdown_list(ar_list,dependent_list,"service", "disabled", "services")// if ar lang
+          // add_dropdown_list(en_list,dependent_list,"service", "disabled")// if en lang
+    }
+  
+  }
+
+    function add_dropdown_list(show_list,value_list,element_id,first_option_disabled, key=null){
+      var parentElement = document.getElementById(element_id);
+              parentElement.innerHTML="";
+              var opti = document.createElement("option");
+                  if(first_option_disabled=="disabled"){
+                  opti.setAttribute("disabled","disabled");
+                  }else{
+                    opti.setAttribute("data-i18n-key", "none")
+                    if (locale == "en" ){
+                      opti.value = "None";
+                      opti.textContent = "None";
+                    }else if (locale == "ar") {
+                      opti.value = "لا يوجد";
+                      opti.textContent = "لا يوجد";
+                    }
+                  }
+                  opti.setAttribute("selected","selected");
+                  parentElement.appendChild(opti);
+          for(var i=0; i<value_list.length;i++){
+              var opt = document.createElement("option");
+                  opt.text = show_list[i];
+                  opt.value= value_list[i];
+                  if( key != null){
+                    opt.setAttribute("data-i18n-key", key)
+                  }
+              parentElement.appendChild(opt);
+              }
+              // translate_container(parentElement)
+ }
+ function valueLookUp(listOfLookup,lookupValuesList,indexLookupValuesList,targetIndex){
+  if(listOfLookup.length!=0 ){
+      var lookuped_list = []
+      for (var c = 0; c < listOfLookup.length; c++) {
+        var success = false;
+        for (var s = 0; s < lookupValuesList.length; s++) {
+          if (lookupValuesList[s] == listOfLookup[c][indexLookupValuesList[s]]) {
+            success = true;
+          } else {
+            success = false;
+            break;
+          }
+        }
+        if (success == true) {
+          lookuped_list.push(listOfLookup[c][targetIndex]);
+        }
+      }
+
+  return lookuped_list;
+    
+  }else{
+    return [];
+  }
+}
+ function getKeyByValue(object, value) {
+            return Object.keys(object).find(key => 
+                    object[key] === value);
+        }
+
+function handleSubmit(event) {
+      // //// console.log("preventing")
+      event.preventDefault();
+}
+  
+let map, infoWindow, marker;
+let prePosition = "https://www.google.com/maps/search/?api=1&query=";
+let position = ''
+function myMap() {
+  const QATIF = {
+  north: 26.631382547167608,
+  // south: 26.529935663804867,
+  // south: 26.49733998178417,
+  south: 26.457409255603718,
+  west: 49.936830427303164,
+  east: 50.09079470797919,
+};
+
+// let map_bounds = google.maps.LatLngBounds(
+//   new google.maps.LatLng(26.536779190289344,49.97836898973129)
+//   ,
+//   new google.maps.LatLng(26.609585664339363,50.095371286627525)
+// )
+// console.log(map_bounds.getNorthEast())
+var mapProp= {
+  // center:new google.maps.LatLng(26.573510, 49.998902),
+  center: {
+    //  lat: 26.573510, lng: 49.998902,
+     lat:26.525124906195455, lng:50.01575804927679
+    },
+  zoom:12,
+  minZoom: 12 ,
+  restriction: {
+     latLngBounds: QATIF,
+      strictBounds: false,
+    },
+};
+
+map = new google.maps.Map(document.getElementById("googleMap"),mapProp);
+infoWindow = new google.maps.InfoWindow();
+
+const myLatlng = {
+  //  lat: 26.573510, lng: 49.998902 
+   lat:26.525124906195455, lng:50.01575804927679
+
+  };
+
+ marker = new google.maps.Marker({
+    position: myLatlng,
+    // icon: "https://drive.google.com/uc?export=view&id=1OzJ_k_JRUqs3c7Fyr7bF7nlSRIwGU5X6",
+    map,
+    title: "Click to zoom",
+  });
+
+map.addListener("click", (e) => {
+    placeMarkerAndPanTo(e.latLng, map, marker);
+  });
+  map.addListener("center_changed", (e) => {
+    
+  })
+  // const locationButton = document.createElement("button");
+
+  // locationButton.textContent = "Pan to Current Location";
+  // locationButton.classList.add("custom-map-control-button");
+  // map.controls[google.maps.ControlPosition.TOP_CENTER].push(locationButton);
+  const locationButton = document.getElementById("show-my-location");
+  locationButton.addEventListener("click", () => {
+    // Try HTML5 geolocation.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+
+        //   infoWindow.setPosition(pos);
+        //   infoWindow.setPixelOffset ("10px")
+        //   var infoWindow = new google.maps.InfoWindow({
+        //     content: "LocationFound",
+        //     position:pos,
+        //     // disableAutoPan: true,
+        //     // maxWidth: 300,
+        //     pixelOffset:new google.maps.Size(0, -50)
+        // });
+          marker.setPosition(pos);
+          map.setZoom(20);
+        //   infoWindow.open(map);
+          map.setCenter(pos);
+        },
+        () => {
+          handleLocationError(true, infoWindow, map.getCenter());
+        }
+      );
+    } else {
+      // Browser doesn't support Geolocation
+      handleLocationError(false, infoWindow, map.getCenter());
+    }
+  });
+}
+function placeMarkerAndPanTo(latLng, map, marker) {
+    marker.setPosition(latLng)
+    // console.log(marker.getPosition().lat())
+    // console.log(marker.getPosition().lng())
+    map.setZoom(17);
+    position = prePosition + `${marker.getPosition().lat()},${marker.getPosition().lng()}` 
+    // // console.log(position)
+  map.panTo(latLng);
+  infoWindow.close(map);
+}
+
+function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+  infoWindow.setPosition(pos);
+  // infoWindow.setContent(
+  //   browserHasGeolocation
+  //     ? "Error: The Geolocation service failed."
+  //     : "Error: Your browser doesn't support geolocation."
+  // );
+  infoWindow.setContent(
+    browserHasGeolocation
+      ? "حصل خطأ: خدمة الموقع غير مفعلة"
+      : "حصل خطأ: متصفحك لا يدعم خاصية تحديد الموقع التلقائية"
+  );
+  
+  infoWindow.open(map);
+}
+
+function startTimer(duration, display) {
+    document.getElementById("resend-objects").style.display = "block"
+    try {
+      document.getElementById("page6-resend").remove()
+    } catch (error) {
+      
+    }
+    var timer = duration, minutes, seconds;
+    var time_counter = setInterval(function () {
+        minutes = parseInt(timer / 60, 10);
+        seconds = parseInt(timer % 60, 10);
+
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        seconds = seconds < 10 ? "0" + seconds : seconds;
+        console.log( minutes + ":" + seconds)
+        display.textContent = minutes + ":" + seconds;
+        timer = --timer 
+        if (timer <0 ){
+          clearInterval(time_counter)
+          let timerElement = document.getElementById("resend-objects")
+          let resendButton = document.createElement("button")
+          resendButton.setAttribute("id","page6-resend") 
+          resendButton.setAttribute("class","filter-button") 
+          resendButton.setAttribute("type","button") 
+          let resendSpan = document.createElement("span")
+          resendSpan.textContent = "إعادة ارسال"
+          resendButton.appendChild(resendSpan)
+          timerElement.after(resendButton)
+          timerElement.style.display = "none"
+          resendButton.onclick = () => {
+            resendData(mydata)
+          }
+          document.getElementById("page6-contact").style.display = "block";
+        }
+    }, 1000);
+}
+// startTimer(3,document.getElementById("resendTimer"))
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=myMap"></script>
+	<!-- Google tag (gtag.js) -->
+
+
+</html>
+
+
+
+
+
