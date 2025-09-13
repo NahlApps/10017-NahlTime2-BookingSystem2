@@ -50,7 +50,7 @@
       color:#fff; background:#0b2630;
     }
 
-    /* Fullscreen step background (static) */
+    /* Fullscreen step background */
     #bgStage{
       position:fixed; inset:0; z-index:-1;
       background-position:center; background-size:cover; background-repeat:no-repeat;
@@ -65,7 +65,7 @@
     .header-inner{max-width:1120px; width:100%; padding:10px var(--sp-3) 12px; display:flex; flex-direction:column; gap:10px;}
     .header-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
 
-    /* Brand logo – bigger, no frame */
+    /* Logo (no frame) */
     .brand{ display:flex; align-items:center; justify-content:flex-end; flex:0 0 auto; }
     .brand img{
       height:96px; width:auto; object-fit:contain; display:block;
@@ -84,11 +84,9 @@
     .summary-bar .chip{ display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--border-300); border-radius:999px; padding:6px 10px; font-size:.88rem; color:#0B2630; white-space:nowrap; box-shadow:var(--shadow-xs); }
     .summary-bar i{opacity:.85}
     @media (max-width:560px){
-      .summary-bar{ gap:6px }
       .summary-bar .chip{ flex:1 1 calc(50% - 6px); min-width:0; padding:6px 8px; font-size:.82rem; justify-content:center }
       .summary-bar .chip b{ display:inline-block; max-width:12ch; overflow:hidden; text-overflow:ellipsis }
     }
-    @media (min-width:561px){ .summary-bar{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none } .summary-bar::-webkit-scrollbar{ display:none } }
 
     /* Main & pages */
     main{flex:1 0 auto; display:flex; justify-content:center; padding:var(--sp-2) var(--sp-3) 0}
@@ -132,7 +130,7 @@
     .note-info{ background:#E6F4F7; border:1px solid #B3E0EA; color:#0B2630; display:flex }
     .field-note i{ opacity:.8 }
 
-    /* Select2 – high contrast */
+    /* Select2 – contrast */
     .select2-container--default .select2-selection--single{ background:#ffffff !important; border:1px solid var(--border-300) !important; border-radius:var(--radius-md)!important; }
     .select2-container--default .select2-selection--single .select2-selection__rendered{ color:#0B2630 !important; line-height:48px !important; padding-inline:42px 42px !important; }
     .select2-container--default .select2-selection--single .select2-selection__placeholder{ color:#667085 !important; }
@@ -157,14 +155,10 @@
     .load-overlay.show{display:flex; animation:fadeIn var(--dur-sm) var(--ease) both}
     @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
 
-    /* Payment — adjusted sizing */
-    .pay-grid{
-      display:grid; gap:var(--sp-4); width:100%; max-width:920px;
-      grid-template-columns: 1fr;
-    }
+    /* Payment — sizing */
+    .pay-grid{ display:grid; gap:var(--sp-4); width:100%; max-width:920px; grid-template-columns: 1fr; }
     @media (min-width:560px){ .pay-grid{ grid-template-columns: 1fr 1fr; } }
     @media (min-width:900px){ .pay-grid{ grid-template-columns: 1fr 1fr 1fr; } }
-
     .pay-card{
       background:#fff; color:#0B2630; border:1px solid var(--border-300); border-radius:var(--radius-md);
       padding:22px; display:flex; justify-content:center; align-items:center; gap:var(--sp-4);
@@ -174,7 +168,7 @@
     .pay-card[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
     .pay-card img{ max-height:38px; width:auto; object-fit:contain; }
 
-    /* Footer (bigger on mobile) */
+    /* Footer */
     footer.sticky-nav{ position:sticky; bottom:0; z-index:40; background:rgba(11,38,48,.62); backdrop-filter:blur(10px); border-top:1px solid rgba(255,255,255,.22); display:flex; align-items:center; justify-content:center; min-height:var(--footer-h); }
     .footer-inner{ max-width:1120px; width:100%; padding:12px 12px calc(10px + env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap }
     .footer-left{display:flex; align-items:center; gap:12px; flex:0 0 auto}
@@ -215,7 +209,7 @@
     .rebook-btn{display:inline-flex;align-items:center;gap:10px;justify-content:center;background:linear-gradient(135deg,var(--brand-600),var(--brand-700));color:#fff;border:0;border-radius:999px;padding:14px 24px;min-height:52px;font-weight:800;font-size:1.05rem;letter-spacing:.2px;box-shadow:0 10px 24px rgba(2,122,147,.28);transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), filter var(--dur-xs) var(--ease)}
     .rebook-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);filter:saturate(1.05)}
 
-    /* Phone input adjustments */
+    /* Phone input */
     .iti{ width:100% !important; }
     #mobile.form-control{ height:48px; line-height:48px; direction:ltr; text-align:left; }
     html[dir="rtl"] .iti--allow-dropdown .iti__flag-container{ right:12px; left:auto; }
@@ -226,11 +220,9 @@
     .iti__selected-flag{ background-color:transparent !important; padding:0 10px; }
     .iti__arrow{ border-top-color:#0B2630 !important; }
 
-    /* Utility */
     .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;border:0;margin:-1px}
   </style>
 
-  <!-- Logo fallback -->
   <script>
     function handleLogoError(img){
       var fallbacks = [
@@ -244,7 +236,7 @@
   </script>
 </head>
 <body>
-  <!-- Fullscreen step background -->
+  <!-- Fullscreen per-step background -->
   <div id="bgStage" aria-hidden="true"></div>
 
   <!-- Toasts -->
@@ -316,7 +308,7 @@
               </div>
             </div>
 
-            <!-- Spinner صفحة 2 فقط -->
+            <!-- Spinner (Page 2 only) -->
             <div id="servicesLoading" class="load-overlay">
               <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
               <strong>جاري تحميل الخدمات…</strong>
@@ -398,15 +390,15 @@
           <div class="card">
             <div class="pay-grid" role="radiogroup" aria-label="طريقة الدفع" id="payGroup">
               <label class="pay-card" tabindex="0" role="radio" aria-checked="false">
-                <input type="radio" name="payingMethod" value="STC Pay" class="visually-hidden"/>
+                <input type="radio" name="payingMethod" value="stc pay" class="visually-hidden"/>
                 <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/STC%20PAY%20LOGO.png" alt="STC Pay">
               </label>
               <label class="pay-card" tabindex="-1" role="radio" aria-checked="false">
-                <input type="radio" name="payingMethod" value="Cash" class="visually-hidden"/>
+                <input type="radio" name="payingMethod" value="cash" class="visually-hidden"/>
                 <strong>Cash</strong>
               </label>
               <label class="pay-card" tabindex="-1" role="radio" aria-checked="false">
-                <input type="radio" name="payingMethod" value="MADA" class="visually-hidden"/>
+                <input type="radio" name="payingMethod" value="mada" class="visually-hidden"/>
                 <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/MADA%20LOGO.png" alt="Mada">
               </label>
             </div>
@@ -482,14 +474,13 @@
     function showToast(type='info', msg=''){
       const wrap=document.getElementById('toastWrap');
       const div=document.createElement('div');
-      div.className='toast-msg '+(type==='error'?'toast-error':type==='success'?'toast-success':'toast-info');
       div.style.minWidth='260px'; div.style.color='#fff'; div.style.padding='10px 14px'; div.style.borderRadius='10px'; div.style.boxShadow='0 10px 28px rgba(0,0,0,.18)';
-      if(type==='error') div.style.background='#dc2626'; else if(type==='success') div.style.background='#16a34a'; else div.style.background='#0284c7';
+      div.style.background = type==='error' ? '#dc2626' : (type==='success' ? '#16a34a' : '#0284c7');
       div.textContent=msg; wrap.appendChild(div);
       setTimeout(()=>{ div.style.opacity='0'; div.style.transform='translateY(-6px)'; setTimeout(()=>div.remove(), 180); }, 2400);
     }
 
-    /* ---------- GET helper (with optional abort) ---------- */
+    /* ---------- GET helper ---------- */
     let controllers=[];
     function callContent2(path, cb, abortable=false, retries=3){
       let signal;
@@ -508,54 +499,30 @@
       }, 120);
     }
 
-    /* ---------- POST helper (robust: no-preflight first; path variants) ---------- */
+    /* ---------- POST helper (text/plain only) ---------- */
     const URLS = [
       `${defaultLink2}/reserveAppointment`,
       `${defaultLink2}/reserveAppointment/`,
       `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`,
       `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment/`,
     ];
-
-    function postPlain(url, payload){
-      return fetch(url, {
-        method:'POST',
-        mode:'cors',
-        cache:'no-store',
-        credentials:'omit',
-        referrerPolicy:'no-referrer',
-        redirect:'follow',
-        headers:{ 'Content-Type':'text/plain;charset=UTF-8', 'Accept':'application/json' },
-        body: JSON.stringify(payload)
-      }).then(async res => {
-        const raw = await res.text(); let data=null; try{ data=JSON.parse(raw);}catch(_){}
-        return { ok:res.ok, status:res.status, data, raw };
-      }).catch(err => ({ ok:false, status:0, error:String(err) }));
-    }
-    function postJson(url, payload){
-      return fetch(url, {
-        method:'POST',
-        mode:'cors',
-        cache:'no-store',
-        credentials:'omit',
-        referrerPolicy:'no-referrer',
-        redirect:'follow',
-        headers:{ 'Content-Type':'application/json;charset=UTF-8', 'Accept':'application/json' },
-        body: JSON.stringify(payload)
-      }).then(async res => {
-        const raw = await res.text(); let data=null; try{ data=JSON.parse(raw);}catch(_){}
-        return { ok:res.ok, status:res.status, data, raw };
-      }).catch(err => ({ ok:false, status:0, error:String(err) }));
-    }
     async function postReservation(payload){
       for (const u of URLS){
-        const r = await postPlain(u, payload);
-        if (r.status !== 404) return r; // accept 200/201/400/etc.
-      }
-      for (const u of URLS){
-        const r = await postJson(u, payload);
+        const r = await fetch(u, {
+          method:'POST',
+          mode:'cors',
+          cache:'no-store',
+          credentials:'omit',
+          referrerPolicy:'no-referrer',
+          headers:{ 'Content-Type':'text/plain;charset=UTF-8', 'Accept':'application/json' },
+          body: JSON.stringify(payload)
+        }).then(async res => {
+          const raw = await res.text(); let data=null; try{ data=JSON.parse(raw);}catch(_){}
+          return { ok:res.ok, status:res.status, data, raw };
+        }).catch(err => ({ ok:false, status:0, error:String(err) }));
         if (r.status !== 404) return r;
       }
-      return { ok:false, status:404, data:null, raw:'All variants returned 404' };
+      return { ok:false, status:404, data:null, raw:'All variants 404' };
     }
 
     /* ---------- State ---------- */
@@ -565,7 +532,6 @@
     let selectedTime=null;
     let servicesCache=null, categoriesCache=null;
     window.itiPhone = null;
-
     const nForm={date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:''};
 
     /* Step backgrounds */
@@ -614,7 +580,7 @@
       if(cur && cur.id==='page1'){ stopWelcomeDeck(); }
       if(cur){ cur.classList.remove('active'); cur.classList.add('exit'); }
       next.style.display='flex';
-      requestAnimationFrame(()=>{ next.classList.add('active'); setTimeout(()=>{ if(cur){cur.classList.remove('exit'); cur.style.display='none';} const h1 = next.querySelector('h1, [role="heading"]'); const firstInput = next.querySelector('input, select, button, [tabindex="0"]'); (h1 || firstInput)?.focus?.(); }, 260); });
+      requestAnimationFrame(()=>{ next.classList.add('active'); setTimeout(()=>{ if(cur){cur.classList.remove('exit'); cur.style.display='none';} }, 260); });
       hideOverlays();
       syncProgress(idx);
       updateNextAvailability();
@@ -646,13 +612,12 @@
     function setLoadingTimes(on){ document.getElementById('timeLoading').classList.toggle('show', !!on); }
     function setLoadingServices(on){ document.getElementById('servicesLoading').classList.toggle('show', !!on); }
 
-    /* ---- Inline validation helpers ---- */
+    /* ---- Field helpers ---- */
     function showFieldError(inputEl, msgEl, msg){ if(inputEl){ inputEl.classList.add('is-invalid'); inputEl.setAttribute('aria-invalid','true'); } if(msgEl){ msgEl.textContent = msg || ''; msgEl.style.display='block'; } }
     function clearFieldError(inputEl, msgEl){ if(inputEl){ inputEl.classList.remove('is-invalid'); inputEl.removeAttribute('aria-invalid'); } if(msgEl){ msgEl.textContent=''; msgEl.style.display=''; } }
 
-    /* ---- Phone helpers (defensive) ---- */
+    /* ---- Phone helpers ---- */
     const GCC_HELP = { sa:'5XXXXXXXX', ae:'5XXXXXXXX', bh:'3XXXXXXX', kw:'5XXXXXXX', om:'9XXXXXXX', qa:'3XXXXXXX' };
-
     function updateMobileHelp(){
       const help = document.getElementById('mobileHelp');
       if (!window.itiPhone || typeof window.itiPhone.getSelectedCountryData !== 'function'){
@@ -664,12 +629,9 @@
       if (help) help.textContent = 'مثال: ' + (GCC_HELP[iso2] || '5XXXXXXXX');
     }
     function sanitizeMobileForCountry(raw){
-      const c = (window.itiPhone && typeof window.itiPhone.getSelectedCountryData==='function')
-        ? (window.itiPhone.getSelectedCountryData()?.iso2 || 'sa')
-        : 'sa';
       let v = (raw||'').replace(/[^\d]/g,'');
-      if(c==='sa'){ if(v.startsWith('0')) v = v.replace(/^0+/, ''); }
-      return v;
+      // SA: drop leading zeros if any
+      return v.replace(/^0+/, '');
     }
     function mobileValidationMessage(){
       const code = (window.itiPhone && typeof window.itiPhone.getValidationError==='function') ? window.itiPhone.getValidationError() : null;
@@ -689,13 +651,11 @@
       if(!ok){ showFieldError(el, msgEl, mobileValidationMessage()); return false; }
       clearFieldError(el, msgEl); return true;
     }
-
     function validateNameInline(){ const el=document.getElementById('name'); const msgEl=document.getElementById('err-name'); const ok=(el.value||'').trim().length>0; if(!ok){ showFieldError(el,msgEl,'الاسم مطلوب'); return false; } clearFieldError(el,msgEl); return true; }
     function validatePlateInline(){ const el=document.getElementById('plateNumber'); const msgEl=document.getElementById('err-plate'); const val=(el.value||'').trim(); const ok=!val || /^\d{4}$/.test(val); if(!ok){ showFieldError(el,msgEl,'رجاءً أدخل ٤ أرقام أو اتركه فارغًا'); return false; } clearFieldError(el,msgEl); return true; }
     function validateTimeInline(){ const msgEl=document.getElementById('err-time'); if(!selectedTime){ msgEl.textContent='الرجاء اختيار وقت مناسب'; return false; } msgEl.textContent=''; return true; }
     function validatePayInline(){ const msgEl=document.getElementById('err-pay'); if(!nForm.paymentMethod){ msgEl.textContent='الرجاء اختيار طريقة الدفع'; return false; } msgEl.textContent=''; return true; }
 
-    /* Special plate note */
     function detectSpecialPlate(s){
       if(!/^\d{4}$/.test(s)) return null;
       const d=[...s].map(x=>+x);
@@ -845,7 +805,7 @@
       });
     }
 
-    /* ------------ Services helpers ------------ */
+    /* ------------ Services ------------ */
     let servicesVersion = 0;
     function loadLocationsAndFirstServices(){
       setLoadingServices(true);
@@ -869,8 +829,7 @@
       setLoadingServices(true);
       callContent2(`/services?location=${encodeURIComponent(locationId)}`, res=>{
         if(versionAtCall !== servicesVersion){ return; }
-        servicesCache=res?.data?.services||[];
-        categoriesCache=res?.data?.servicesCat||[];
+        servicesCache=res?.data?.services||[]; categoriesCache=res?.data?.servicesCat||[];
         const cats=categoriesCache.map(c=>({id:c.TS_category_id,text:c.TS_category_arabic_name}));
         $('#serviceCat').empty().select2({data:cats,width:'100%'});
         if(cats.length){
@@ -887,30 +846,30 @@
       }, true);
     }
 
-    /* ---------- Build payload (send strings to avoid 400) ---------- */
+    /* ---------- Build payload (digits-only phone, lowercase payment) ---------- */
     function buildPayload(){
-      const phoneE164 = (window.itiPhone && typeof window.itiPhone.getNumber === 'function')
+      const phone = (window.itiPhone && typeof window.itiPhone.getNumber === 'function')
         ? window.itiPhone.getNumber()
         : (nForm.customerM || '');
+      const digits = String(phone).replace(/\D/g, '');
 
       return {
-        date: nForm.date,                        // "YYYY-MM-DD"
-        time: nForm.time,                        // "HH:mm"
-        location: String(nForm.location || ''),  // send as string
-        service: String(nForm.service || ''),    // send as string
+        date: nForm.date,
+        time: nForm.time,
+        location: String(nForm.location || ''),
+        service: String(nForm.service || ''),
         serviceCount: String(nForm.serviceCount || '1'),
         serviceCat: String(nForm.serviceCat || ''),
-        customerM: phoneE164,
+        customerM: digits,
         customerN: nForm.customerN,
-        paymentMethod: nForm.paymentMethod,
+        paymentMethod: (nForm.paymentMethod || '').toLowerCase(),
         urlLocation: nForm.urlLocation,
         locationDescription: nForm.locationDescription || '',
         locale: 'ar'
-        // If server needs departmentId, add: departmentId: String(resolveDepartmentId(nForm.service) || '')
       };
     }
 
-    /* ---------- Server error mapper (inline) ---------- */
+    /* ---------- Server error mapper ---------- */
     const SERVER_FIELD_MAP = {
       customerN: { inputId: 'name',        errId: 'err-name'   },
       customerM: { inputId: 'mobile',      errId: 'err-mobile' },
@@ -922,40 +881,20 @@
       serviceCount:{/* select2: #serviceCount */                  },
       paymentMethod: {                      errId: 'err-pay'   },
     };
-
-    function highlightSelect2($el){
-      try {
-        const $container = $el.next('.select2');
-        $container.find('.select2-selection').css({ borderColor:'#dc2626', boxShadow:'0 0 0 3px rgba(220,38,38,.15)' });
-      } catch(e){}
-    }
-    function clearSelect2Highlight($el){
-      try {
-        const $container = $el.next('.select2');
-        $container.find('.select2-selection').css({ borderColor:'', boxShadow:'' });
-      } catch(e){}
-    }
+    function highlightSelect2($el){ try { const $c=$el.next('.select2'); $c.find('.select2-selection').css({ borderColor:'#dc2626', boxShadow:'0 0 0 3px rgba(220,38,38,.15)' }); } catch(e){} }
+    function clearSelect2Highlight($el){ try { const $c=$el.next('.select2'); $c.find('.select2-selection').css({ borderColor:'', boxShadow:'' }); } catch(e){} }
     function showServerErrors(errObj){
-      // Clear old highlights/messages
       clearFieldError(document.getElementById('name'),   document.getElementById('err-name'));
       clearFieldError(document.getElementById('mobile'), document.getElementById('err-mobile'));
       clearFieldError(document.getElementById('date'),   document.getElementById('err-date'));
       document.getElementById('err-time').textContent = '';
       document.getElementById('err-pay').textContent  = '';
-      clearSelect2Highlight($('#area'));
-      clearSelect2Highlight($('#serviceCat'));
-      clearSelect2Highlight($('#service'));
-      clearSelect2Highlight($('#serviceCount'));
-
+      clearSelect2Highlight($('#area')); clearSelect2Highlight($('#serviceCat')); clearSelect2Highlight($('#service')); clearSelect2Highlight($('#serviceCount'));
       if(!errObj || typeof errObj !== 'object') return;
-
       Object.keys(errObj).forEach(key=>{
         const map = SERVER_FIELD_MAP[key];
         const msg = Array.isArray(errObj[key]) ? errObj[key].join('، ') : String(errObj[key] || '');
-        if(!map){
-          if(msg) showToast('error', msg);
-          return;
-        }
+        if(!map){ if(msg) showToast('error', msg); return; }
         if(map.inputId){
           const input = document.getElementById(map.inputId);
           const err   = map.errId ? document.getElementById(map.errId) : null;
@@ -985,7 +924,7 @@
       $('#service').select2({width:'100%',placeholder:'الخدمة', dir:'rtl'});
       $('#carBrand').select2({width:'100%',placeholder:'ماركة السيارة', dir:'rtl'});
 
-      // intl-tel-input – defensive init
+      // intl-tel-input
       const phoneEl=document.querySelector('#mobile');
       if (phoneEl && window.intlTelInput){
         window.itiPhone = window.intlTelInput(phoneEl,{
@@ -1000,9 +939,7 @@
           useFullscreenPopup:true,
           utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js'
         });
-
         updateMobileHelp();
-
         phoneEl.addEventListener('input', function(){
           const cur = this.value;
           const clean = cur.replace(/[^\d]/g,'');
@@ -1010,10 +947,7 @@
           validateMobileInline();
         });
         phoneEl.addEventListener('blur', validateMobileInline);
-        phoneEl.addEventListener('countrychange', function(){
-          updateMobileHelp();
-          validateMobileInline();
-        });
+        phoneEl.addEventListener('countrychange', function(){ updateMobileHelp(); validateMobileInline(); });
       } else {
         updateMobileHelp();
       }
@@ -1049,7 +983,7 @@
       payCards.forEach((card, idx)=>{
         const input=card.querySelector('input');
         card.setAttribute('role','radio'); card.setAttribute('aria-checked','false'); card.setAttribute('tabindex', idx===0?'0':'-1');
-        const choose=()=>{ payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; }); card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=input.value; validatePayInline(); updateNextAvailability(); };
+        const choose=()=>{ payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; }); card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=(input.value||'').toLowerCase(); validatePayInline(); updateNextAvailability(); };
         card.addEventListener('click', choose);
         card.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); choose(); } if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(e.key)){ e.preventDefault(); const i=payCards.indexOf(card); const nextI=(e.key==='ArrowRight'||e.key==='ArrowDown')?Math.min(i+1,payCards.length-1):Math.max(i-1,0); payCards[nextI].focus(); } });
       });
@@ -1098,7 +1032,7 @@
           if(!(okN && okM && okP)) return;
           nForm.customerN=$('#name').val().trim();
           const phoneNum = (window.itiPhone && typeof window.itiPhone.getNumber==='function') ? window.itiPhone.getNumber() : '';
-          nForm.customerM=phoneNum;
+          nForm.customerM=phoneNum; // normalized later to digits-only in buildPayload
           nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
           showPage(4); return; // الدفع
         }
@@ -1113,23 +1047,17 @@
           nForm.urlLocation=window.positionUrl;
 
           const payload = buildPayload();
-          console.groupCollapsed('%c[reserve] payload','color:#a855f7;font-weight:700'); console.log(payload); console.groupEnd();
-
           const r = await postReservation(payload);
 
           if(r.ok && r.data?.success){
-            if(r.data?.otp){ showToast('error','الخادم يطلب OTP. عطّل OTP في الإعدادات.'); return; }
+            if(r.data?.otp){ showToast('info','سيصلك رمز تحقق لإكمال الحجز'); return; }
             showToast('success','تم إنشاء الحجز');
             showPage(6); renderThankYou();
           } else {
             const serverMsg = r?.data?.msgAR || r?.data?.message || r?.data?.error || 'تعذر إنشاء الحجز (تحقق من البيانات)';
             showToast('error', serverMsg);
-
-            // NEW: show errors inline if present
             const errs = r?.data?.errors || r?.data?.fields || r?.data?.details || null;
             if (errs) showServerErrors(errs);
-
-            console.warn('[reserve] rejected:', r);
           }
           return;
         }
@@ -1143,23 +1071,17 @@
       const i = getActiveIndex();
       const nextBtn = document.getElementById('footer-next');
       let enable = true;
-      if(i === 1){ // page2
-        enable = !!($('#area').val() && $('#service').val());
-      } else if(i === 2){ // page4
-        enable = !!selectedTime;
-      } else if(i === 3){ // page5
+      if(i === 1){ enable = !!($('#area').val() && $('#service').val()); }
+      else if(i === 2){ enable = !!selectedTime; }
+      else if(i === 3){
         const nameOk = $('#name').val().trim().length > 0;
         const phoneOk = (window.itiPhone && typeof window.itiPhone.isValidNumber==='function' && window.itiPhone.isValidNumber());
         const plateVal = $('#plateNumber').val()||'';
         const plateOk  = (plateVal.length===0 || /^\d{4}$/.test(plateVal));
         enable = nameOk && phoneOk && plateOk;
-      } else if(i === 4){ // page5b
-        enable = !!nForm.paymentMethod;
-      } else if(i === 5){ // page6
-        enable = !!window.positionUrl;
-      } else if(i === 6){ // page7 (thank you)
-        enable = false;
-      }
+      } else if(i === 4){ enable = !!nForm.paymentMethod; }
+      else if(i === 5){ enable = !!window.positionUrl; }
+      else if(i === 6){ enable = false; }
       nextBtn.disabled = !enable;
       nextBtn.classList.toggle('disabled', !enable);
       renderSummary();
