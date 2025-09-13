@@ -50,7 +50,7 @@
       color:#fff; background:#0b2630;
     }
 
-    /* Fullscreen step background */
+    /* Fullscreen step background (static) */
     #bgStage{
       position:fixed; inset:0; z-index:-1;
       background-position:center; background-size:cover; background-repeat:no-repeat;
@@ -65,7 +65,7 @@
     .header-inner{max-width:1120px; width:100%; padding:10px var(--sp-3) 12px; display:flex; flex-direction:column; gap:10px;}
     .header-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
 
-    /* Brand logo (no frame) */
+    /* Brand logo – bigger, no frame */
     .brand{ display:flex; align-items:center; justify-content:flex-end; flex:0 0 auto; }
     .brand img{
       height:96px; width:auto; object-fit:contain; display:block;
@@ -549,7 +549,7 @@
     async function postReservation(payload){
       for (const u of URLS){
         const r = await postPlain(u, payload);
-        if (r.status !== 404) return r;
+        if (r.status !== 404) return r; // accept 200/201/400/etc.
       }
       for (const u of URLS){
         const r = await postJson(u, payload);
@@ -887,41 +887,90 @@
       }, true);
     }
 
-    /* ---------- Build payload & resolve department ---------- */
-    function resolveDepartmentId(serviceId){
-      const svc = (servicesCache || []).find(s => String(s.TS_service_id) === String(serviceId));
-      let dep = svc?.TS_appintment_department_id ?? svc?.department_id ?? svc?.TS_department_id ?? '';
-      if(!dep){
-        const c = (categoriesCache||[]).find(k => String(k.TS_category_id) === String(nForm.serviceCat));
-        dep = c?.TS_appintment_department_id ?? c?.department_id ?? c?.TS_department_id ?? '';
-      }
-      return dep ? String(dep) : '';
-    }
-
+    /* ---------- Build payload (send strings to avoid 400) ---------- */
     function buildPayload(){
       const phoneE164 = (window.itiPhone && typeof window.itiPhone.getNumber === 'function')
         ? window.itiPhone.getNumber()
         : (nForm.customerM || '');
 
-      const payload = {
-        date: nForm.date,
-        time: nForm.time,
-        location: Number(nForm.location) || nForm.location,
-        service: Number(nForm.service) || nForm.service,
-        serviceCount: Number(nForm.serviceCount) || 1,
-        serviceCat: Number(nForm.serviceCat) || nForm.serviceCat,
+      return {
+        date: nForm.date,                        // "YYYY-MM-DD"
+        time: nForm.time,                        // "HH:mm"
+        location: String(nForm.location || ''),  // send as string
+        service: String(nForm.service || ''),    // send as string
+        serviceCount: String(nForm.serviceCount || '1'),
+        serviceCat: String(nForm.serviceCat || ''),
         customerM: phoneE164,
         customerN: nForm.customerN,
         paymentMethod: nForm.paymentMethod,
         urlLocation: nForm.urlLocation,
         locationDescription: nForm.locationDescription || '',
         locale: 'ar'
+        // If server needs departmentId, add: departmentId: String(resolveDepartmentId(nForm.service) || '')
       };
+    }
 
-      const dep = resolveDepartmentId(nForm.service);
-      if(dep) payload.departmentId = dep;
+    /* ---------- Server error mapper (inline) ---------- */
+    const SERVER_FIELD_MAP = {
+      customerN: { inputId: 'name',        errId: 'err-name'   },
+      customerM: { inputId: 'mobile',      errId: 'err-mobile' },
+      date:      { inputId: 'date',        errId: 'err-date'   },
+      time:      {                errId: 'err-time'            },
+      location:  { /* select2: #area */                           },
+      service:   { /* select2: #service */                        },
+      serviceCat:{ /* select2: #serviceCat */                     },
+      serviceCount:{/* select2: #serviceCount */                  },
+      paymentMethod: {                      errId: 'err-pay'   },
+    };
 
-      return payload;
+    function highlightSelect2($el){
+      try {
+        const $container = $el.next('.select2');
+        $container.find('.select2-selection').css({ borderColor:'#dc2626', boxShadow:'0 0 0 3px rgba(220,38,38,.15)' });
+      } catch(e){}
+    }
+    function clearSelect2Highlight($el){
+      try {
+        const $container = $el.next('.select2');
+        $container.find('.select2-selection').css({ borderColor:'', boxShadow:'' });
+      } catch(e){}
+    }
+    function showServerErrors(errObj){
+      // Clear old highlights/messages
+      clearFieldError(document.getElementById('name'),   document.getElementById('err-name'));
+      clearFieldError(document.getElementById('mobile'), document.getElementById('err-mobile'));
+      clearFieldError(document.getElementById('date'),   document.getElementById('err-date'));
+      document.getElementById('err-time').textContent = '';
+      document.getElementById('err-pay').textContent  = '';
+      clearSelect2Highlight($('#area'));
+      clearSelect2Highlight($('#serviceCat'));
+      clearSelect2Highlight($('#service'));
+      clearSelect2Highlight($('#serviceCount'));
+
+      if(!errObj || typeof errObj !== 'object') return;
+
+      Object.keys(errObj).forEach(key=>{
+        const map = SERVER_FIELD_MAP[key];
+        const msg = Array.isArray(errObj[key]) ? errObj[key].join('، ') : String(errObj[key] || '');
+        if(!map){
+          if(msg) showToast('error', msg);
+          return;
+        }
+        if(map.inputId){
+          const input = document.getElementById(map.inputId);
+          const err   = map.errId ? document.getElementById(map.errId) : null;
+          if(input){ showFieldError(input, err, msg || 'قيمة غير صالحة'); }
+        } else if(map.errId){
+          const err = document.getElementById(map.errId);
+          if(err) err.textContent = msg || 'قيمة غير صالحة';
+        } else {
+          if(key==='location')     highlightSelect2($('#area'));
+          if(key==='serviceCat')   highlightSelect2($('#serviceCat'));
+          if(key==='service')      highlightSelect2($('#service'));
+          if(key==='serviceCount') highlightSelect2($('#serviceCount'));
+          if(msg) showToast('error', msg);
+        }
+      });
     }
 
     /* Init & bindings */
@@ -1073,17 +1122,13 @@
             showToast('success','تم إنشاء الحجز');
             showPage(6); renderThankYou();
           } else {
-            const serverMsg = r?.data?.msgAR || r?.data?.message || r?.data?.error || 'تعذر إنشاء الحجز (تحقق من البيانات/المسار)';
+            const serverMsg = r?.data?.msgAR || r?.data?.message || r?.data?.error || 'تعذر إنشاء الحجز (تحقق من البيانات)';
             showToast('error', serverMsg);
 
-            const errs = r?.data?.errors || r?.data?.fields || null;
-            if(errs){
-              if(errs.customerN) showFieldError(document.getElementById('name'), document.getElementById('err-name'), errs.customerN);
-              if(errs.customerM) showFieldError(document.getElementById('mobile'), document.getElementById('err-mobile'), errs.customerM);
-              if(errs.date)      showFieldError(document.getElementById('date'), document.getElementById('err-date'), errs.date);
-              if(errs.time)      document.getElementById('err-time').textContent = errs.time;
-              if(errs.paymentMethod) document.getElementById('err-pay').textContent = errs.paymentMethod;
-            }
+            // NEW: show errors inline if present
+            const errs = r?.data?.errors || r?.data?.fields || r?.data?.details || null;
+            if (errs) showServerErrors(errs);
+
             console.warn('[reserve] rejected:', r);
           }
           return;
@@ -1112,7 +1157,7 @@
         enable = !!nForm.paymentMethod;
       } else if(i === 5){ // page6
         enable = !!window.positionUrl;
-      } else if(i === 6){ // page7
+      } else if(i === 6){ // page7 (thank you)
         enable = false;
       }
       nextBtn.disabled = !enable;
