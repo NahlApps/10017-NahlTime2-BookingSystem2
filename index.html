@@ -16,297 +16,258 @@
 
   <style>
     :root{
-      /* Brand */
-      --brand-700:#01657A; --brand-600:#027A93; --brand-200:#BFE6F0; --brand-050:#F0FAFC;
-      --ink-900:#0B2630; --ink-700:#224652; --surface-000:#FFF; --surface-100:#EDF3F6; --border-300:#D4E0E6;
+      --brand-700:#015a6c; --brand-600:#027A93; --brand-200:#BFE6F0; --brand-050:#F0FAFC;
+      --ink-900:#0B2630; --ink-700:#224652;
+      --surface-000:#fff; --border-300:#D4E0E6;
 
-      /* Radius + Shadow */
       --radius-md:14px; --radius-pill:999px;
-      --shadow-xs:0 2px 6px rgba(11,38,48,.07);
-      --shadow-sm:0 3px 12px rgba(11,38,48,.09);
-      --shadow-md:0 10px 28px rgba(11,38,48,.14);
+      --shadow-xs:0 2px 6px rgba(11,38,48,.08);
+      --shadow-sm:0 3px 12px rgba(11,38,48,.12);
+      --shadow-md:0 10px 28px rgba(11,38,48,.16);
 
-      /* Motion tokens */
       --ease:cubic-bezier(.22,.61,.36,1);
       --ease-decel:cubic-bezier(0.2,0,0,1);
       --ease-accel:cubic-bezier(0.3,1,0.8,1);
-      --dur-xs:160ms; --dur-sm:220ms; --dur-md:460ms; --dur-lg:640ms;
+      --dur-xs:160ms; --dur-sm:220ms; --dur-md:460ms;
 
-      /* Typography + spacing */
       --fs-xxl:1.6rem; --fs-xl:1.375rem; --fs-md:1rem; --fs-sm:.9rem; --fw-bold:800;
       --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-7:32px;
 
-      /* Layout */
-      --header-h:76px; --footer-h:78px;
+      --header-h:120px;
+      --footer-h:96px;
+
+      --card-alpha:.86; --card-blur:8px; --card-border:rgba(255,255,255,.55);
+    }
+    @media (max-width:640px){ :root{ --footer-h: calc(118px + env(safe-area-inset-bottom)); } }
+
+    html,body{height:100%; min-height:100vh;}
+    @supports (height:100dvh){ html,body{min-height:100dvh;} }
+
+    body{
+      margin:0; font-family:'Cairo',sans-serif;
+      display:flex; flex-direction:column;
+      padding-top:var(--header-h); padding-bottom:var(--footer-h);
+      color:#fff; background:#0b2630;
     }
 
-    html,body{height:100%}
-    body{
-      margin:0; font-family:'Cairo',sans-serif; color:#fff;
-      background:
-        linear-gradient(180deg, rgba(11,38,48,.65), rgba(11,38,48,.35)),
-        url("https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/lorenzo-hamers-n1SRvkP6bEk-unsplash%20(1).jpg") center/cover fixed;
-      min-height:100vh; display:flex; flex-direction:column;
-      padding-top:var(--header-h); padding-bottom:var(--footer-h);
+    /* Fullscreen step background */
+    #bgStage{
+      position:fixed; inset:0; z-index:-1;
+      background-position:center; background-size:cover; background-repeat:no-repeat;
+      width:100%; height:100vh; background-attachment:fixed;
     }
+    @supports (height:100dvh){ #bgStage{height:100dvh;} }
+    @media (max-width:768px){ #bgStage{background-attachment:scroll;} }
+    #bgStage::after{content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,38,48,.58), rgba(11,38,48,.34));}
 
     /* Header */
-    header{
-      position:sticky; top:0; z-index:50; height:var(--header-h);
-      background:rgba(11,38,48,.36); backdrop-filter:blur(10px);
-      border-bottom:1px solid rgba(255,255,255,.15);
-      display:flex; align-items:center; justify-content:center;
+    header{position:sticky; top:0; z-index:50; background:rgba(11,38,48,.42); backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,.18); padding-top:env(safe-area-inset-top);}
+    .header-inner{max-width:1120px; width:100%; padding:10px var(--sp-3) 12px; display:flex; flex-direction:column; gap:10px;}
+    .header-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+
+    /* Brand (logo without frame) */
+    .brand{ display:flex; align-items:center; justify-content:flex-end; flex:0 0 auto; }
+    .brand img{
+      height:92px; width:auto; object-fit:contain; display:block;
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,.35)) drop-shadow(0 2px 6px rgba(0,0,0,.25));
     }
-    .header-inner{max-width:1120px; width:100%; padding:0 var(--sp-3); display:flex; align-items:center; justify-content:space-between}
-    .brand{display:flex; align-items:center; gap:10px}
-    .brand img{height:54px; width:auto; object-fit:contain; filter:drop-shadow(0 6px 20px rgba(0,0,0,.25))}
-    .mini-progress{display:flex; align-items:center; gap:var(--sp-3); width:60%}
+    @media (max-width:640px){ .brand img{height:84px} }
+
+    .mini-progress{display:flex; align-items:center; gap:var(--sp-3); flex:1}
     .mini-progress .bar{flex:1; height:8px; background:rgba(255,255,255,.25); border-radius:999px; overflow:hidden}
     .mini-progress .bar>span{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--brand-600), var(--brand-200)); transition:width var(--dur-md) var(--ease-decel)}
     .mini-progress .step{font-weight:var(--fw-bold); font-size:var(--fs-md)}
 
-    /* Main */
+    /* Summary chips (under progress) */
+    .header-summary{ display:flex; justify-content:center }
+    .summary-bar{ display:flex; gap:8px; align-items:center; width:100%; max-width:1120px; background:transparent; border:0; box-shadow:none; flex-wrap:wrap; }
+    .summary-bar .chip{ display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--border-300); border-radius:999px; padding:6px 10px; font-size:.88rem; color:#0B2630; white-space:nowrap; box-shadow:var(--shadow-xs); }
+    .summary-bar i{opacity:.85}
+    @media (max-width:560px){
+      .summary-bar{ gap:6px }
+      .summary-bar .chip{ flex:1 1 calc(50% - 6px); min-width:0; padding:6px 8px; font-size:.82rem; justify-content:center }
+      .summary-bar .chip b{ display:inline-block; max-width:12ch; overflow:hidden; text-overflow:ellipsis }
+    }
+    @media (min-width:561px){ .summary-bar{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none } .summary-bar::-webkit-scrollbar{ display:none } }
+
+    /* Main & pages */
     main{flex:1 0 auto; display:flex; justify-content:center; padding:var(--sp-2) var(--sp-3) 0}
     #app{width:100%; max-width:1120px}
-
-    /* Stage & Pages */
     .stage{position:relative; min-height:540px; padding:8px 0 20px}
-    .page{
-      position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; gap:var(--sp-5);
-      padding:var(--sp-5) var(--sp-3) var(--sp-6); overflow:auto; opacity:0; transform:translateY(12px) scale(.992);
-      pointer-events:none;
-    }
-    @media (prefers-reduced-motion: no-preference){
-      .page.active{ pointer-events:auto; animation:pageIn var(--dur-md) var(--ease-decel) both; }
-      .page.exit  { animation:pageOut var(--dur-sm) var(--ease-accel) both; }
-    }
+    .page{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; gap:var(--sp-5); padding:var(--sp-5) var(--sp-3) var(--sp-6); overflow:auto; opacity:0; transform:translateY(12px) scale(.992); pointer-events:none;}
+    .page.active{animation:pageIn var(--dur-md) var(--ease-decel) both; pointer-events:auto}
+    .page.exit{animation:pageOut var(--dur-sm) var(--ease-accel) both}
     @keyframes pageIn{ from{opacity:0; transform:translateY(12px) scale(.992)} to{opacity:1; transform:translateY(0) scale(1)} }
     @keyframes pageOut{ from{opacity:1; transform:translateY(0) scale(1)} to{opacity:0; transform:translateY(14px) scale(.985)} }
-    .page h1{font-size:var(--fs-xl); font-weight:var(--fw-bold); margin:0; text-align:center}
-    @keyframes nudge { 0%{transform:translateY(0)} 40%{transform:translateY(-3px)} 100%{transform:translateY(0)} }
-    .page.active h1{ animation:nudge 600ms var(--ease) 120ms 1 }
+    .page h1{font-size:var(--fs-xl); font-weight:var(--fw-bold); margin:0; text-align:center; color:var(--ink-900)}
 
-    /* Cards + fields */
-    .card{background:var(--surface-000); color:var(--ink-900); border-radius:var(--radius-md); box-shadow:var(--shadow-md); padding:var(--sp-6); width:100%; max-width:920px}
+    /* Cards (glass) */
+    .card{
+      position:relative;
+      background: rgba(255,255,255, var(--card-alpha));
+      color:var(--ink-900);
+      border-radius:var(--radius-md);
+      box-shadow: 0 10px 28px rgba(11,38,48,.16);
+      padding:var(--sp-6);
+      width:100%; max-width:920px;
+      backdrop-filter: blur(var(--card-blur)) saturate(1.05);
+      -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.05);
+      border: 1px solid var(--card-border);
+    }
+    .card.solid{ background:#fff !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; border-color:#D4E0E6 !important; }
+
     .form-control, select, .select2-selection{
-      background:var(--surface-000); color:#0B2630;
+      background:#ffffff; color:var(--ink-900);
       border:1px solid var(--border-300) !important; border-radius:var(--radius-md)!important;
       min-height:48px; text-align:center; font-size:var(--fs-md);
       transition:border-color var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease);
     }
-    .form-control:focus{ box-shadow:0 0 0 4px rgba(2,122,147,.12) }
-    .select2-selection{height:48px !important; display:flex; align-items:center}
-    .select2-selection__rendered{line-height:48px !important}
+    .form-control::placeholder{color:#6b7280}
+    .form-control:focus{ border-color:#0891b2 !important; box-shadow:0 0 0 4px rgba(8,145,178,.2) }
 
-    /* Select2 colors fix (white-on-white issue) */
-    .select2-container--default .select2-selection--single .select2-selection__rendered{ color:#0B2630 !important; }
-    .select2-container--default .select2-selection--single .select2-selection__placeholder{ color:#6b7280 !important; }
-    .select2-dropdown{ background:#fff !important; color:#0B2630 !important; }
-    .select2-container--default .select2-results__option{ color:#0B2630 !important; background:#fff !important; }
+    /* Field errors & notes */
+    .field-msg{ margin-top:6px; font-size:.85rem; color:#dc2626; min-height:1.2em; }
+    .is-invalid{ border-color:#dc2626 !important; box-shadow:0 0 0 3px rgba(220,38,38,.15) !important; }
+    .field-note{ margin-top:6px; font-size:.86rem; padding:8px 10px; border-radius:10px; display:none; align-items:center; gap:8px }
+    .note-info{ background:#E6F4F7; border:1px solid #B3E0EA; color:#0B2630; display:flex }
+    .field-note i{ opacity:.8 }
+
+    /* Select2 – high contrast */
+    .select2-container--default .select2-selection--single{ background:#ffffff !important; border:1px solid var(--border-300) !important; border-radius:var(--radius-md)!important; }
+    .select2-container--default .select2-selection--single .select2-selection__rendered{ color:#0B2630 !important; line-height:48px !important; padding-inline:42px 42px !important; }
+    .select2-container--default .select2-selection--single .select2-selection__placeholder{ color:#667085 !important; }
+    .select2-container--default.select2-container--focus .select2-selection--single{ border-color:#0891b2 !important; box-shadow:0 0 0 4px rgba(8,145,178,.2) !important; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow{ height:48px !important; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow b{ border-color:#0B2630 transparent transparent transparent !important; }
+    .select2-dropdown{ background:#fff !important; color:#0B2630 !important; border:1px solid var(--border-300) !important; box-shadow:var(--shadow-sm); }
+    .select2-container--default .select2-results__option{ color:#0B2630 !important; background:#fff !important; padding:10px 12px; }
+    .select2-results__options{max-height:280px}
     .select2-container--default .select2-results__option--highlighted[aria-selected],
-    .select2-container--default .select2-results__option--highlighted{ background:var(--brand-050) !important; color:#0B2630 !important; }
-    .select2-container--default .select2-results__option[aria-selected="true"]{ background:#eef6f9 !important; color:#0B2630 !important; }
-    .select2-container--default .select2-search--dropdown .select2-search__field{
-      color:#0B2630 !important; background:#fff !important; border:1px solid var(--border-300) !important;
-    }
-
-    /* Select2 arrow color */
-    .select2-container--default .select2-selection--single .select2-selection__arrow b{
-      border-color:#0B2630 transparent transparent transparent !important;
-    }
-
-    /* Select2 dropdown animation */
-    .select2-container--open .select2-dropdown{
-      border:1px solid var(--border-300); box-shadow:var(--shadow-sm); overflow:hidden;
-      transform-origin:top center; animation:dropdownIn var(--dur-sm) var(--ease-decel) both;
-    }
-    @keyframes dropdownIn{ from{opacity:0; transform:translateY(6px) scale(.99)} to{opacity:1; transform:none} }
+    .select2-container--default .select2-results__option--highlighted{ background:#DDF2F7 !important; color:#0B2630 !important; }
 
     /* Time grid */
     .time-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:var(--sp-4)}
     @media (min-width:540px){ .time-grid{grid-template-columns:repeat(3,1fr)} }
-    .time-option{
-      background:#fff; color:#0B2630; font-weight:var(--fw-bold);
-      border:1px solid var(--border-300); border-radius:var(--radius-md);
-      padding:14px 10px; min-height:56px; box-shadow:var(--shadow-xs);
-      transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-    }
+    .time-option{ background:#fff; color:#0B2630; font-weight:var(--fw-bold); border:1px solid var(--border-300); border-radius:var(--radius-md); padding:14px 10px; min-height:56px; box-shadow:var(--shadow-xs); transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease); display:flex; flex-direction:column; align-items:center; justify-content:center; }
     .time-option:hover{transform:translateY(-2px); background:var(--brand-050); box-shadow:var(--shadow-sm)}
-    .time-option:active{transform:translateY(0) scale(.995)}
     .time-option[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
 
     /* Overlays */
-    .load-overlay{ position:absolute; inset:0; background:rgba(255,255,255,.85); color:#0B2630; display:none; align-items:center; justify-content:center; gap:12px; border-radius:var(--radius-md); }
+    .load-overlay{ position:absolute; inset:0; background:rgba(255,255,255,.9); color:#0B2630; display:none; align-items:center; justify-content:center; gap:12px; border-radius:var(--radius-md); }
     .load-overlay.show{display:flex; animation:fadeIn var(--dur-sm) var(--ease) both}
     @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
 
-    /* Payment */
-    .pay-grid{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-4); width:100%; max-width:920px}
+    /* Payment — adjusted sizing */
+    .pay-grid{
+      display:grid; gap:var(--sp-4); width:100%; max-width:920px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width:560px){ .pay-grid{ grid-template-columns: 1fr 1fr; } }
+    @media (min-width:900px){ .pay-grid{ grid-template-columns: 1fr 1fr 1fr; } }
+
     .pay-card{
       background:#fff; color:#0B2630; border:1px solid var(--border-300); border-radius:var(--radius-md);
-      padding:var(--sp-6); display:flex; justify-content:center; align-items:center; gap:var(--sp-4);
-      min-height:64px; cursor:pointer; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
+      padding:22px; display:flex; justify-content:center; align-items:center; gap:var(--sp-4);
+      min-height:88px; cursor:pointer; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
     }
     .pay-card:hover{transform:translateY(-2px); box-shadow:var(--shadow-sm); background:var(--brand-050)}
-    .pay-card:active{transform:translateY(0) scale(.995)}
-    .pay-card img{max-width:120px; height:auto}
     .pay-card[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
+    .pay-card img{ max-height:38px; width:auto; object-fit:contain; }
 
-    /* Footer */
-    footer.sticky-nav{ position:sticky; bottom:0; z-index:40; height:var(--footer-h); background:rgba(11,38,48,.45); backdrop-filter:blur(10px); border-top:1px solid rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; }
-    .footer-inner{ max-width:1120px; width:100%; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; }
-    .footer-brand{ font-size:.95rem; color:#fff; opacity:.92 }
-    .footer-actions{display:flex; gap:12px}
-    .btn-footer{ flex:1; border:1px solid var(--border-300); border-radius:var(--radius-md); padding:12px 16px; min-height:48px; font-size:var(--fs-md); font-weight:var(--fw-bold); background:#fff; color:#027A93; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease), color var(--dur-xs) var(--ease), border-color var(--dur-xs) var(--ease); }
+    /* Footer (bigger on mobile) */
+    footer.sticky-nav{ position:sticky; bottom:0; z-index:40; background:rgba(11,38,48,.62); backdrop-filter:blur(10px); border-top:1px solid rgba(255,255,255,.22); display:flex; align-items:center; justify-content:center; min-height:var(--footer-h); }
+    .footer-inner{ max-width:1120px; width:100%; padding:12px 12px calc(10px + env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap }
+    .footer-left{display:flex; align-items:center; gap:12px; flex:0 0 auto}
+    .footer-brand a{ font-size:.98rem; color:#fff; opacity:.98; text-decoration:none; font-weight:800 }
+    .footer-social{ display:flex; gap:10px; align-items:center }
+    .footer-social a{ color:#fff; opacity:.95; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%; border:1px solid rgba(255,255,255,.28); }
+    .footer-social a:hover{ opacity:1; box-shadow:0 2px 10px rgba(0,0,0,.18) }
+    .footer-actions{display:flex; gap:12px; flex:1; justify-content:flex-end}
+    .btn-footer{ flex:0 0 auto; border:1px solid rgba(255,255,255,.28); border-radius:16px; padding:12px 18px; min-height:54px; font-size:1rem; font-weight:var(--fw-bold); background:#ffffff; color:#015a6c; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease); }
     .btn-footer:hover{transform:translateY(-2px); box-shadow:var(--shadow-sm)}
-    .btn-footer:active{transform:translateY(0) scale(.995)}
-    .btn-footer.primary{background:#027A93; color:#fff; border-color:#027A93}
-    .btn-footer.hidden{visibility:hidden}
+    .btn-footer.primary{background:#015a6c; color:#fff; border-color:#015a6c}
+    .btn-footer.hidden{display:none !important}
     .btn-footer.disabled, .btn-footer:disabled{opacity:.6; pointer-events:none}
+    @media (max-width:640px){
+      .footer-left{ width:100%; justify-content:space-between; }
+      .footer-actions{ order:3; width:100%; justify-content:space-between; gap:10px }
+      .btn-footer{ flex:1 1 48%; min-height:60px; font-size:1.06rem; }
+      .footer-social a{ width:42px; height:42px; }
+    }
 
-    .form-block{margin-bottom:var(--sp-5)}
-    .form-label{display:inline-block; margin-bottom:6px; font-size:var(--fs-sm); font-weight:var(--fw-bold); color:#224652}
-    .iti{width:100%!important}
-    #mobile.form-control{height:48px; line-height:48px; text-align:center}
-    html[dir="rtl"] .iti--allow-dropdown .iti__flag-container{right:0}
-    html[dir="rtl"] .iti--allow-dropdown input#mobile.form-control{padding-right:62px}
-
-    /* Toast */
-    .toast-wrap{position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:1050; display:flex; flex-direction:column; gap:8px}
-    .toast-msg{min-width:260px; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:var(--shadow-md); animation:toastIn var(--dur-sm) var(--ease-decel) both}
-    @keyframes toastIn{ from{opacity:0; transform:translateY(-8px)} to{opacity:1; transform:none} }
-    .toast-success{background:#16a34a}
-    .toast-error{background:#dc2626}
-    .toast-info{background:#0284c7}
-    .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;border:0;margin:-1px}
-
-    /* serviceCount full width */
-    #serviceCount{ width:100% !important; }
-
-    /* =================== PowerPoint-style Deck =================== */
-    .ppt-deck{ position:relative; width:100%; max-width:860px; min-height:220px; margin:8px auto 0; overflow:hidden; border-radius:14px; background:linear-gradient(180deg,#ffffff, #f6fbfd); box-shadow:var(--shadow-md); }
+    /* PPT deck */
+    .ppt-deck{ position:relative; width:100%; max-width:860px; min-height:220px; margin:8px auto 0; overflow:hidden; border-radius:14px; background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(244,250,252,.92)); border:1px solid rgba(255,255,255,.55); box-shadow:var(--shadow-md); }
     .ppt-slide{ position:absolute; inset:0; padding:28px 18px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; opacity:0; transform:translateY(10px) scale(.995); }
     .ppt-slide h2{ font-size:var(--fs-xxl); font-weight:800; color:var(--ink-900); margin:0 0 8px; letter-spacing:.2px }
     .ppt-slide p{ font-size:1.05rem; color:#33545f; margin:0; opacity:.92 }
-
-    @media (prefers-reduced-motion: no-preference) {
-      .ppt-slide.is-active{ animation: pptIn var(--dur-md) var(--ease-decel) both; }
-      .ppt-slide.is-exiting{ animation: pptOut var(--dur-sm) var(--ease-accel) both; }
-      .ppt-slide .ppt-hero{ animation: heroFloat 1400ms var(--ease) 120ms both; }
-    }
+    .ppt-slide.is-active{ animation:pptIn var(--dur-md) var(--ease-decel) both; }
+    .ppt-slide.is-exiting{ animation:pptOut var(--dur-sm) var(--ease-accel) both; }
     @keyframes pptIn{ from{opacity:0; transform:translateY(14px) scale(.985)} to{opacity:1; transform:none} }
     @keyframes pptOut{ from{opacity:1; transform:none} to{opacity:0; transform:translateY(-12px) scale(.992)} }
-    @keyframes heroFloat{ from{ transform:translateY(6px) } to{ transform:translateY(0) } }
 
-    /* ====== Summary bar + Chips ====== */
-    .summary-container{ display:flex; justify-content:center; padding:8px 12px 0 }
-    .summary-bar{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-      background:rgba(255,255,255,.92); color:#0B2630;
-      border:1px solid var(--border-300); border-radius:var(--radius-md);
-      padding:10px 12px; box-shadow:var(--shadow-xs);
-      max-width:1120px; width:100%;
-      overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
-    }
-    .summary-bar::-webkit-scrollbar{ display:none }
-    .summary-bar .chip{
-      display:flex; align-items:center; gap:8px;
-      background:#fff; border:1px solid var(--border-300); border-radius:999px;
-      padding:6px 10px; font-size:.92rem; box-shadow:var(--shadow-xs)
-    }
-    .summary-bar i{opacity:.8}
-
-    .chips-wrap{display:flex; gap:8px; flex-wrap:wrap}
-    .chips-wrap.centered{justify-content:center;margin-top:10px}
-    .chips-wrap.centered .chip{
-      background:#fff;border:1px solid var(--border-300);border-radius:999px;padding:6px 10px;
-      display:flex;gap:8px;align-items:center;box-shadow:var(--shadow-xs)
-    }
-    .chip-filter{
-      background:#fff; color:#0B2630; border:1px solid var(--border-300);
-      border-radius:999px; padding:8px 12px; font-weight:700; box-shadow:var(--shadow-xs);
-      transition:background var(--dur-xs) var(--ease), transform var(--dur-xs) var(--ease);
-    }
-    .chip-filter:hover{ background:var(--brand-050); transform:translateY(-1px) }
-    .chip-filter.is-active{ outline:3px solid var(--brand-600); outline-offset:2px }
-
-    /* Inline errors */
-    .is-invalid{ border-color:#ef4444 !important; box-shadow:0 0 0 4px rgba(239,68,68,.12) }
-    .invalid-hint{ color:#ef4444; font-size:.85rem; margin-top:6px }
-
-    /* ====== Thank-you hero & Rebook CTA ====== */
+    /* Thank you */
     .success-hero{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:10px}
-    .success-icon{
-      width:92px;height:92px;border-radius:50%;
-      background:linear-gradient(135deg,var(--brand-600),#12b3cf);
-      box-shadow:0 10px 24px rgba(2,122,147,.25), inset 0 0 0 6px rgba(255,255,255,.35);
-      position:relative;
-    }
-    .success-icon::after{
-      content:"\f00c"; font-family:"Font Awesome 6 Free"; font-weight:900;
-      color:#fff; position:absolute; inset:0; display:grid; place-items:center; font-size:40px;
-      transform:scale(.7); opacity:0; animation:popIn .5s var(--ease-decel) .1s forwards;
-    }
+    .success-icon{width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,var(--brand-600),#12b3cf);box-shadow:0 10px 24px rgba(2,122,147,.25), inset 0 0 0 6px rgba(255,255,255,.35);position:relative}
+    .success-icon::after{content:"\f00c";font-family:"Font Awesome 6 Free";font-weight:900;color:#fff;position:absolute;inset:0;display:grid;place-items:center;font-size:40px;transform:scale(.7);opacity:0;animation:popIn .5s var(--ease-decel) .1s forwards}
     @keyframes popIn{to{transform:scale(1);opacity:1}}
-
     .thanks-title{font-size:1.35rem;font-weight:800;color:#0b2630;margin:0}
     .thanks-copy{color:#33545f;margin:0;opacity:.95}
+    .rebook-btn{display:inline-flex;align-items:center;gap:10px;justify-content:center;background:linear-gradient(135deg,var(--brand-600),var(--brand-700));color:#fff;border:0;border-radius:999px;padding:14px 24px;min-height:52px;font-weight:800;font-size:1.05rem;letter-spacing:.2px;box-shadow:0 10px 24px rgba(2,122,147,.28);transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), filter var(--dur-xs) var(--ease)}
+    .rebook-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);filter:saturate(1.05)}
 
-    .rebook-btn{
-      display:inline-flex;align-items:center;gap:10px;justify-content:center;
-      background:linear-gradient(135deg,var(--brand-600),var(--brand-700));
-      color:#fff;border:0;border-radius:999px;padding:14px 24px;min-height:52px;
-      font-weight:800;font-size:1.05rem;letter-spacing:.2px;
-      box-shadow:0 10px 24px rgba(2,122,147,.28);
-      transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), filter var(--dur-xs) var(--ease);
-    }
-    .rebook-btn i{font-size:1.1rem}
-    .rebook-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);filter:saturate(1.05)}
-    .rebook-btn:active{transform:translateY(0) scale(.99)}
-
-    /* ===== Placement modes for #bookingSummary ===== */
-    /* default: static inside flow */
-    body.summary-in-header .summary-container{
-      position:fixed; top:calc(var(--header-h) + 6px); left:0; right:0; z-index:48; padding:6px 12px;
-    }
-    body.summary-in-header main{ padding-top:calc(var(--header-h) + 96px); }
-
-    body.summary-in-footer .summary-container{
-      position:fixed; bottom:calc(var(--footer-h) + 6px); left:0; right:0; z-index:48; padding:6px 12px;
-    }
-    body.summary-in-footer main{ padding-bottom:calc(var(--footer-h) + 96px); }
-
-    @media (max-width: 767px){
-      body.summary-auto .summary-container{
-        position:fixed; bottom:calc(var(--footer-h) + 6px); left:0; right:0; z-index:48; padding:6px 12px;
-      }
-      body.summary-auto main{ padding-bottom:calc(var(--footer-h) + 96px); }
-    }
-    @media (min-width: 768px){
-      body.summary-auto .summary-container{
-        position:fixed; top:calc(var(--header-h) + 6px); left:0; right:0; z-index:48; padding:6px 12px;
-      }
-      body.summary-auto main{ padding-top:calc(var(--header-h) + 96px); }
-    }
+    /* Phone input adjustments */
+    .iti{ width:100% !important; }
+    #mobile.form-control{ height:48px; line-height:48px; direction:ltr; text-align:left; }
+    html[dir="rtl"] .iti--allow-dropdown .iti__flag-container{ right:12px; left:auto; }
+    html[dir="rtl"] .iti--separate-dial-code .iti__selected-flag{ right:12px; left:auto; border-right:1px solid var(--border-300); }
+    html[dir="rtl"] .iti--allow-dropdown input#mobile,
+    html[dir="rtl"] .iti--separate-dial-code input#mobile{ padding-right:108px; padding-left:12px; }
+    .iti__country-list{ text-align:right; }
+    .iti__selected-flag{ background-color:transparent !important; padding:0 10px; }
+    .iti__arrow{ border-top-color:#0B2630 !important; }
   </style>
+
+  <!-- Logo fallback -->
+  <script>
+    function handleLogoError(img){
+      var fallbacks = [
+        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/ChatGPT%20Image%20Sep%2013,%202025,%2001_21_33%20PM.png",
+        "https://dummyimage.com/240x92/027A93/ffffff.png&text=Nahl.app"
+      ];
+      var i = Number(img.dataset.fidx||0);
+      if (i < fallbacks.length){ img.dataset.fidx = String(i+1); img.src = fallbacks[i]; }
+      else { img.style.display = 'none'; }
+    }
+  </script>
 </head>
 <body>
+  <!-- Fullscreen step background -->
+  <div id="bgStage" aria-hidden="true"></div>
+
   <!-- Toasts -->
-  <div id="toastWrap" class="toast-wrap" aria-live="polite" aria-atomic="true"></div>
+  <div id="toastWrap" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:1050;display:flex;flex-direction:column;gap:8px" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Header -->
-  <header>
+  <header id="siteHeader">
     <div class="header-inner">
-      <div class="mini-progress" aria-hidden="true">
-        <div class="bar"><span id="miniBarFill" style="width:0%"></span></div>
-        <div class="step" id="miniStepTitle">الترحيب</div>
+      <div class="header-top">
+        <div class="mini-progress" aria-hidden="true">
+          <div class="bar"><span id="miniBarFill" style="width:0%"></span></div>
+          <div class="step" id="miniStepTitle">الترحيب</div>
+        </div>
+        <div class="brand">
+          <img id="brandLogo" alt="Nahl" src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/ChatGPT%20Image%20Sep%2013,%202025,%2001_21_33%20PM.png" loading="eager" decoding="async" fetchpriority="high" onerror="handleLogoError(this)"/>
+        </div>
       </div>
 
-      <!-- Brand -->
-      <div class="brand">
-        <img id="brandLogo" alt="Sponge &amp; Soap" src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20&%20%20Soap/spong&Soap%20-%20logo.png" loading="eager" decoding="async" fetchpriority="high" onerror="handleLogoError(this)"/>
-        <strong id="brandText" style="display:none;color:#fff;font-weight:800">Sponge &amp; Soap</strong>
+      <div class="header-summary">
+        <div id="bookingSummary" class="summary-bar" aria-live="polite" role="list">
+          <span class="chip" data-sum-chip="area"    role="listitem"><i class="fa-solid fa-location-dot"></i> <b id="sumArea">—</b></span>
+          <span class="chip" data-sum-chip="service" role="listitem"><i class="fa-solid fa-screwdriver-wrench"></i> <b id="sumService">—</b></span>
+          <span class="chip" data-sum-chip="date"    role="listitem"><i class="fa-regular fa-calendar"></i>   <b id="sumDate">—</b></span>
+          <span class="chip" data-sum-chip="time"    role="listitem"><i class="fa-regular fa-clock"></i>      <b id="sumTime">—</b></span>
+          <span class="chip" data-sum-chip="pay"     role="listitem"><i class="fa-regular fa-credit-card"></i> <b id="sumPay">—</b></span>
+        </div>
       </div>
     </div>
   </header>
@@ -315,7 +276,7 @@
   <main>
     <div id="app">
       <div class="stage">
-        <!-- 1) Welcome with PowerPoint Deck -->
+        <!-- 1) Welcome -->
         <section id="page1" class="page active" aria-label="الترحيب">
           <h1 class="visually-hidden">عرض ترحيبي</h1>
           <div class="card text-center" style="background:transparent; box-shadow:none; padding:0;">
@@ -323,7 +284,6 @@
               <div class="ppt-slide kb"><div class="ppt-hero"><h2>✨ غسيل بدون طوابير</h2><p>نجيك لين باب بيتك — جودة وفخامة بالتفاصيل الصغيرة</p></div></div>
               <div class="ppt-slide kb"><div class="ppt-hero"><h2>🧼 عناية مدروسة</h2><p>واكس يحمي السيارة • فوط نظيفة • إسفنجة للكفرات</p></div></div>
               <div class="ppt-slide kb"><div class="ppt-hero"><h2>⏱️ حجز سريع</h2><p>اختر المنطقة والخدمة والوقت — والباقي علينا</p></div></div>
-              <div class="ppt-dots" id="pptDots" aria-hidden="true"></div>
             </div>
           </div>
         </section>
@@ -331,10 +291,9 @@
         <!-- 2) Service & Location -->
         <section id="page2" class="page" aria-label="اختيار المنطقة والخدمة">
           <h1>وين تحب نجيك؟</h1>
-
           <div class="card position-relative" id="servicesCard">
             <label class="form-label">اختيار المنطقة</label>
-            <select id="area" class="js-example-basic-single" style="width:100%"></select>
+            <select id="area" style="width:100%"></select>
 
             <div class="row g-3 mt-3">
               <div class="col-12 col-md-6">
@@ -354,9 +313,7 @@
               </div>
             </div>
 
-            <!-- departmentBadge تمت إزالته -->
-            <!-- لا توجد عناصر departmentId/departmentBadge بعد الآن -->
-
+            <!-- Spinner صفحة 2 فقط -->
             <div id="servicesLoading" class="load-overlay">
               <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
               <strong>جاري تحميل الخدمات…</strong>
@@ -364,7 +321,7 @@
           </div>
         </section>
 
-        <!-- 3) Time (selected date only) -->
+        <!-- 3) Time -->
         <section id="page4" class="page" aria-label="اختيار الموعد">
           <h1>متى تحب نجيك؟</h1>
           <div class="card position-relative" id="timeCard">
@@ -372,25 +329,7 @@
               <div class="col-12 col-md-5">
                 <label class="form-label" for="date">التاريخ</label>
                 <input id="date" type="date" class="form-control"/>
-              </div>
-            </div>
-
-            <!-- Quick dates + time filters -->
-            <div class="row g-2 mt-2">
-              <div class="col-12 col-md-7">
-                <div id="quickDates" class="chips-wrap" role="group" aria-label="تواريخ سريعة">
-                  <button type="button" class="chip-filter" data-shift="0">اليوم</button>
-                  <button type="button" class="chip-filter" data-shift="1">غداً</button>
-                  <button type="button" class="chip-filter" data-shift="2">بعد غد</button>
-                </div>
-              </div>
-              <div class="col-12 col-md-5">
-                <div id="timeFilters" class="chips-wrap" role="group" aria-label="فلترة الفترة">
-                  <button type="button" class="chip-filter is-active" data-period="all">الكل</button>
-                  <button type="button" class="chip-filter" data-period="morning">صباح</button>
-                  <button type="button" class="chip-filter" data-period="noon">ظهر</button>
-                  <button type="button" class="chip-filter" data-period="evening">مساء</button>
-                </div>
+                <div id="err-date" class="field-msg" aria-live="polite"></div>
               </div>
             </div>
 
@@ -401,6 +340,7 @@
                 <strong>جاري جلب المواعيد…</strong>
               </div>
             </div>
+            <div id="err-time" class="field-msg" aria-live="polite"></div>
           </div>
         </section>
 
@@ -412,10 +352,13 @@
               <div class="col-12 col-md-6 form-block">
                 <label for="name" class="form-label">الإسم</label>
                 <input id="name" type="text" class="form-control" placeholder="اسمك الكريم" autocomplete="name"/>
+                <div id="err-name" class="field-msg" aria-live="polite"></div>
               </div>
               <div class="col-12 col-md-6 form-block">
                 <label for="mobile" class="form-label">رقم الجوال</label>
-                <input id="mobile" type="tel" class="form-control" placeholder="+9665…" autocomplete="tel"/>
+                <input id="mobile" type="tel" class="form-control" placeholder="+966…" autocomplete="tel" inputmode="tel"/>
+                <div id="err-mobile" class="field-msg" aria-live="polite"></div>
+                <small id="mobileHelp" class="text-muted d-block mt-1">مثال: 5XXXXXXXX</small>
               </div>
             </div>
           </div>
@@ -432,28 +375,39 @@
                 <input id="carName" type="text" class="form-control" placeholder="كامري، إلنترا…" autocomplete="off"/>
               </div>
               <div class="col-12 col-md-4">
-                <label class="form-label" for="plateNumber">آخر 4 أرقام من اللوحة <span aria-hidden="true" style="color:#dc2626">*</span></label>
-                <input id="plateNumber" type="text" inputmode="numeric" maxlength="4" class="form-control" placeholder="1234" required aria-required="true" autocomplete="off"/>
-                <small id="plateHelp" class="text-muted d-block mt-1" style="opacity:.85">نحتاج آخر ٤ أرقام للتأكيد فقط</small>
+                <label class="form-label" for="plateNumber">آخر 4 أرقام من اللوحة</label>
+                <input id="plateNumber" type="text" inputmode="numeric" maxlength="4" class="form-control" placeholder="1234" autocomplete="off"/>
+                <div id="err-plate" class="field-msg" aria-live="polite"></div>
+                <div id="note-plate" class="field-note note-info" role="status" aria-live="polite">
+                  <i class="fa-solid fa-stars"></i>
+                  <span id="note-plate-text"></span>
+                </div>
+                <small class="text-muted d-block mt-1" style="opacity:.9">الحقل اختياري — نستخدم الأرقام كمرجع للتأكيد فقط.</small>
               </div>
               <input id="locationDescription" type="text" hidden/>
             </div>
           </div>
+        </section>
 
+        <!-- 4.5) Payment -->
+        <section id="page5b" class="page" aria-label="طريقة الدفع">
           <h1>طريقة الدفع</h1>
-          <div class="pay-grid" role="radiogroup" aria-label="طريقة الدفع" id="payGroup">
-            <label class="pay-card" tabindex="0" role="radio" aria-checked="false">
-              <input type="radio" name="payingMethod" value="STC Pay" class="visually-hidden"/>
-              <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/STC%20PAY%20LOGO.png" alt="STC Pay">
-            </label>
-            <label class="pay-card" tabindex="-1" role="radio" aria-checked="false">
-              <input type="radio" name="payingMethod" value="Cash" class="visually-hidden"/>
-              <strong>Cash</strong>
-            </label>
-            <label class="pay-card" style="grid-column:1/-1" tabindex="-1" role="radio" aria-checked="false">
-              <input type="radio" name="payingMethod" value="MADA" class="visually-hidden"/>
-              <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/MADA%20LOGO.png" alt="Mada">
-            </label>
+          <div class="card">
+            <div class="pay-grid" role="radiogroup" aria-label="طريقة الدفع" id="payGroup">
+              <label class="pay-card" tabindex="0" role="radio" aria-checked="false">
+                <input type="radio" name="payingMethod" value="STC Pay" class="visually-hidden"/>
+                <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/STC%20PAY%20LOGO.png" alt="STC Pay">
+              </label>
+              <label class="pay-card" tabindex="-1" role="radio" aria-checked="false">
+                <input type="radio" name="payingMethod" value="Cash" class="visually-hidden"/>
+                <strong>Cash</strong>
+              </label>
+              <label class="pay-card" tabindex="-1" role="radio" aria-checked="false">
+                <input type="radio" name="payingMethod" value="MADA" class="visually-hidden"/>
+                <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/MADA%20LOGO.png" alt="Mada">
+              </label>
+            </div>
+            <div id="err-pay" class="field-msg" aria-live="polite"></div>
           </div>
         </section>
 
@@ -461,7 +415,7 @@
         <section id="page6" class="page" aria-label="اختيار الموقع">
           <h1>الموقع على خريطة قوقل</h1>
           <div class="card">
-            <div id="googleMap" style="width:100%;height:420px;border-radius:14px;overflow:hidden"></div>
+            <div id="googleMap" style="width:100%;height:420px;border-radius:14px;overflow:hidden;position:relative"></div>
           </div>
           <div class="card text-center">
             <button id="show-my-location" class="btn btn-outline-primary" type="button">إظهار موقعي</button>
@@ -471,7 +425,6 @@
 
         <!-- 6) Done -->
         <section id="page7" class="page" aria-label="تم الحجز">
-          <h1 class="visually-hidden">تم الحجز</h1>
           <div class="card text-center">
             <div class="success-hero">
               <div class="success-icon" aria-hidden="true"></div>
@@ -480,15 +433,9 @@
                 <p id="thanksCopy" class="thanks-copy">راح نرسل لك التأكيد على الواتساب خلال دقائق.</p>
               </div>
             </div>
-
-            <!-- ملخص الحجز -->
             <div id="thanksSummary" class="chips-wrap centered" aria-live="polite"></div>
-
             <div style="margin-top:18px">
-              <button id="rebook" class="rebook-btn" type="button">
-                <i class="fa-solid fa-rotate-right"></i>
-                احجز موعدًا آخر
-              </button>
+              <button id="rebook" class="rebook-btn" type="button"><i class="fa-solid fa-rotate-right"></i> احجز موعدًا آخر</button>
             </div>
           </div>
         </section>
@@ -496,22 +443,18 @@
     </div>
   </main>
 
-  <!-- Summary bar -->
-  <div class="summary-container">
-    <div id="bookingSummary" class="summary-bar" aria-live="polite">
-      <span class="chip"><i class="fa-solid fa-location-dot"></i> <b id="sumArea">—</b></span>
-      <span class="chip"><i class="fa-solid fa-screwdriver-wrench"></i> <b id="sumService">—</b></span>
-      <span class="chip"><i class="fa-regular fa-calendar"></i> <b id="sumDate">—</b></span>
-      <span class="chip"><i class="fa-regular fa-clock"></i> <b id="sumTime">—</b></span>
-      <span class="chip"><i class="fa-regular fa-credit-card"></i> <b id="sumPay">—</b></span>
-    </div>
-  </div>
-
-  <!-- Footer nav -->
+  <!-- Footer -->
   <footer class="sticky-nav" aria-label="التنقل بين الخطوات">
     <div class="footer-inner">
-      <div class="footer-brand" aria-label="Nahl Marking">
-        <span>نحل • <a href="https://nahl.app" target="_blank" rel="noopener" style="color:#fff;text-decoration:none">Nahl.app</a></span>
+      <div class="footer-left">
+        <div class="footer-brand">
+          <a href="https://nahl.app" target="_blank" rel="noopener">Nahl.app</a>
+        </div>
+        <div class="footer-social" aria-label="تابعنا">
+          <a href="https://wa.me/966509027172" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+          <a href="https://www.tiktok.com/@nahl.app?_t=ZS-8zgmzEQTSQW&_r=1" target="_blank" rel="noopener" title="TikTok" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+          <a href="https://www.instagram.com/nahl.app?igsh=ZmljaXNncGtudjJ2." target="_blank" rel="noopener" title="Instagram" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        </div>
       </div>
       <div class="footer-actions">
         <button id="footer-prev" type="button" class="btn-footer hidden">السابق</button>
@@ -529,126 +472,119 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    /* ---------------- Logo fallback helper ---------------- */
-    function handleLogoError(img){
-      const fallbacks = [
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20&%20%20Soap/spong&Soap%20-%20logo.png",
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/spong%26Soap%20-%20logo.png",
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/logo.png",
-        "https://dummyimage.com/180x54/027A93/ffffff.png&text=Sponge+%26+Soap"
-      ];
-      const i = Number(img.dataset.fidx||0);
-      if (i < fallbacks.length){ img.dataset.fidx = String(i+1); img.src = fallbacks[i]; }
-      else { img.style.display = 'none'; const txt = document.getElementById('brandText'); if (txt) txt.style.display = 'block'; }
-    }
-
-    /* ---------------- API (unchanged) ---------------- */
-    const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${'33e0d05d-d771-46f4-a7e7-7c634b4e3a9e'}/form`;
+    /* ---------- API ---------- */
+    const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${'21eddbf5-efe5-4a5d-9134-b581717b17ff'}/form`;
     const RESERVE_URL_PRIMARY   = `${defaultLink2}/reserveAppointment`;
     const RESERVE_URL_FALLBACK  = `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
 
     let controllers=[];
-
-    async function callContent2(path, cb, abortable=false, retries=3){
-      let signal='';
+    function callContent2(path, cb, abortable=false, retries=3){
+      let signal;
       if(abortable){
-        controllers.forEach(([c])=>c.abort());
+        controllers.forEach(c=>c[0].abort());
         controllers=[];
         const controller=new AbortController();
         signal=controller.signal;
         controllers.push([controller,signal]);
       }
-      try{
-        await new Promise(r=>setTimeout(r, 200)); // small UX debounce
-        const fullUrl = defaultLink2+path;
-        console.groupCollapsed('%c[GET]','color:#0ea5e9;font-weight:700', fullUrl);
-        const res=await fetch(fullUrl,{method:'GET',redirect:'follow',...(abortable&&{signal}), cache:'no-store'});
-        console.log('status:', res.status, res.statusText);
-        if(!res.ok){
-          console.warn('[GET] non-OK', res.status, res.statusText);
-          console.groupEnd();
-          if(retries>0) return callContent2(path,cb,abortable,retries-1);
-          throw new Error('Network');
-        }
-        const json=await res.json();
-        console.log('payload:', json);
-        console.groupEnd();
-        cb(json);
-      }catch(e){
-        console.error('[GET] failed:', e);
-        if(!String(e).includes('AbortError') && retries>0)
-          setTimeout(()=>callContent2(path,cb,abortable,retries-1),600);
-      }
+      setTimeout(()=>{
+        fetch(defaultLink2+path,{method:'GET',redirect:'follow',signal, cache:'no-store'})
+          .then(res=>{ if(!res.ok){ if(retries>0){ callContent2(path,cb,abortable,retries-1); return Promise.reject('retry'); } throw new Error('Network'); } return res.json(); })
+          .then(json=>cb(json))
+          .catch(e=>{ if(e!=='retry') console.error('[GET] failed:', e); setLoadingServices(false); setLoadingTimes(false); });
+      }, 120);
     }
 
-    async function postReservationTry(url, payload, contentType='text/plain;charset=UTF-8'){
-      console.groupCollapsed('%c[POST reserve]','color:#a855f7;font-weight:700', url, 'CT=', contentType);
-      console.log('payload:', payload);
-      try{
-        const res = await fetch(url, {
-          method:'POST',
-          mode:'cors',
-          cache:'no-store',
-          credentials:'omit',
-          referrerPolicy:'no-referrer',
-          headers:{ 'Content-Type': contentType, 'Accept':'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const raw = await res.text();
-        let data=null; try{ data = JSON.parse(raw); }catch(_){}
-        console.log('status:', res.status, res.statusText);
-        console.log('raw:', raw);
-        console.groupEnd();
-        return { ok: res.ok, status: res.status, data, raw };
-      }catch(err){
-        console.log('network error:', err);
-        console.groupEnd();
-        return { ok:false, status:0, error:String(err) };
-      }
+    function postReservationTry(url, payload, contentType){
+      return fetch(url, {
+        method:'POST', mode:'cors', cache:'no-store', credentials:'omit', referrerPolicy:'no-referrer',
+        headers:{ 'Content-Type': contentType || 'text/plain;charset=UTF-8', 'Accept':'application/json' },
+        body: JSON.stringify(payload)
+      }).then(res=>res.text().then(raw=>{ let data=null; try{ data=JSON.parse(raw);}catch(_){ } return { ok:res.ok, status:res.status, data, raw }; }))
+      .catch(err=>({ ok:false, status:0, error:String(err) }));
     }
-
     async function postReservation(payload){
       let r = await postReservationTry(RESERVE_URL_PRIMARY, payload, 'text/plain;charset=UTF-8');
-      if(!r.ok && (r.status===415 || r.status===406 || r.status===0)){
-        r = await postReservationTry(RESERVE_URL_PRIMARY, payload, 'application/json;charset=UTF-8');
-      }
-      if(!r.ok && r.status===404){
-        console.warn('[reserve] 404 on /form path — trying fallback without /form once…');
-        r = await postReservationTry(RESERVE_URL_FALLBACK, payload, 'text/plain;charset=UTF-8');
-      }
+      if(!r.ok && (r.status===415 || r.status===406 || r.status===0)){ r = await postReservationTry(RESERVE_URL_PRIMARY, payload, 'application/json;charset=UTF-8'); }
+      if(!r.ok && r.status===404){ r = await postReservationTry(RESERVE_URL_FALLBACK, payload, 'text/plain;charset=UTF-8'); }
       return r;
     }
 
-    /* ---------------- Toast ---------------- */
+    /* ---------- Toast ---------- */
     function showToast(type='info', msg=''){
       const wrap=document.getElementById('toastWrap');
       const div=document.createElement('div');
       div.className='toast-msg '+(type==='error'?'toast-error':type==='success'?'toast-success':'toast-info');
+      div.style.minWidth='260px'; div.style.color='#fff'; div.style.padding='10px 14px'; div.style.borderRadius='10px'; div.style.boxShadow='0 10px 28px rgba(0,0,0,.18)';
+      if(type==='error') div.style.background='#dc2626'; else if(type==='success') div.style.background='#16a34a'; else div.style.background='#0284c7';
       div.textContent=msg; wrap.appendChild(div);
       setTimeout(()=>{ div.style.opacity='0'; div.style.transform='translateY(-6px)'; setTimeout(()=>div.remove(), 180); }, 2400);
     }
 
-    /* ---------------- STATE ---------------- */
+    /* ---------- State ---------- */
     const DateTime=luxon.DateTime;
-    const orderedPages=["page1","page2","page4","page5","page6","page7"];
-    const STEPS_LABELS=["الترحيب","الخدمة","الوقت","البيانات","الموقع","تم"];
-    let selectedTime=null, positionUrl="";
-    let servicesCache=null, categoriesCache=null, itiPhone=null;
+    const orderedPages=["page1","page2","page4","page5","page5b","page6","page7"];
+    const STEPS_LABELS=["الترحيب","الخدمة","الوقت","البيانات","الدفع","الموقع","تم"];
+    let selectedTime=null;
+    let servicesCache=null, categoriesCache=null;
+
+    window.itiPhone = null;
 
     const nForm={date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:''};
 
-    /* ---------------- Helpers ---------------- */
+    /* Step backgrounds */
+    const STEP_BG = [
+      "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg",
+      "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG2.jpg",
+      "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG3.jpg",
+      "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG4.jpg",
+      "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG5.jpg",
+      "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG6.jpg",
+      "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG7.jpg"
+    ];
+    STEP_BG.forEach(src=>{ const im=new Image(); im.decoding='async'; im.src=src; });
+    function setStepBackground(stepIndex){
+      const url = STEP_BG[Math.min(stepIndex, STEP_BG.length-1)];
+      const stage = document.getElementById('bgStage');
+      if(stage){ stage.style.backgroundImage = `url("${url}")`; }
+    }
+
+    /* Header ResizeObserver */
+    let headerRO;
+    function initHeaderRO(){
+      const header=document.getElementById('siteHeader');
+      if(!header || typeof ResizeObserver==='undefined'){ syncHeaderHeight(); return; }
+      headerRO=new ResizeObserver(entries=>{
+        if(entries && entries[0]){
+          const h=entries[0].contentRect.height;
+          document.documentElement.style.setProperty('--header-h', h+'px');
+        }
+      });
+      headerRO.observe(header);
+    }
+    function syncHeaderHeight(){
+      const h=(document.getElementById('siteHeader')||{}).offsetHeight||120;
+      document.documentElement.style.setProperty('--header-h', h+'px');
+    }
+
+    function hideOverlays(){
+      const a=document.getElementById('servicesLoading'); if(a) a.classList.remove('show');
+      const b=document.getElementById('timeLoading'); if(b) b.classList.remove('show');
+    }
+
     function showPage(idx){
       const cur=document.querySelector('.page.active');
       const next=document.getElementById(orderedPages[idx]); if(!next||cur===next) return;
       if(cur && cur.id==='page1'){ stopWelcomeDeck(); }
       if(cur){ cur.classList.remove('active'); cur.classList.add('exit'); }
       next.style.display='flex';
-      requestAnimationFrame(()=>{ next.classList.add('active'); setTimeout(()=>{ if(cur){cur.classList.remove('exit'); cur.style.display='none';} }, 260); });
+      requestAnimationFrame(()=>{ next.classList.add('active'); setTimeout(()=>{ if(cur){cur.classList.remove('exit'); cur.style.display='none';} const h1 = next.querySelector('h1, [role="heading"]'); const firstInput = next.querySelector('input, select, button, [tabindex="0"]'); (h1 || firstInput)?.focus?.(); }, 260); });
+      hideOverlays();
       syncProgress(idx);
       updateNextAvailability();
+      setStepBackground(idx);
     }
-    function getActiveIndex(){ const id=document.querySelector('.page.active')?.id; return Math.max(0, orderedPages.indexOf(id)); }
+    function getActiveIndex(){ const id=(document.querySelector('.page.active')||{}).id; return Math.max(0, orderedPages.indexOf(id)); }
     function syncProgress(i){
       const pct=((i+1)/orderedPages.length)*100;
       document.getElementById('miniBarFill').style.width=pct+'%';
@@ -656,11 +592,12 @@
       const prev=document.getElementById('footer-prev');
       const next=document.getElementById('footer-next');
       const start=document.getElementById('page1-button');
-      const onWelcome = i===0;
-      prev.classList.toggle('hidden', i === 0);
-      next.classList.toggle('hidden', onWelcome);
-      start.classList.toggle('hidden', !onWelcome);
-      if(onWelcome){ start.textContent='تخطي العرض'; }
+      const isWelcome = i===0;
+      const isLast = i === (orderedPages.length-1);
+      start.classList.toggle('hidden', !isWelcome);
+      prev.classList.toggle('hidden', isWelcome || isLast);
+      next.classList.toggle('hidden', isWelcome || isLast);
+      if(isWelcome){ start.textContent='تخطي العرض'; }
     }
 
     function enforceDateMinToday(){
@@ -670,129 +607,144 @@
       dateEl.setAttribute('min', today);
       if(!dateEl.value || dateEl.value < today) dateEl.value = today;
     }
-
     function setLoadingTimes(on){ document.getElementById('timeLoading').classList.toggle('show', !!on); }
     function setLoadingServices(on){ document.getElementById('servicesLoading').classList.toggle('show', !!on); }
 
-    function validateMobile(){
-      if(!itiPhone || !itiPhone.isValidNumber()){ showToast('error','الرجاء إدخال رقم جوال صحيح'); return false; }
-      return true;
-    }
-    function validatePlate(){
-      const el = document.getElementById('plateNumber');
-      const ok = el.value && el.value.length === 4;
-      if(!ok){ showToast('error','رجاءً أدخل آخر ٤ أرقام من اللوحة'); el.focus(); }
-      return ok;
-    }
+    /* ---- Inline validation helpers ---- */
+    function showFieldError(inputEl, msgEl, msg){ if(inputEl){ inputEl.classList.add('is-invalid'); inputEl.setAttribute('aria-invalid','true'); } if(msgEl){ msgEl.textContent = msg || ''; msgEl.style.display='block'; } }
+    function clearFieldError(inputEl, msgEl){ if(inputEl){ inputEl.classList.remove('is-invalid'); inputEl.removeAttribute('aria-invalid'); } if(msgEl){ msgEl.textContent=''; msgEl.style.display=''; } }
 
-    /* ---------------- PowerPoint Deck Controller ---------------- */
-    let deckTimers = []; let deckIndex = 0; let deckRunning = false;
-    const SLIDE_MS = 2600; const GAP_MS = 180;
-    function startWelcomeDeck(){
-      const deck = document.getElementById('pptDeck'); if(!deck) return;
-      const slides = Array.from(deck.querySelectorAll('.ppt-slide'));
-      const dotsWrap = document.getElementById('pptDots');
-      dotsWrap.innerHTML = slides.map((_,i)=>`<span class="ppt-dot${i===0?' active':''}"></span>`).join('');
-      const dots = Array.from(dotsWrap.children);
-      const setActive = (i, exiting=-1)=>{
-        slides.forEach((s,idx)=>{ s.classList.remove('is-active','is-exiting'); if(idx===i){ s.style.zIndex=2; s.classList.add('is-active'); } else if(idx===exiting){ s.style.zIndex=1; s.classList.add('is-exiting'); } else{ s.style.zIndex=0; } });
-        dots.forEach((d,idx)=>d.classList.toggle('active', idx===i));
-      };
-      deckRunning = true; deckIndex = 0; setActive(0, -1);
-      const advance = ()=>{ if(!deckRunning) return; const prev = deckIndex; deckIndex++; if(deckIndex >= slides.length){ stopWelcomeDeck(); showPage(1); return; } setActive(deckIndex, prev); schedule(); };
-      const schedule = ()=>{ deckTimers.push(setTimeout(advance, SLIDE_MS + GAP_MS)); };
-      schedule();
-    }
-    function stopWelcomeDeck(){ deckRunning = false; deckTimers.forEach(t=>clearTimeout(t)); deckTimers = []; }
+    /* ---- Phone helpers (defensive) ---- */
+    const GCC_HELP = { sa:'5XXXXXXXX', ae:'5XXXXXXXX', bh:'3XXXXXXX', kw:'5XXXXXXX', om:'9XXXXXXX', qa:'3XXXXXXX' };
 
-    /* ---------------- TIMES (Selected date only) ---------------- */
-    let dayTimes = [];       // [{label, actual12}]
-    let timesLoaded = false;
-
-    // Date change ⇒ fetch times
-    document.getElementById('date').addEventListener('change', fetchTimesForSelectedDate);
-
-    // Re-fetch when service/area changes (if we're on the time page)
-    document.getElementById('service').addEventListener('change', () => {
-      if (getActiveIndex() === 2) fetchTimesForSelectedDate();
-    });
-    document.getElementById('area').addEventListener('change', () => {
-      if (getActiveIndex() === 2) fetchTimesForSelectedDate();
-    });
-
-    // Ensure default date is today & min
-    (function initDateMin(){
-      const today = DateTime.now().toFormat('yyyy-LL-dd');
-      const dateEl = document.getElementById('date');
-      if (!dateEl.value) dateEl.value = today;
-      dateEl.setAttribute('min', today);
-    })();
-
-    function parseTimeToLuxon(rawTime){
-      let t = DateTime.fromISO(String(rawTime||'').trim(), { setZone:true });
-      if (!t.isValid) t = DateTime.fromFormat(String(rawTime||''), 'HH:mm:ss', { setZone:true });
-      if (!t.isValid) t = DateTime.fromFormat(String(rawTime||''), 'H:mm a',   { setZone:true });
-      if (!t.isValid) t = DateTime.fromFormat(String(rawTime||''), 'H:mm',     { setZone:true });
-      return t.isValid ? t : null;
-    }
-    function normalizeAvailability(r){
-      const status = String(r.TS_status || r.status || r.TS_appointment_status || '').toLowerCase();
-      const availableFlag = (typeof r.isAvailable === 'boolean') ? r.isAvailable : undefined;
-      const booked   = Number(r.booked ?? r.TS_booked);
-      const capacity = Number(r.capacity ?? r.TS_capacity);
-      let remaining  = Number(r.remaining ?? r.TS_remaining);
-      if (!Number.isFinite(remaining) && Number.isFinite(capacity) && Number.isFinite(booked)){
-        remaining = capacity - booked;
+    function updateMobileHelp(){
+      const help = document.getElementById('mobileHelp');
+      if (!window.itiPhone || typeof window.itiPhone.getSelectedCountryData !== 'function'){
+        if (help) help.textContent = 'مثال: 5XXXXXXXX';
+        return;
       }
-      const looksOpen =
-        availableFlag === true ||
-        ['available','open','free','empty','vacant','canceled'].includes(status) ||
-        (Number.isFinite(remaining) ? remaining > 0 : (availableFlag !== false && !status));
-      return { looksOpen, remaining, status, availableFlag };
+      const data = window.itiPhone.getSelectedCountryData();
+      const iso2 = (data && data.iso2) ? data.iso2 : 'sa';
+      if (help) help.textContent = 'مثال: ' + (GCC_HELP[iso2] || '5XXXXXXXX');
+    }
+    function sanitizeMobileForCountry(raw){
+      const c = (window.itiPhone && typeof window.itiPhone.getSelectedCountryData==='function')
+        ? (window.itiPhone.getSelectedCountryData()?.iso2 || 'sa')
+        : 'sa';
+      let v = (raw||'').replace(/[^\d]/g,'');
+      if(c==='sa'){ if(v.startsWith('0')) v = v.replace(/^0+/, ''); }
+      return v;
+    }
+    function mobileValidationMessage(){
+      const code = (window.itiPhone && typeof window.itiPhone.getValidationError==='function') ? window.itiPhone.getValidationError() : null;
+      if(code===2) return 'الرقم قصير جدًا';
+      if(code===3) return 'الرقم طويل جدًا';
+      if(code===1) return 'رمز الدولة غير صحيح';
+      if(code===4) return 'المدخل ليس رقم هاتف';
+      return 'الرجاء إدخال رقم جوال صحيح';
+    }
+    function validateMobileInline(){
+      const el=document.getElementById('mobile');
+      const msgEl=document.getElementById('err-mobile');
+      if(!window.itiPhone || typeof window.itiPhone.isValidNumber!=='function'){ clearFieldError(el,msgEl); return true; }
+      const sanitized = sanitizeMobileForCountry(el.value);
+      if(el.value !== sanitized){ el.value = sanitized; }
+      const ok = window.itiPhone.isValidNumber();
+      if(!ok){ showFieldError(el, msgEl, mobileValidationMessage()); return false; }
+      clearFieldError(el, msgEl); return true;
+    }
+
+    function validateNameInline(){ const el=document.getElementById('name'); const msgEl=document.getElementById('err-name'); const ok=(el.value||'').trim().length>0; if(!ok){ showFieldError(el,msgEl,'الاسم مطلوب'); return false; } clearFieldError(el,msgEl); return true; }
+    function validatePlateInline(){ const el=document.getElementById('plateNumber'); const msgEl=document.getElementById('err-plate'); const val=(el.value||'').trim(); const ok=!val || /^\d{4}$/.test(val); if(!ok){ showFieldError(el,msgEl,'رجاءً أدخل ٤ أرقام أو اتركه فارغًا'); return false; } clearFieldError(el,msgEl); return true; }
+    function validateTimeInline(){ const msgEl=document.getElementById('err-time'); if(!selectedTime){ msgEl.textContent='الرجاء اختيار وقت مناسب'; return false; } msgEl.textContent=''; return true; }
+    function validatePayInline(){ const msgEl=document.getElementById('err-pay'); if(!nForm.paymentMethod){ msgEl.textContent='الرجاء اختيار طريقة الدفع'; return false; } msgEl.textContent=''; return true; }
+
+    /* Special plate */
+    function detectSpecialPlate(s){
+      if(!/^\d{4}$/.test(s)) return null;
+      const d=[...s].map(x=>+x);
+      const allSame = d.every(x=>x===d[0]); if(allSame) return {type:'same', label:'مميّز جدًا (أرقام متطابقة)'};
+      const asc = d[1]===d[0]+1 && d[2]===d[1]+1 && d[3]===d[2]+1;
+      const desc= d[1]===d[0]-1 && d[2]===d[1]-1 && d[3]===d[2]-1;
+      if(asc)  return {type:'asc',  label:'متسلسل تصاعديًا'};
+      if(desc) return {type:'desc', label:'متسلسل تنازليًا'};
+      const pairs = (d[0]===d[1] && d[2]===d[3] && d[1]!==d[2]); if(pairs) return {type:'pairs', label:'زوجي مكرر (##-##)'};
+      const pal = (d[0]===d[3] && d[1]===d[2] && !(d[0]===d[1] && d[1]===d[2])); if(pal) return {type:'pal', label:'متناظر'};
+      const counts={}; d.forEach(x=>counts[x]=(counts[x]||0)+1);
+      if(Object.values(counts).some(c=>c===3)) return {type:'triple', label:'ثلاثي مكرر'};
+      if(d[0]===d[2] && d[1]===d[3] && d[0]!==d[1]) return {type:'alt-pairs', label:'نمط متناوب (ABAB)'};
+      return null;
+    }
+    function updatePlateNote(){
+      const el=document.getElementById('plateNumber');
+      const note=document.getElementById('note-plate');
+      const textEl=document.getElementById('note-plate-text');
+      if(!el || !note || !textEl) return;
+      const v=(el.value||'').trim();
+      const info = detectSpecialPlate(v);
+      if(info){
+        note.style.display='flex';
+        textEl.textContent = `يبدو رقمًا مميّزًا: ${info.label}`;
+      }else{
+        note.style.display='none';
+        textEl.textContent = '';
+      }
+    }
+
+    /* Welcome deck */
+    let deckTimers=[]; let deckIndex=0; let deckRunning=false; const SLIDE_MS=2600; const GAP_MS=180;
+    function startWelcomeDeck(){
+      const deck=document.getElementById('pptDeck'); if(!deck) return;
+      const slides=Array.from(deck.querySelectorAll('.ppt-slide'));
+      deckRunning=true; deckIndex=0; if(slides[0]) slides[0].classList.add('is-active');
+      function advance(){ if(!deckRunning) return; const prev=deckIndex; deckIndex++; if(deckIndex>=slides.length){ stopWelcomeDeck(); showPage(1); return; } slides.forEach((s,i)=>{ s.classList.remove('is-active','is-exiting'); if(i===prev) s.classList.add('is-exiting'); if(i===deckIndex) s.classList.add('is-active'); }); deckTimers.push(setTimeout(advance, SLIDE_MS+GAP_MS)); }
+      deckTimers.push(setTimeout(advance, SLIDE_MS+GAP_MS));
+    }
+    function stopWelcomeDeck(){ deckRunning=false; deckTimers.forEach(t=>clearTimeout(t)); deckTimers=[]; }
+
+    /* Times */
+    let dayTimes=[]; let timesLoaded=false;
+
+    function parseTimeToLuxon(raw){ let t=DateTime.fromISO(String(raw||'').trim(),{setZone:true}); if(!t.isValid) t=DateTime.fromFormat(String(raw||''),'HH:mm:ss',{setZone:true}); if(!t.isValid) t=DateTime.fromFormat(String(raw||''),'H:mm a',{setZone:true}); if(!t.isValid) t=DateTime.fromFormat(String(raw||''),'H:mm',{setZone:true}); return t.isValid?t:null; }
+    function normalizeAvailability(r){
+      const status=String(r.TS_status||r.status||r.TS_appointment_status||'').toLowerCase();
+      const availableFlag=(typeof r.isAvailable==='boolean')?r.isAvailable:undefined;
+      const booked=Number(r.booked??r.TS_booked); const capacity=Number(r.capacity??r.TS_capacity); let remaining=Number(r.remaining??r.TS_remaining);
+      if(!Number.isFinite(remaining)&&Number.isFinite(capacity)&&Number.isFinite(booked)){ remaining=capacity-booked; }
+      const looksOpen=availableFlag===true||['available','open','free','empty','vacant','canceled'].includes(status)||(Number.isFinite(remaining)?remaining>0:(availableFlag!==false&&!status));
+      return {looksOpen};
     }
 
     function fetchTimesForSelectedDate(){
-      const dateEl = document.getElementById('date');
-      const timeContainer = document.getElementById('time-container');
-      const loc = document.getElementById('area').value || '';
-      const srv = document.getElementById('service').value || '';
-      const selectedISO = (dateEl.value || DateTime.now().toFormat('yyyy-LL-dd')).trim();
+      const dateEl=document.getElementById('date');
+      const timeContainer=document.getElementById('time-container');
+      const loc=$('#area').val()||'';
+      const srv=$('#service').val()||'';
+      const selectedISO=(dateEl.value||DateTime.now().toFormat('yyyy-LL-dd')).trim();
 
-      if (!loc || !srv) {
+      if(!loc || !srv){
         timeContainer.innerHTML = `<div style="grid-column:1/-1;justify-self:center" class="text-muted">اختر المنطقة والخدمة لعرض المواعيد</div>`;
-        window.selectedTime = null; selectedTime = null;
-        updateNextAvailability?.();
-        return;
+        window.selectedTime = null; selectedTime = null; updateNextAvailability?.(); return;
       }
 
       dateEl.disabled = true;
       setLoadingTimes(true);
-      timeContainer.innerHTML = `
-        <div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;">
-          <span class="visually-hidden">Loading...</span>
-        </div>`;
+      timeContainer.innerHTML = `<div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;"><span class="visually-hidden">Loading...</span></div>`;
 
       const now = DateTime.now().setZone('Asia/Riyadh');
       const isToday = selectedISO === now.toISODate();
 
-      const qs = `/appointments?startDate=${encodeURIComponent(selectedISO)}`
-               + `&location=${encodeURIComponent(loc)}`
-               + `&service=${encodeURIComponent(srv)}`
-               + `&onlyAvailable=1`;
+      const qs = `/appointments?startDate=${encodeURIComponent(selectedISO)}&location=${encodeURIComponent(loc)}&service=${encodeURIComponent(srv)}&onlyAvailable=1`;
 
       callContent2(qs, (res) => {
         const rowsRaw = (res?.data?.appointments || []);
-
         const filtered = rowsRaw.filter(r => {
           const d = DateTime.fromISO(r.TS_appointment_date, { setZone: true });
           if (!d.isValid || d.toISODate() !== selectedISO) return false;
-
           const t = parseTimeToLuxon(r.TS_appointment_time);
           if (!t) return false;
-
           const { looksOpen } = normalizeAvailability(r);
           if (!looksOpen) return false;
-
           if (isToday) {
             const slot = now.set({ hour: t.hour, minute: t.minute, second: 0 });
             if (slot < now.plus({ minutes: 5 })) return false;
@@ -817,68 +769,24 @@
       }, true);
     }
 
-    /* Time-of-day filter state */
-    let timeFilter = 'all'; // all|morning|noon|evening
-
-    // Quick dates
-    document.addEventListener('click', (e)=>{
-      const btn = e.target.closest('#quickDates .chip-filter');
-      if(!btn) return;
-      document.querySelectorAll('#quickDates .chip-filter').forEach(b=>b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      const shift = Number(btn.dataset.shift||0);
-      const d = DateTime.now().plus({days:shift}).toFormat('yyyy-LL-dd');
-      document.getElementById('date').value = d;
-      document.getElementById('date').dispatchEvent(new Event('change'));
-    });
-
-    document.addEventListener('click', (e)=>{
-      const btn = e.target.closest('#timeFilters .chip-filter');
-      if(!btn) return;
-      document.querySelectorAll('#timeFilters .chip-filter').forEach(b=>b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      timeFilter = btn.dataset.period || 'all';
-      renderSelectedDateTimes(document.getElementById('date').value);
-    });
-
     function renderSelectedDateTimes(selectedISO){
       const timeContainer = document.getElementById('time-container');
       timeContainer.innerHTML = '';
 
       if (!timesLoaded) {
-        timeContainer.innerHTML = `
-          <div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;">
-            <span class="visually-hidden">Loading...</span>
-          </div>`;
+        timeContainer.innerHTML = `<div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;"><span class="visually-hidden">Loading...</span></div>`;
         return;
       }
 
-      const filteredByPeriod = dayTimes.filter(t=>{
-        const hh = Number(DateTime.fromFormat(t.actual12,'h:mm a').toFormat('HH'));
-        if(timeFilter==='morning') return hh>=5 && hh<12;
-        if(timeFilter==='noon')    return hh>=12 && hh<17;
-        if(timeFilter==='evening') return hh>=17 && hh<=22;
-        return true;
-      });
-
-      const useList = filteredByPeriod;
-
-      if (!useList.length) {
-        timeContainer.innerHTML = `
-          <div style="grid-column:1/-1;justify-self:center;text-align:center">
-            <div class="text-muted mb-2">لا توجد مواعيد متاحة بهذه الفترة</div>
-            <div class="chips-wrap" style="justify-content:center">
-              <button type="button" class="chip-filter" data-shift="1">جرّب غداً</button>
-              <button type="button" class="chip-filter" data-shift="2">أو بعد غد</button>
-            </div>
-          </div>`;
+      if (!dayTimes.length) {
+        timeContainer.innerHTML = `<div style="grid-column:1/-1;justify-self:center" class="text-muted">لا توجد مواعيد متاحة</div>`;
         window.selectedTime = null;
         selectedTime = null;
         updateNextAvailability?.();
         return;
       }
 
-      useList.forEach((t) => {
+      dayTimes.forEach((t) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'time-option';
@@ -891,13 +799,14 @@
           [...timeContainer.children].forEach(el => el.setAttribute('aria-checked','false'));
           btn.setAttribute('aria-checked','true');
 
-          const parsed = DateTime.fromFormat(t.actual12, 'h:mm a');
+          const parsed = luxon.DateTime.fromFormat(t.actual12, 'h:mm a');
           nForm.date = selectedISO;
           nForm.time = parsed.isValid ? parsed.toFormat('HH:mm') : t.actual12;
 
           window.selectedTime = { ui: t.label, iso: nForm.time };
           selectedTime        = window.selectedTime;
 
+          validateTimeInline();
           updateNextAvailability?.();
         });
 
@@ -905,116 +814,152 @@
       });
     }
 
-    function choosedDate(time12, dateISO) {
-      const parsed = DateTime.fromFormat(time12, "h:mm a");
-      nForm.date = dateISO;
-      nForm.time = parsed.isValid ? parsed.toFormat("HH:mm") : time12;
-      window.selectedTime = { ui: time12, iso: nForm.time };
-      selectedTime        = window.selectedTime;
-      updateNextAvailability?.();
+    /* ------------ Locations & Services loader ------------ */
+    let servicesVersion = 0;
+    function loadLocationsAndFirstServices(){
+      setLoadingServices(true);
+      callContent2(`/locations`, res=>{
+        const list=res?.data||[];
+        const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
+        $('#area').empty().select2({data:ds,width:'100%'});
+        if(ds.length){
+          const firstId = ds[0].id;
+          $('#area').val(firstId).trigger('change.select2');
+          nForm.location = firstId;
+          servicesVersion++;
+          fetchServicesForArea(firstId, servicesVersion, true);
+        }else{
+          setLoadingServices(false);
+          showToast('error','لا توجد مناطق متاحة حالياً');
+        }
+      });
+    }
+    function fetchServicesForArea(locationId, versionAtCall, closeSpinner){
+      setLoadingServices(true);
+      callContent2(`/services?location=${encodeURIComponent(locationId)}`, res=>{
+        if(versionAtCall !== servicesVersion){ return; }
+        servicesCache=res?.data?.services||[];
+        categoriesCache=res?.data?.servicesCat||[];
+        const cats=categoriesCache.map(c=>({id:c.TS_category_id,text:c.TS_category_arabic_name}));
+        $('#serviceCat').empty().select2({data:cats,width:'100%'});
+        if(cats.length){
+          $('#serviceCat').val(cats[0].id).trigger('change.select2');
+          const cid=Number(cats[0].id);
+          const items=servicesCache.filter(s=>Number(s.TS_category_id)===cid)
+                                   .sort((a,b)=>a.TS_service_id-b.TS_service_id)
+                                   .map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}));
+          $('#service').empty().select2({data:items,width:'100%'}); 
+          if(items.length) $('#service').val(items[0].id).trigger('change.select2');
+        }
+        if(closeSpinner){ setLoadingServices(false); }
+        updateNextAvailability();
+      }, true);
     }
 
-    /* ---------------- Init & bindings ---------------- */
-    $(function(){
+    /* Init & bindings */
+    document.addEventListener('DOMContentLoaded', function(){
       enforceDateMinToday();
       const today=DateTime.now().toFormat('yyyy-LL-dd');
-      $('#date').val(today).attr('min',today);
+      const dateEl=document.getElementById('date');
+      dateEl.value=today; dateEl.setAttribute('min',today);
 
       $('#area').select2({width:'100%',placeholder:'اختر المنطقة', dir:'rtl'});
       $('#serviceCat').select2({width:'100%',placeholder:'التصنيف', dir:'rtl'});
       $('#service').select2({width:'100%',placeholder:'الخدمة', dir:'rtl'});
       $('#carBrand').select2({width:'100%',placeholder:'ماركة السيارة', dir:'rtl'});
 
-      itiPhone=window.intlTelInput(document.querySelector('#mobile'),{ initialCountry:'sa', onlyCountries:['sa','ae','bh','kw','om','qa'], utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js' });
+      // intl-tel-input – defensive init
+      const phoneEl=document.querySelector('#mobile');
+      if (phoneEl && window.intlTelInput){
+        window.itiPhone = window.intlTelInput(phoneEl,{
+          initialCountry:'sa',
+          onlyCountries:['sa','ae','bh','kw','om','qa'],
+          separateDialCode:true,
+          nationalMode:false,
+          autoPlaceholder:'aggressive',
+          setPlaceholderNumberType:'MOBILE',
+          formatOnDisplay:true,
+          autoInsertDialCode:true,
+          useFullscreenPopup:true,
+          utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js'
+        });
 
-      setLoadingServices(true);
-      callContent2(`/locations`, res=>{
-        const list=res?.data||[]; const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
-        $('#area').empty().select2({data:ds,width:'100%'});
-        if(ds.length){ $('#area').val(ds[0].id).trigger('change'); }
-        else { setLoadingServices(false); showToast('error','لا توجد مناطق متاحة حالياً'); }
-      });
+        updateMobileHelp();
+
+        phoneEl.addEventListener('input', function(){
+          const cur = this.value;
+          const clean = cur.replace(/[^\d]/g,'');
+          if(cur !== clean) this.value = clean;
+          validateMobileInline();
+        });
+        phoneEl.addEventListener('blur', validateMobileInline);
+        phoneEl.addEventListener('countrychange', function(){
+          updateMobileHelp();
+          validateMobileInline();
+        });
+      } else {
+        updateMobileHelp();
+      }
+
+      loadLocationsAndFirstServices();
 
       $('#area').on('change', function(){
-        nForm.location=this.value; setLoadingServices(true);
-        callContent2(`/services?location=${encodeURIComponent(this.value)}`, res=>{
-          servicesCache=res?.data?.services||[]; categoriesCache=res?.data?.servicesCat||[];
-          const cats=categoriesCache.map(c=>({id:c.TS_category_id,text:c.TS_category_arabic_name}));
-          $('#serviceCat').empty().select2({data:cats,width:'100%'});
-          if(cats.length){ $('#serviceCat').val(cats[0].id).trigger('change'); }
-          setLoadingServices(false);
-          updateNextAvailability();
-        }, true);
+        nForm.location=this.value;
+        servicesVersion++;
+        fetchServicesForArea(this.value, servicesVersion, true);
+        updateNextAvailability();
       });
 
       $('#serviceCat').on('change', function(){
-        nForm.serviceCat=this.value; const cid=Number(this.value);
-        const items=servicesCache?.filter(s=>Number(s.TS_category_id)===cid)?.sort((a,b)=>a.TS_service_id-b.TS_service_id)?.map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}))||[];
-        $('#service').empty().select2({data:items,width:'100%'});
-        if(items.length){ $('#service').val(items[0].id).trigger('change'); }
+        nForm.serviceCat=this.value;
+        const cid=Number(this.value);
+        const items=(servicesCache||[]).filter(s=>Number(s.TS_category_id)===cid)
+              .sort((a,b)=>a.TS_service_id-b.TS_service_id)
+              .map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}));
+        $('#service').empty().select2({data:items,width:'100%'}); 
+        if(items.length){ $('#service').val(items[0].id).trigger('change.select2'); }
+        setLoadingServices(false);
         updateNextAvailability();
       });
 
-      // Service change: store service, refetch if on time page
-      $('#service').on('change', function(){
-        nForm.service = this.value || '';
-        if(getActiveIndex()===2) document.getElementById('date').dispatchEvent(new Event('change'));
-        updateNextAvailability();
-      });
+      $('#service').on('change', function(){ nForm.service=this.value||''; if(getActiveIndex()===2){ document.getElementById('date').dispatchEvent(new Event('change')); } updateNextAvailability(); });
 
-      // Preload brands
       const brands=["Toyota","Nissan","Hyundai","Kia","Honda","Lexus","BMW","Mercedes-Benz","Chevrolet","Ford","Mazda","Mitsubishi","Aston Martin","Other"].sort().map(b=>({id:b,text:b}));
       $('#carBrand').empty().select2({data:brands,width:'100%'});
 
-      // Payment ARIA
-      const payGroup = document.getElementById('payGroup');
-      const payCards = [...payGroup.querySelectorAll('.pay-card')];
+      const payGroup=document.getElementById('payGroup');
+      const payCards=[...payGroup.querySelectorAll('.pay-card')];
       payCards.forEach((card, idx)=>{
-        const input = card.querySelector('input');
+        const input=card.querySelector('input');
         card.setAttribute('role','radio'); card.setAttribute('aria-checked','false'); card.setAttribute('tabindex', idx===0?'0':'-1');
-        const choose = () => {
-          payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; });
-          card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=input.value; updateNextAvailability(); };
+        const choose=()=>{ payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; }); card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=input.value; validatePayInline(); updateNextAvailability(); };
         card.addEventListener('click', choose);
-        card.addEventListener('keydown', (e)=>{
-          if(e.key==='Enter' || e.key===' '){ e.preventDefault(); choose(); }
-          if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(e.key)){
-            e.preventDefault();
-            const i = payCards.indexOf(card);
-            const nextI = (e.key==='ArrowRight'||e.key==='ArrowDown') ? Math.min(i+1,payCards.length-1) : Math.max(i-1,0);
-            payCards[nextI].focus();
-          }
-        });
+        card.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); choose(); } if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(e.key)){ e.preventDefault(); const i=payCards.indexOf(card); const nextI=(e.key==='ArrowRight'||e.key==='ArrowDown')?Math.min(i+1,payCards.length-1):Math.max(i-1,0); payCards[nextI].focus(); } });
       });
 
-      // Plate: digits only + live validation
-      $('#plateNumber').on('input', function(){ this.value = this.value.replace(/\D/g, '').slice(0,4); updateNextAvailability(); });
+      $('#name').on('input', validateNameInline);
+      $('#plateNumber').on('input', function(){ this.value=this.value.replace(/\D/g,'').slice(0,4); validatePlateInline(); updatePlateNote(); updateNextAvailability(); });
 
-      // Contact field triggers
-      $('#name, #mobile, #carName').on('input', updateNextAvailability);
       $('#serviceCount, #serviceCat, #service, #area, #date').on('change', updateNextAvailability);
 
-      // Rebook
       $('#rebook').on('click', ()=>location.href='/');
 
-      // initial progress + welcome footer state
       syncProgress(0);
       startWelcomeDeck();
       renderSummary();
+      initHeaderRO();
+      setStepBackground(0);
+
+      document.getElementById('date').addEventListener('change', fetchTimesForSelectedDate);
     });
 
-    // Footer nav + welcome Skip button
+    /* Footer nav */
     (function(){
       const $prev=document.getElementById('footer-prev');
       const $next=document.getElementById('footer-next');
       const $start=document.getElementById('page1-button');
 
       $start.addEventListener('click', ()=>{ stopWelcomeDeck(); showPage(1); });
-
-      function focusFirstInvalid(){
-        const invalid = document.querySelector('.is-invalid');
-        if(invalid){ invalid.focus({preventScroll:false}); invalid.scrollIntoView({behavior:'smooth', block:'center'}); }
-      }
 
       async function gotoNext(){
         const i=getActiveIndex(); const id=orderedPages[i];
@@ -1023,68 +968,46 @@
           if(!$('#area').val()){ showToast('error','يرجى اختيار المنطقة'); return; }
           if(!$('#service').val()){ showToast('error','يرجى اختيار الخدمة'); return; }
           nForm.service=$('#service').val(); nForm.serviceCount=$('#serviceCount').val()||'1';
-          showPage(2); // to page4
-          document.getElementById('date').dispatchEvent(new Event('change')); // initial fetch
-          return;
+          showPage(2); document.getElementById('date').dispatchEvent(new Event('change')); return;
         }
 
         if(id==='page4'){
-          if(!selectedTime){ showToast('error','الرجاء اختيار وقت'); return; }
-          showPage(3);
-          return;
+          if(!validateTimeInline()) return;
+          showPage(3); return;
         }
 
         if(id==='page5'){
-          const name=$('#name').val().trim();
-          const phoneOk=(itiPhone && itiPhone.isValidNumber());
-          const plateOk=(($('#plateNumber').val()||'').length===4);
-          const payOk=!!nForm.paymentMethod;
-
-          $('#name').toggleClass('is-invalid', !name);
-          $('#mobile').toggleClass('is-invalid', !phoneOk);
-          $('#plateNumber').toggleClass('is-invalid', !plateOk);
-
-          if(!name){ showToast('error','يرجى إدخال الاسم'); focusFirstInvalid(); return; }
-          if(!phoneOk){ showToast('error','الرجاء إدخال رقم جوال صحيح'); focusFirstInvalid(); return; }
-          if(!plateOk){ showToast('error','رجاءً أدخل آخر ٤ أرقام من اللوحة'); focusFirstInvalid(); return; }
-          if(!payOk){ showToast('error','يرجى اختيار طريقة الدفع'); return; }
-
-          nForm.customerN=name;
-          nForm.customerM=itiPhone.getNumber().replace(/^\+/, '');
+          const okN=validateNameInline(), okM=validateMobileInline(), okP=validatePlateInline();
+          if(!(okN && okM && okP)) return;
+          nForm.customerN=$('#name').val().trim();
+          const phoneNum = (window.itiPhone && typeof window.itiPhone.getNumber==='function') ? window.itiPhone.getNumber().replace(/^\+/,'') : '';
+          nForm.customerM=phoneNum;
           nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
-          showPage(4);
-          return;
+          showPage(4); return; // الدفع
+        }
+
+        if(id==='page5b'){
+          if(!validatePayInline()) return;
+          showPage(5); return; // الخريطة
         }
 
         if(id==='page6'){
-          if(!positionUrl){ showToast('error','الرجاء تحديد الموقع على الخريطة'); return; }
-          nForm.urlLocation=positionUrl;
+          if(!window.positionUrl){ showToast('error','الرجاء تحديد الموقع على الخريطة'); return; }
+          nForm.urlLocation=window.positionUrl;
 
           const payload = {
-            date: nForm.date,
-            time: nForm.time,
-            location: nForm.location,
-            service: nForm.service,
-            serviceCount: nForm.serviceCount,
-            serviceCat: nForm.serviceCat,
-            customerM: nForm.customerM,
-            customerN: nForm.customerN,
-            paymentMethod: nForm.paymentMethod,
-            urlLocation: nForm.urlLocation,
-            locationDescription: nForm.locationDescription || '',
-            locale: 'ar'
+            date: nForm.date, time: nForm.time, location: nForm.location, service: nForm.service,
+            serviceCount: nForm.serviceCount, serviceCat: nForm.serviceCat, customerM: nForm.customerM,
+            customerN: nForm.customerN, paymentMethod: nForm.paymentMethod, urlLocation: nForm.urlLocation,
+            locationDescription: nForm.locationDescription || '', locale: 'ar'
           };
 
           const r = await postReservation(payload);
 
           if(r.ok && r.data?.success){
-            if(r.data?.otp){
-              showToast('error','الخادم يطلب رمز تحقق (OTP). عطّل خيار OTP في إعدادات التطبيق.');
-              return;
-            }
+            if(r.data?.otp){ showToast('error','الخادم يطلب رمز تحقق (OTP). عطّل خيار OTP في إعدادات التطبيق.'); return; }
             showToast('success','تم إنشاء الحجز');
-            showPage(5);
-            renderThankYou();
+            showPage(6); renderThankYou();
           } else {
             const msg = r?.data?.msgAR
               || (r.status===404 ? 'المسار غير موجود: تأكد من /form/reserveAppointment'
@@ -1094,117 +1017,117 @@
           }
           return;
         }
-
-        const nextIndex=Math.min(i+1, orderedPages.length-1);
-        showPage(nextIndex);
       }
 
       $next.addEventListener('click', gotoNext);
       $prev.addEventListener('click', ()=>{ const i=getActiveIndex(); showPage(Math.max(i-1,0)); });
     })();
 
-    // Opening Motion trigger + date min
-    document.addEventListener('DOMContentLoaded', ()=>{
-      document.body.classList.add('intro-play');
-      setTimeout(()=>document.body.classList.remove('intro-play'), 820);
-      enforceDateMinToday();
-    });
-
-    /* Enable/disable Next based on step validity + Summary refresh */
     function updateNextAvailability(){
       const i = getActiveIndex();
       const nextBtn = document.getElementById('footer-next');
       let enable = true;
-
       if(i === 1){ // page2
         enable = !!($('#area').val() && $('#service').val());
-      } else if(i === 2){ // page4 (time)
+      } else if(i === 2){ // page4
         enable = !!selectedTime;
-      } else if(i === 3){ // page5 (contact+payment+plate)
+      } else if(i === 3){ // page5
         const nameOk = $('#name').val().trim().length > 0;
-        const phoneOk = (itiPhone && itiPhone.isValidNumber());
-        const payOk = !!nForm.paymentMethod;
-        const plateOk = ($('#plateNumber').val()||'').length === 4;
-
-        $('#name').toggleClass('is-invalid', !nameOk);
-        $('#mobile').toggleClass('is-invalid', !phoneOk);
-        $('#plateNumber').toggleClass('is-invalid', !plateOk);
-
-        enable = nameOk && phoneOk && payOk && plateOk;
-      } else if(i === 4){ // page6 (map)
-        enable = !!positionUrl;
+        const phoneOk = (window.itiPhone && typeof window.itiPhone.isValidNumber==='function' && window.itiPhone.isValidNumber());
+        const plateVal = $('#plateNumber').val()||'';
+        const plateOk  = (plateVal.length===0 || /^\d{4}$/.test(plateVal));
+        enable = nameOk && phoneOk && plateOk;
+      } else if(i === 4){ // page5b
+        enable = !!nForm.paymentMethod;
+      } else if(i === 5){ // page6
+        enable = !!window.positionUrl;
+      } else if(i === 6){ // page7
+        enable = false;
       }
-
       nextBtn.disabled = !enable;
       nextBtn.classList.toggle('disabled', !enable);
-
       renderSummary();
     }
 
-    /* --------- Summary renderer --------- */
+    function setChip(id, text){
+      const chip = document.querySelector(`[data-sum-chip="${id}"]`);
+      const el = document.getElementById('sum'+id[0].toUpperCase()+id.slice(1));
+      const t = (text||'').trim();
+      if(!chip || !el) return;
+      if(!t || t==='—'){ chip.style.display='none'; el.textContent='—'; }
+      else { chip.style.display='inline-flex'; el.textContent=t; chip.title=t; }
+    }
     function renderSummary(){
-      document.getElementById('sumArea').textContent    = $('#area').find(':selected').text() || '—';
-      document.getElementById('sumService').textContent = $('#service').find(':selected').text() || '—';
-      document.getElementById('sumDate').textContent    = ($('#date').val() || '—');
-      document.getElementById('sumTime').textContent    = (window.selectedTime?.ui || '—');
-      document.getElementById('sumPay').textContent     = (nForm.paymentMethod || '—');
+      const areaTxt=$('#area').find(':selected').text()||'';
+      const svcTxt =$('#service').find(':selected').text()||'';
+      const dateTxt=$('#date').val()||'';
+      const timeTxt=(window.selectedTime && window.selectedTime.ui) || '';
+      const payTxt =(nForm.paymentMethod||'');
+      setChip('area', areaTxt);
+      setChip('service', svcTxt);
+      setChip('date', dateTxt);
+      setChip('time', timeTxt);
+      setChip('pay',  payTxt);
     }
 
-    /* --------- Thank you renderer --------- */
     function renderThankYou(){
-      const first = (nForm.customerN||'').trim().split(' ')[0];
-      document.getElementById('thanksTitle').textContent =
-        first ? `تم حجز موعدك بنجاح، ${first}! 🎉` : `تم حجز موعدك بنجاح 🎉`;
-      document.getElementById('thanksCopy').textContent =
-        'وصلنا طلبك، وسنرسل لك التأكيد واللوكيشن على الواتساب قريباً.';
-
-      const info = [
-        {icon:'fa-location-dot',        text: $('#area').find(':selected').text()||'—'},
-        {icon:'fa-screwdriver-wrench',  text: $('#service').find(':selected').text()||'—'},
-        {icon:'fa-calendar-day',        text: nForm.date || $('#date').val() || '—'},
-        {icon:'fa-clock',               text: (window.selectedTime?.ui || '—')},
-        {icon:'fa-credit-card',         text: nForm.paymentMethod || '—'}
+      const first=(nForm.customerN||'').trim().split(' ')[0];
+      const tTitle=document.getElementById('thanksTitle');
+      const tCopy=document.getElementById('thanksCopy');
+      if(tTitle) tTitle.textContent = first ? ('تم حجز موعدك بنجاح، '+first+'! 🎉') : 'تم حجز موعدك بنجاح 🎉';
+      if(tCopy)  tCopy.textContent  = 'وصلنا طلبك، وسنرسل لك التأكيد واللوكيشن على الواتساب قريباً.';
+      const info=[
+        {icon:'fa-location-dot', text:$('#area').find(':selected').text()||'—'},
+        {icon:'fa-screwdriver-wrench', text:$('#service').find(':selected').text()||'—'},
+        {icon:'fa-calendar-day', text:nForm.date||$('#date').val()||'—'},
+        {icon:'fa-clock', text:(window.selectedTime&&window.selectedTime.ui)||'—'},
+        {icon:'fa-credit-card', text:nForm.paymentMethod||'—'}
       ];
-      document.getElementById('thanksSummary').innerHTML =
-        info.map(i=>`<span class="chip"><i class="fa-solid ${i.icon}"></i> ${i.text}</span>`).join('');
+      const wrap=document.getElementById('thanksSummary');
+      if(wrap) wrap.innerHTML = info.map(i=>`<span class="chip"><i class="fa-solid ${i.icon}"></i> ${i.text}</span>`).join('');
     }
+  </script>
 
-    /* --------- Summary placement (header/footer/auto) --------- */
-    function setSummaryPlacement(where='auto'){
-      document.body.classList.remove('summary-in-header','summary-in-footer','summary-auto');
-      if(where==='header') document.body.classList.add('summary-in-header');
-      else if(where==='footer') document.body.classList.add('summary-in-footer');
-      else document.body.classList.add('summary-auto');
-    }
-    // الوضع الافتراضي: تلقائي (هيدر على الشاشات الكبيرة، فوتر على الموبايل)
-    setSummaryPlacement('auto');
-
-    /* ---------------- Google Map ---------------- */
+  <!-- Google Maps -->
+  <script>
     let map, marker;
-    function initMap(){
+    window.positionUrl = window.positionUrl ?? "";
+
+    window.initMap = function(){
       const def={lat:26.34165524787632,lng:50.11524831545726};
-      map=new google.maps.Map(document.getElementById('googleMap'),{center:def,zoom:12,disableDoubleClickZoom:true});
+      const el=document.getElementById('googleMap');
+      if(!el) return;
+
+      map=new google.maps.Map(el,{center:def,zoom:12,disableDoubleClickZoom:true});
       marker=new google.maps.Marker({position:def,map,draggable:true,title:'اسحب أو اضغط لتحديد الموقع'});
-      const setPos=(latLng,pan=false)=>{ if(!latLng) return; marker.setPosition(latLng); if(pan) map.panTo(latLng); map.setZoom(17); positionUrl=`https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`; document.getElementById('mapHint').innerHTML = `تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`; updateNextAvailability(); };
+
+      const setPos=(latLng,pan=false)=>{
+        if(!latLng) return;
+        marker.setPosition(latLng);
+        if(pan) map.panTo(latLng);
+        map.setZoom(17);
+        window.positionUrl=`https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
+        const hint=document.getElementById('mapHint');
+        if(hint){ hint.innerHTML=`تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`; }
+        if(typeof updateNextAvailability==='function') updateNextAvailability();
+      };
+
       marker.addListener('dragend', ({latLng})=>setPos(latLng));
-      map.addEventListener?.('click', ({latLng})=>setPos(latLng));
-      map.addListener?.('click', ({latLng})=>setPos(latLng));
+      map.addListener('click', ({latLng})=>setPos(latLng));
+
       const btn=document.getElementById('show-my-location');
       if(btn){
         btn.addEventListener('click', ()=>{
-          if(!navigator.geolocation){ showToast('error','المتصفح لا يدعم تحديد الموقع'); return; }
+          if(!navigator.geolocation){ return; }
           navigator.geolocation.getCurrentPosition(
             pos=>setPos(new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude),true),
-            err=>{ const msg = err?.message || 'رجاءً فعّل الـ GPS وأذونات الموقع'; showToast('error','تعذر تحديد موقعك: '+msg); },
+            err=>console.warn('Geolocation error:', err),
             { enableHighAccuracy:true, timeout:10000, maximumAge:30000 }
           );
         });
       }
-    }
-    window.initMap = initMap;
+    };
   </script>
-
-  <!-- Google Maps (async) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async" async defer></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly" async defer></script>
 </body>
 </html>
