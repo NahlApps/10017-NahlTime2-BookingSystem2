@@ -27,8 +27,8 @@
       --ease:cubic-bezier(.22,.61,.36,1);
       --dur-xs:160ms; --dur-sm:220ms; --dur-md:460ms;
 
-      --header-h:76px;     /* auto-updated by ResizeObserver */
-      --footer-h:100px;    /* auto-updated by ResizeObserver */
+      --header-h:76px;
+      --footer-h:100px;
 
       --page-bg:url("https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg");
     }
@@ -41,8 +41,8 @@
         var(--page-bg) center/cover no-repeat fixed;
       min-height:100vh; min-height:100dvh;
       display:flex; flex-direction:column;
-      padding-top:var(--header-h);   /* space for fixed header */
-      padding-bottom:var(--footer-h);/* space for sticky footer */
+      padding-top:var(--header-h);
+      padding-bottom:var(--footer-h);
     }
 
     /* ===== Header (fixed) ===== */
@@ -61,12 +61,12 @@
     .header-right{flex:1; display:flex; flex-direction:column; gap:6px}
     .mini-progress{display:flex; align-items:center; gap:10px; width:100%}
     .mini-progress .bar{flex:1; height:8px; background:rgba(255,255,255,.25); border-radius:999px; overflow:hidden}
-    .mini-progress .bar>span{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--brand-600), var(--brand-200)); transition:width var(--dur-md) var(--ease); will-change:width}
+    .mini-progress .bar>span{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--brand-600), var(--brand-200)); transition:width var(--dur-md) var(--ease)}
     .mini-progress .step{font-weight:800; font-size:1rem}
 
     /* ===== Summary chips ===== */
     .summary-chips{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
-    .summary-chips.hidden{display:none!important;} /* << force hide on welcome */
+    .summary-chips.hidden{display:none!important;}
     .chip{
       display:inline-flex; align-items:center; gap:6px; max-width:100%;
       padding:6px 10px; border:1px solid rgba(255,255,255,.35);
@@ -118,8 +118,6 @@
     .form-control:focus{ box-shadow:0 0 0 4px rgba(2,122,147,.12) }
     .form-label{display:inline-block; margin-bottom:6px; font-size:.9rem; font-weight:800; color:#224652}
     .field-error{color:#dc2626; font-size:.85rem; margin-top:6px; display:none}
-    .has-error .form-control, .has-error .select2-selection{ border-color:#dc2626 !important; }
-    .has-error .field-error{display:block}
 
     .select2-container .select2-selection--single .select2-selection__rendered{color:#0B2630!important; line-height:52px!important;}
     .select2-container .select2-selection--single{height:52px!important; display:flex; align-items:center}
@@ -186,7 +184,6 @@
         padding-bottom:8px; gap:10px;
       }
       .brand img{ height:72px }
-      /* compact chips & horizontal scroll to save vertical space */
       .summary-chips{
         overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
         gap:6px; padding-bottom:2px; scrollbar-width:thin;
@@ -232,7 +229,6 @@
           <div class="bar"><span id="miniBarFill" style="width:0%"></span></div>
           <div class="step" id="miniStepTitle">الترحيب</div>
         </div>
-        <!-- chips are injected here (hidden on welcome page) -->
         <div id="summaryChips" class="summary-chips hidden" aria-live="polite"></div>
       </div>
     </div>
@@ -302,7 +298,6 @@
               </div>
             </div>
 
-            <!-- spinner only for services page -->
             <div id="servicesLoading" class="load-overlay" aria-hidden="true">
               <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
               <strong>جاري تحميل الخدمات…</strong>
@@ -564,45 +559,41 @@
       if(v.length>0 && v.length<4){ pe.style.display='block'; pe.textContent='رجاءً أدخل ٤ أرقام'; } else { pe.style.display='none'; }
     }
 
-    /* —— summary chips (NEVER on welcome) —— */
+    /* —— summary chips (important only; NEVER on welcome) —— */
     function renderSummary(currentId){
       const wrap=document.getElementById('summaryChips'); if(!wrap) return;
       const activeId=currentId || (document.querySelector('.page.active')?.id) || 'page1';
       const currGroup=STEP_GROUP_INDEX[activeId] ?? 0;
 
-      // hide completely on welcome (class + style to prevent flicker)
       if(currGroup===0){
         wrap.classList.add('hidden');
         wrap.style.display='none';
         wrap.innerHTML='';
         return;
       }
-      // show on all other pages
       wrap.classList.remove('hidden');
       wrap.style.display='flex';
 
       const areaTxt=$('#area').find(':selected').text()||'';
-      const catTxt=$('#serviceCat').find(':selected').text()||'';
       const srvTxt=$('#service').find(':selected').text()||'';
       const cntTxt=$('#serviceCount').val()||'';
       const dt=nForm.date ? DateTime.fromISO(nForm.date).toFormat('d LLL yyyy') : '';
       const tm=nForm.time||'';
       const pay=nForm.paymentMethod||'';
-      const plate=$('#plateNumber').val()||'';
       const locOk=!!positionUrl;
 
       const chips=[
         {i:'fa-location-dot',t:'المنطقة',v:areaTxt,g:1},
-        {i:'fa-layer-group',t:'التصنيف',v:catTxt,g:1},
         {i:'fa-screwdriver-wrench',t:'الخدمة',v:srvTxt,g:1},
-        {i:'fa-car',t:'عدد',v:cntTxt,g:1},
         {i:'fa-clock',t:'الموعد',v:(dt||tm)?((dt&&tm)?`${dt} • ${tm}`:(dt||tm)):'',g:2},
-        {i:'fa-user',t:'الاسم',v:(nForm.customerN||''),g:3},
-        {i:'fa-phone',t:'الجوال',v:(nForm.customerM||''),g:3},
-        {i:'fa-id-card',t:'لوحة',v:plate,g:3},
         {i:'fa-credit-card',t:'الدفع',v:(pay?pay.toUpperCase():''),g:4},
         {i:'fa-map-pin',t:'الموقع',v:(locOk?'تم التحديد':''),g:5},
       ];
+
+      // only if more than one car
+      if(cntTxt && cntTxt !== '1'){
+        chips.splice(2,0,{i:'fa-car',t:'عدد',v:cntTxt,g:1});
+      }
 
       wrap.innerHTML='';
       chips.filter(c=>c.v && c.g<=currGroup).forEach(c=>{
@@ -634,7 +625,7 @@
     }
     function stopWelcomeDeck(){ deckRunning=false; deckTimers.forEach(clearTimeout); deckTimers=[]; }
 
-    /* —— Times API helpers (same as previous working version) —— */
+    /* —— Times helpers —— */
     function parseTimeToLuxon(raw){ let t=DateTime.fromISO(String(raw||'').trim(),{setZone:true}); if(!t.isValid) t=DateTime.fromFormat(String(raw||''),'HH:mm:ss',{setZone:true}); if(!t.isValid) t=DateTime.fromFormat(String(raw||''),'H:mm a',{setZone:true}); if(!t.isValid) t=DateTime.fromFormat(String(raw||''),'H:mm',{setZone:true}); return t.isValid?t:null; }
     function normalizeAvailability(r){ const s=String(r.TS_status||r.status||r.TS_appointment_status||'').toLowerCase(); const f=(typeof r.isAvailable==='boolean')?r.isAvailable:undefined; const b=Number(r.booked??r.TS_booked); const c=Number(r.capacity??r.TS_capacity); let rem=Number(r.remaining??r.TS_remaining); if(!Number.isFinite(rem)&&Number.isFinite(c)&&Number.isFinite(b)) rem=c-b; const open=f===true||['available','open','free','empty','vacant','canceled'].includes(s)||(Number.isFinite(rem)?rem>0:(f!==false&&!s)); return {looksOpen:open,remaining:rem}; }
 
@@ -703,7 +694,7 @@
       });
     }
 
-    /* ---------- ResizeObservers: keep padding in sync with fixed header & footer ---------- */
+    /* ---------- ResizeObservers ---------- */
     function installResizeObservers(){
       const header=document.getElementById('siteHeader');
       const footer=document.getElementById('siteFooter');
@@ -735,17 +726,14 @@
     $(function(){
       installResizeObservers();
 
-      // preload BGs
       Object.values(PAGE_BACKGROUNDS).forEach(src=>{ const i=new Image(); i.src=src; });
 
-      // Select2
       $('#area').select2({width:'100%',placeholder:'اختر المنطقة', dir:'rtl'});
       $('#serviceCat').select2({width:'100%',placeholder:'التصنيف', dir:'rtl'});
       $('#service').select2({width:'100%',placeholder:'الخدمة', dir:'rtl'});
       $('#carBrand').select2({width:'100%',placeholder:'ماركة السيارة', dir:'rtl'});
       $('#area, #serviceCat, #service').on('select2:open', ()=>{$('.select2-search__field').attr('dir','rtl');});
 
-      // Phone input (fits, country code LEFT via CSS)
       itiPhone=window.intlTelInput(document.querySelector('#mobile'),{
         initialCountry:'sa', onlyCountries:['sa','ae','bh','kw','om','qa'],
         separateDialCode:true, placeholderNumberType:'MOBILE',
@@ -756,7 +744,6 @@
         document.getElementById('err-mobile').style.display = ok ? 'none':'block';
       });
 
-      // Load locations → services
       const today=DateTime.now().toFormat('yyyy-LL-dd');
       $('#date').val(today).attr('min',today);
 
@@ -784,21 +771,17 @@
       });
       $('#service').on('change', function(){ nForm.service=this.value||''; renderSummary('page2'); updateNextAvailability(); });
 
-      // Brands
       const brands=["Toyota","Nissan","Hyundai","Kia","Honda","Lexus","BMW","Mercedes-Benz","Chevrolet","Ford","Mazda","Mitsubishi","Aston Martin","Other"].sort().map(b=>({id:b,text:b}));
       $('#carBrand').empty().select2({data:brands,width:'100%'});
 
-      // Inputs
       $('#name').on('input', function(){ nForm.customerN=this.value.trim(); renderSummary('page4'); updateNextAvailability(); });
       $('#mobile').on('input', function(){ renderSummary('page4'); updateNextAvailability(); });
       $('#carName').on('input', function(){ updateNextAvailability(); });
       $('#serviceCount').on('change', function(){ nForm.serviceCount=this.value||'1'; renderSummary('page2'); updateNextAvailability(); });
       $('#plateNumber').on('input', function(){ updatePlateHint(); renderSummary('page4'); updateNextAvailability(); });
 
-      // Date
       $('#date').on('change', ()=>{ fetchTimesForSelectedDate(); renderSummary('page3'); });
 
-      // Footer nav
       const $prev=document.getElementById('footer-prev');
       const $next=document.getElementById('footer-next');
 
@@ -818,7 +801,8 @@
         if(id==='page3'){ if(!selectedTime){ showToast('error','الرجاء اختيار وقت'); return; } showPage(3); return; }
 
         if(id==='page4'){
-          const nameOk=($('#name').val()||'').trim().length>0; const phoneOk=itiPhone && itiPhone.isValidNumber();
+          const nameOk=($('#name').val()||'').trim().length>0;
+          const phoneOk= itiPhone ? itiPhone.isValidNumber() : false;
           document.getElementById('err-name').style.display=nameOk?'none':'block';
           document.getElementById('err-mobile').style.display=phoneOk?'none':'block';
           if(!nameOk||!phoneOk){ showToast('error','يرجى التحقق من الاسم ورقم الجوال'); return; }
@@ -845,28 +829,29 @@
       $next.addEventListener('click', gotoNext);
       $prev.addEventListener('click', ()=>{ const i=getActiveIndex(); showPage(Math.max(i-1,0)); });
 
-      // Payment select
       const payCards=[...document.getElementById('payGroup').querySelectorAll('.pay-card')];
-      payCards.forEach((card,idx)=>{
+      payCards.forEach((card)=>{
         const input=card.querySelector('input');
         const choose=()=>{ payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; }); card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=input.value; renderSummary('page5'); updateNextAvailability(); };
         card.addEventListener('click',choose);
         card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();} });
       });
 
-      // Rebook
       $('#rebook').on('click', ()=>location.href='/');
 
-      // Start
       setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
     });
 
     function updateNextAvailability(){
       const i=getActiveIndex(); const nextBtn=document.getElementById('footer-next'); let enable=true;
-      if(i===0){ enable=true; }                   // welcome always enabled
+      if(i===0){ enable=true; }
       else if(i===1){ enable=!!($('#area').val()&&$('#service').val()); }
       else if(i===2){ enable=!!selectedTime; }
-      else if(i===3){ const nameOk=($('#name').val()||'').trim().length>0; enable=nameOk && (window.intlTelInput && intlTelInputGlobals ? true : true); enable = nameOk && (window.itiPhone ? itiPhone.isValidNumber() : true); }
+      else if(i===3){
+        const nameOk=($('#name').val()||'').trim().length>0;
+        const phoneOk= itiPhone ? itiPhone.isValidNumber() : false;
+        enable = nameOk && phoneOk;
+      }
       else if(i===4){ enable=!!(document.querySelector('#payGroup input:checked')); }
       else if(i===5){ enable=!!positionUrl; }
       nextBtn.disabled=!enable; nextBtn.classList.toggle('disabled',!enable);
