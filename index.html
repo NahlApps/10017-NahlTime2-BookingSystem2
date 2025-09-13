@@ -16,30 +16,24 @@
 
   <style>
     :root{
-      /* Brand */
       --brand-700:#01657A; --brand-600:#027A93; --brand-200:#BFE6F0; --brand-050:#F0FAFC;
       --ink-900:#0B2630; --ink-700:#224652; --surface-000:#FFF; --surface-100:#EDF3F6; --border-300:#D4E0E6;
 
-      /* Radius + Shadow */
       --radius-md:14px; --radius-pill:999px;
       --shadow-xs:0 2px 6px rgba(11,38,48,.07);
       --shadow-sm:0 3px 12px rgba(11,38,48,.09);
       --shadow-md:0 10px 28px rgba(11,38,48,.14);
 
-      /* Motion tokens */
       --ease:cubic-bezier(.22,.61,.36,1);
       --ease-decel:cubic-bezier(0.2,0,0,1);
       --ease-accel:cubic-bezier(0.3,1,0.8,1);
       --dur-xs:160ms; --dur-sm:220ms; --dur-md:460ms; --dur-lg:640ms;
 
-      /* Typography + spacing */
       --fs-xxl:1.6rem; --fs-xl:1.375rem; --fs-md:1rem; --fs-sm:.9rem; --fw-bold:800;
       --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-7:32px;
 
-      /* Layout (auto-set by ResizeObserver) */
       --header-h:76px; --footer-h:100px;
 
-      /* Background per page */
       --page-bg:url("https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg");
     }
 
@@ -51,7 +45,6 @@
         var(--page-bg) center/cover no-repeat fixed;
       min-height:100vh; display:flex; flex-direction:column;
       padding-top:var(--header-h); padding-bottom:var(--footer-h);
-      /* iOS: avoid jump on address bar show/hide */
       min-height:100dvh;
     }
 
@@ -74,7 +67,7 @@
     .mini-progress .bar>span{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--brand-600), var(--brand-200)); transition:width var(--dur-md) var(--ease-decel)}
     .mini-progress .step{font-weight:var(--fw-bold); font-size:var(--fs-md)}
 
-    /* Summary chips under progress */
+    /* Chips */
     .summary-chips{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
     .chip{
       display:inline-flex; align-items:center; gap:6px;
@@ -91,7 +84,7 @@
       box-shadow:0 0 0 2px rgba(255,255,255,.16) inset;
     }
 
-    /* Main/stage/pages */
+    /* Main/pages */
     main{flex:1 0 auto; display:flex; justify-content:center; padding:var(--sp-2) var(--sp-3) 0}
     #app{width:100%; max-width:1120px}
     .stage{position:relative; min-height:560px; padding:8px 0 20px}
@@ -106,18 +99,34 @@
     @keyframes pageOut{ from{opacity:1; transform:translateY(0) scale(1)} to{opacity:0; transform:translateY(14px) scale(.985)} }
     .page h1{font-size:var(--fs-xl); font-weight:var(--fw-bold); margin:0; text-align:center}
 
-    /* Cards (semi-transparent to show background) */
+    /* Card translucency */
     .card{
       background:rgba(255,255,255,.88); color:var(--ink-900);
       border-radius:var(--radius-md); box-shadow:var(--shadow-md);
       padding:var(--sp-6); width:100%; max-width:920px; backdrop-filter:blur(6px);
     }
 
-    /* Form + Select2 (contrast) */
+    /* Welcome deck */
+    .ppt-deck{position:relative; width:100%; max-width:920px; height:200px}
+    .ppt-slide{
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      opacity:0; transform:translateY(14px) scale(.98); transition:opacity .6s var(--ease), transform .6s var(--ease);
+    }
+    .ppt-slide .slide-card{
+      background:rgba(255,255,255,.92); color:#0B2630; border-radius:14px; box-shadow:var(--shadow-md);
+      padding:18px 20px; text-align:center; width:min(820px,92%);
+    }
+    .ppt-slide.is-active{opacity:1; transform:none; z-index:2}
+    .ppt-slide.is-exiting{opacity:0; transform:translateY(-8px) scale(.985); z-index:1}
+    .ppt-dots{display:flex; gap:8px; justify-content:center; margin-top:12px}
+    .ppt-dot{width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.55)}
+    .ppt-dot.active{background:#fff}
+
+    /* Form + Select2 */
     .form-control, select, .select2-selection{
       background:#fff; color:#0B2630;
       border:1px solid var(--border-300) !important; border-radius:var(--radius-md)!important;
-      min-height:52px; text-align:center; font-size:16px; /* 16px to avoid iOS zoom */
+      min-height:52px; text-align:center; font-size:16px;
       transition:border-color var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease);
     }
     .form-control:focus{ box-shadow:0 0 0 4px rgba(2,122,147,.12) }
@@ -147,7 +156,7 @@
     .time-option:active{transform:translateY(0) scale(.995)}
     .time-option[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
 
-    /* Overlays (service + time loaders) */
+    /* Overlays */
     .load-overlay{
       position:absolute; inset:0; background:rgba(255,255,255,.88);
       color:#0B2630; display:none; align-items:center; justify-content:center; gap:12px; border-radius:var(--radius-md);
@@ -156,7 +165,7 @@
     .load-overlay.show{display:flex; animation:fadeIn var(--dur-sm) var(--ease) both}
     @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
 
-    /* Payment page */
+    /* Payment */
     .pay-grid{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-4); width:100%; max-width:920px}
     .pay-card{
       background:#fff; color:#0B2630; border:1px solid var(--border-300); border-radius:var(--radius-md);
@@ -171,7 +180,7 @@
     /* Map */
     #googleMap{width:100%;height:420px;border-radius:14px;overflow:hidden}
 
-    /* Footer (bigger on mobile) */
+    /* Footer */
     footer.sticky-nav{
       position:sticky; bottom:0; z-index:40; background:rgba(11,38,48,.45);
       backdrop-filter:blur(10px); border-top:1px solid rgba(255,255,255,.15);
@@ -206,7 +215,7 @@
       .footer-brand{width:100%; justify-content:space-between}
     }
 
-    /* Tel input RTL: keep flag clear */
+    /* Tel input RTL */
     html[dir="rtl"] .iti--allow-dropdown .iti__flag-container{ right: 8px; left: auto; }
     html[dir="rtl"] .iti--allow-dropdown input#mobile.form-control{
       padding-right: calc(76px + 8px);
@@ -221,7 +230,6 @@
   <!-- Header -->
   <header id="siteHeader">
     <div class="header-inner">
-      <!-- Brand (no frame) -->
       <div class="brand">
         <img id="brandLogo"
              alt="Nahl Time"
@@ -229,7 +237,6 @@
              onerror="handleLogoError(this)" />
       </div>
 
-      <!-- Progress + chips -->
       <div class="header-right">
         <div class="mini-progress" aria-hidden="true">
           <div class="bar"><span id="miniBarFill" style="width:0%"></span></div>
@@ -244,15 +251,38 @@
   <main>
     <div id="app">
       <div class="stage">
-        <!-- 1) Welcome (your adjusted PPT can live here if desired) -->
+        <!-- 1) Welcome with 3-slide deck -->
         <section id="page1" class="page active" aria-label="الترحيب">
           <h1>✨ غسيل بدون طوابير</h1>
+
+          <div id="pptDeck" class="ppt-deck">
+            <div class="ppt-slide is-active">
+              <div class="slide-card">
+                <h3 class="mb-2">نجيك لين باب بيتك</h3>
+                <p class="m-0">حجز سريع • خدمة متنقلة • احترافية في كل تفصيل</p>
+              </div>
+            </div>
+            <div class="ppt-slide">
+              <div class="slide-card">
+                <h3 class="mb-2">مواد فاخرة</h3>
+                <p class="m-0">منتجات آمنة على الطلاء والداخلية مع عناية دقيقة</p>
+              </div>
+            </div>
+            <div class="ppt-slide">
+              <div class="slide-card">
+                <h3 class="mb-2">موعدك على راحتك</h3>
+                <p class="m-0">حدد المنطقة والخدمة والوقت المناسب — والباقي علينا</p>
+              </div>
+            </div>
+          </div>
+          <div id="pptDots" class="ppt-dots" aria-hidden="true"></div>
+
           <div class="card text-center" style="max-width:860px">
-            <p class="mb-0" style="color:#224652">نجيك لين باب بيتك — جودة وفخامة بالتفاصيل الصغيرة</p>
+            <p class="mb-0" style="color:#224652">انطلق — الخطوة التالية لاختيار المنطقة والخدمة</p>
           </div>
         </section>
 
-        <!-- 2) Service & Location (with spinner) -->
+        <!-- 2) Service & Location -->
         <section id="page2" class="page" aria-label="اختيار المنطقة والخدمة">
           <h1>وين تحب نجيك؟</h1>
 
@@ -351,7 +381,7 @@
           </div>
         </section>
 
-        <!-- 5) Payment (separate page) -->
+        <!-- 5) Payment -->
         <section id="page5" class="page" aria-label="طريقة الدفع">
           <h1>طريقة الدفع</h1>
           <div class="pay-grid" role="radiogroup" aria-label="طريقة الدفع" id="payGroup">
@@ -396,7 +426,7 @@
     </div>
   </main>
 
-  <!-- Footer nav -->
+  <!-- Footer -->
   <footer id="siteFooter" class="sticky-nav" aria-label="التنقل بين الخطوات">
     <div class="footer-inner">
       <div class="footer-brand">
@@ -422,7 +452,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    /* ---------------- Logo fallback ---------------- */
+    /* ---------- Logo fallback ---------- */
     function handleLogoError(img){
       const fallbacks = [
         "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20&%20%20Soap/spong&Soap%20-%20logo.png",
@@ -435,7 +465,7 @@
       else { img.style.display = 'none'; }
     }
 
-    /* ---------------- API (legacy behavior preserved) ---------------- */
+    /* ---------- API (kept compatible) ---------- */
     const APP_ID = '33e0d05d-d771-46f4-a7e7-7c634b4e3a9e';
     const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${APP_ID}/form`;
     const RESERVE_URL_PRIMARY   = `${defaultLink2}/reserveAppointment`;
@@ -485,8 +515,6 @@
         return { ok:false, status:0, error:String(err) };
       }
     }
-
-    // DO NOT CHANGE order (prevents regressions)
     async function postReservation(payload){
       let r = await postReservationTry(RESERVE_URL_PRIMARY, payload, 'text/plain;charset=UTF-8');
       if(!r.ok && (r.status===415 || r.status===406 || r.status===0)){
@@ -498,7 +526,7 @@
       return r;
     }
 
-    /* ---------------- Toast ---------------- */
+    /* ---------- Toast ---------- */
     function showToast(type='info', msg=''){
       const wrap=document.getElementById('toastWrap');
       const div=document.createElement('div');
@@ -511,7 +539,7 @@
       setTimeout(()=>{ div.style.opacity='0'; div.style.transform='translateY(-6px)'; setTimeout(()=>div.remove(), 180); }, 2400);
     }
 
-    /* ---------------- STATE ---------------- */
+    /* ---------- STATE ---------- */
     const DateTime=luxon.DateTime;
     const orderedPages=["page1","page2","page3","page4","page5","page6","page7"];
     const STEPS_LABELS=["الترحيب","الخدمة","الوقت","البيانات","الدفع","الموقع","تم"];
@@ -524,8 +552,6 @@
       page6: "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG6.jpg",
       page7: "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG7.jpg"
     };
-
-    // chips group mapping: which step a chip belongs to
     const STEP_GROUP_INDEX = { page1:0, page2:1, page3:2, page4:3, page5:4, page6:5, page7:6 };
 
     let selectedTime=null;
@@ -533,7 +559,7 @@
     let positionUrl="";
     const nForm={date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar'};
 
-    /* ---------------- Helpers ---------------- */
+    /* ---------- Page helpers ---------- */
     function setPageBackground(id){
       const url = PAGE_BACKGROUNDS[id] || PAGE_BACKGROUNDS.page1;
       document.documentElement.style.setProperty('--page-bg', `url("${url}")`);
@@ -541,13 +567,21 @@
     function showPage(idx){
       const cur=document.querySelector('.page.active');
       const next=document.getElementById(orderedPages[idx]); if(!next||cur===next) return;
+
+      // Stop deck if leaving welcome
+      if(cur && cur.id==='page1'){ stopWelcomeDeck(); }
+
       if(cur){ cur.classList.remove('active'); cur.classList.add('exit'); }
       next.style.display='flex';
       requestAnimationFrame(()=>{ next.classList.add('active'); setTimeout(()=>{ if(cur){cur.classList.remove('exit'); cur.style.display='none';} }, 260); });
+
       syncProgress(idx);
       setPageBackground(next.id);
-      renderSummary(next.id);  // <-- chips reflect current page
+      renderSummary(next.id);
       updateNextAvailability();
+
+      // If we ever come back to page1, restart deck
+      if(next.id==='page1'){ startWelcomeDeck(); }
     }
     function getActiveIndex(){ const id=document.querySelector('.page.active')?.id; return Math.max(0, orderedPages.indexOf(id)); }
     function syncProgress(i){
@@ -590,11 +624,15 @@
       if(v.length>0 && v.length<4){ pe.style.display='block'; pe.textContent='رجاءً أدخل ٤ أرقام'; } else { pe.style.display='none'; }
     }
 
-    /* ---------------- Summary chips (context-aware) ---------------- */
+    /* ---------- Summary chips ---------- */
     function renderSummary(currentId){
       const wrap = document.getElementById('summaryChips'); if(!wrap) return;
       const activeId = currentId || (document.querySelector('.page.active')?.id) || 'page1';
       const currGroup = STEP_GROUP_INDEX[activeId] ?? 0;
+
+      // Hide chips completely on welcome (fix)
+      wrap.style.display = currGroup === 0 ? 'none' : 'flex';
+      if(currGroup === 0){ wrap.innerHTML=''; return; }
 
       const areaTxt = $('#area').find(':selected').text() || '';
       const catTxt  = $('#serviceCat').find(':selected').text() || '';
@@ -606,11 +644,10 @@
       const plate   = $('#plateNumber').val() || '';
       const locOk   = !!positionUrl;
 
-      // define chips with their group index (which step they belong to)
       const chips = [
         {i:'fa-location-dot',   t:'المنطقة',   v:areaTxt, group:1},
         {i:'fa-layer-group',    t:'التصنيف',   v:catTxt,  group:1},
-        {i:'fa-screwdriver-wrench', t:'الخدمة', v:srvTxt,  group:1},
+        {i:'fa-screwdriver-wrench', t:'الخدمة', v:srvTxt, group:1},
         {i:'fa-car',            t:'عدد السيارات', v:cntTxt, group:1},
         {i:'fa-clock',          t:'الموعد',    v:(dt||tm)?((dt&&tm)?`${dt} • ${tm}`:(dt||tm)):'', group:2},
         {i:'fa-user',           t:'الاسم',     v:(nForm.customerN||''), group:3},
@@ -620,7 +657,6 @@
         {i:'fa-map-pin',        t:'الموقع',     v:(locOk?'تم التحديد':'') , group:5},
       ];
 
-      // show chips up to current group only; highlight current group's chips
       wrap.innerHTML='';
       chips
         .filter(c => c.v && c.group <= currGroup)
@@ -631,7 +667,42 @@
         });
     }
 
-    /* ---------------- Time (same logic as working old) ---------------- */
+    /* ---------- Welcome deck (3 slides, auto-advance) ---------- */
+    let deckTimers = []; let deckIndex = 0; let deckRunning = false;
+    const SLIDE_MS = 2600; const GAP_MS = 220;
+
+    function startWelcomeDeck(){
+      const deck = document.getElementById('pptDeck'); if(!deck) return;
+      const slides = Array.from(deck.querySelectorAll('.ppt-slide'));
+      const dotsWrap = document.getElementById('pptDots');
+      dotsWrap.innerHTML = slides.map((_,i)=>`<span class="ppt-dot${i===0?' active':''}"></span>`).join('');
+      const dots = Array.from(dotsWrap.children);
+
+      const setActive = (i, exiting=-1)=>{
+        slides.forEach((s,idx)=>{
+          s.classList.remove('is-active','is-exiting');
+          if(idx===i){ s.classList.add('is-active'); s.style.zIndex=2; }
+          else if(idx===exiting){ s.classList.add('is-exiting'); s.style.zIndex=1; }
+          else{ s.style.zIndex=0; }
+        });
+        dots.forEach((d,idx)=>d.classList.toggle('active', idx===i));
+      };
+
+      deckRunning = true; deckIndex = 0; setActive(0, -1);
+
+      const advance = ()=>{
+        if(!deckRunning) return;
+        const prev = deckIndex; deckIndex++;
+        if(deckIndex >= slides.length){ stopWelcomeDeck(); showPage(1); return; } // auto go to page2
+        setActive(deckIndex, prev); schedule();
+      };
+      const schedule = ()=>{ deckTimers.push(setTimeout(advance, SLIDE_MS + GAP_MS)); };
+
+      schedule();
+    }
+    function stopWelcomeDeck(){ deckRunning = false; deckTimers.forEach(t=>clearTimeout(t)); deckTimers = []; }
+
+    /* ---------- Time (as before) ---------- */
     function parseTimeToLuxon(rawTime){
       let t = DateTime.fromISO(String(rawTime||'').trim(), { setZone:true });
       if (!t.isValid) t = DateTime.fromFormat(String(rawTime||''), 'HH:mm:ss', { setZone:true });
@@ -731,7 +802,8 @@
 
       if (!dayTimes.length) {
         timeContainer.innerHTML = `<div style="grid-column:1/-1;justify-self:center" class="text-muted">لا توجد مواعيد متاحة</div>`;
-        window.selectedTime = null; selectedTime = null;
+        window.selectedTime = null;
+        selectedTime = null;
         updateNextAvailability();
         return;
       }
@@ -755,7 +827,7 @@
 
           window.selectedTime = { ui: t.label, iso: nForm.time };
           selectedTime        = window.selectedTime;
-          renderSummary('page3'); // update chips as timing chosen
+          renderSummary('page3');
           updateNextAvailability();
         });
 
@@ -763,7 +835,7 @@
       });
     }
 
-    /* ---------------- ResizeObserver for header/footer ---------------- */
+    /* ---------- ResizeObservers ---------- */
     function installResizeObservers(){
       const header = document.getElementById('siteHeader');
       const footer = document.getElementById('siteFooter');
@@ -780,7 +852,7 @@
       if(footer) ro.observe(footer);
     }
 
-    /* ---------------- Build payload (legacy-compatible) ---------------- */
+    /* ---------- Payload ---------- */
     function buildPayload(){
       const loc  = $('#area').val();
       const svcC = $('#serviceCat').val();
@@ -792,7 +864,6 @@
       const service      = (svc  !== null && svc  !== '') ? String(svc)  : undefined;
       const serviceCount = String(cnt);
 
-      // IMPORTANT: server expects digits only
       const phoneDigits = itiPhone?.getNumber?.()?.replace(/^\+/, '') || '';
       const pay         = (nForm.paymentMethod || '').toLowerCase();
 
@@ -812,16 +883,14 @@
       };
     }
 
-    /* ---------------- Init & bindings ---------------- */
+    /* ---------- Init ---------- */
     $(function(){
       installResizeObservers();
       setPageBackground('page1');
       enforceDateMinToday();
 
-      // Preload backgrounds
-      (function preloadBG(){
-        Object.values(PAGE_BACKGROUNDS).forEach(src => { const i=new Image(); i.src = src; });
-      })();
+      // Preload BGs
+      Object.values(PAGE_BACKGROUNDS).forEach(src => { const i=new Image(); i.src = src; });
 
       // Select2
       $('#area').select2({width:'100%',placeholder:'اختر المنطقة', dir:'rtl'});
@@ -832,7 +901,7 @@
         $('.select2-search__field').attr('dir','rtl');
       });
 
-      // intl-tel-input (better mobile UX)
+      // Phone
       itiPhone=window.intlTelInput(document.querySelector('#mobile'),{
         initialCountry:'sa',
         onlyCountries:['sa','ae','bh','kw','om','qa'],
@@ -845,7 +914,7 @@
         document.getElementById('err-mobile').style.display = ok ? 'none':'block';
       });
 
-      // Load locations → services (page-2 spinner)
+      // Load locations → services (shows spinner)
       setLoadingServices(true);
       callContent2(`/locations`, res=>{
         const list=res?.data||[]; const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
@@ -904,7 +973,7 @@
       async function gotoNext(){
         const i=getActiveIndex(); const id=orderedPages[i];
 
-        if(id==='page1'){ showPage(1); return; }
+        if(id==='page1'){ stopWelcomeDeck(); showPage(1); return; }
 
         if(id==='page2'){
           const areaOk=!!$('#area').val(), catOk=!!$('#serviceCat').val(), svcOk=!!$('#service').val();
@@ -931,7 +1000,7 @@
           if(!nameOk || !phoneOk){ showToast('error','يرجى التحقق من الاسم ورقم الجوال'); return; }
 
           nForm.customerN = ($('#name').val()||'').trim();
-          nForm.customerM = itiPhone.getNumber().replace(/^\+/, ''); // digits-only
+          nForm.customerM = itiPhone.getNumber().replace(/^\+/, '');
 
           nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
           showPage(4);
@@ -1001,26 +1070,29 @@
       // Rebook
       $('#rebook').on('click', ()=>location.href='/');
 
-      // initial summary/progress
+      // Start welcome slideshow and initial UI
+      startWelcomeDeck();
       renderSummary('page1');
       syncProgress(0);
     });
 
-    /* Enable/disable Next based on step validity */
+    /* ---------- Next button availability ---------- */
     function updateNextAvailability(){
       const i = getActiveIndex();
       const nextBtn = document.getElementById('footer-next');
       let enable = true;
-      if(i === 1){ // page2
+      if(i === 0){ // welcome — always enabled
+        enable = true;
+      } else if(i === 1){ // page2
         enable = !!($('#area').val() && $('#service').val());
       } else if(i === 2){ // page3 time
         enable = !!selectedTime;
       } else if(i === 3){ // page4 contact
         const nameOk = ($('#name').val()||'').trim().length > 0;
-        const phoneOk = validateMobile();
-        enable = nameOk && phoneOk;
+        const phoneOk = !!(window.intlTelInputUtils) ? true : true; // allow manual click, error shown on blur
+        enable = nameOk && (itiPhone ? itiPhone.isValidNumber() : phoneOk);
       } else if(i === 4){ // page5 payment
-        enable = !!nForm.paymentMethod;
+        enable = !!(document.querySelector('#payGroup input:checked'));
       } else if(i === 5){ // page6 map
         enable = !!positionUrl;
       }
@@ -1028,7 +1100,7 @@
       nextBtn.classList.toggle('disabled', !enable);
     }
 
-    /* ---------------- Google Map ---------------- */
+    /* ---------- Google Map ---------- */
     let map, marker;
     function initMap(){
       const def={lat:26.34165524787632,lng:50.11524831545726};
@@ -1061,7 +1133,7 @@
     window.initMap = initMap;
   </script>
 
-  <!-- Google Maps (async) -->
+  <!-- Google Maps -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async" async defer></script>
 </body>
 </html>
