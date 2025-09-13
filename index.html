@@ -16,259 +16,228 @@
 
   <style>
     :root{
+      /* Brand */
       --brand-700:#01657A; --brand-600:#027A93; --brand-200:#BFE6F0; --brand-050:#F0FAFC;
-      --ink-900:#0B2630; --surface-000:#FFF; --border-300:#D4E0E6;
+      --ink-900:#0B2630; --ink-700:#224652; --surface-000:#FFF; --surface-100:#EDF3F6; --border-300:#D4E0E6;
 
+      /* Radius + Shadow */
       --radius-md:14px; --radius-pill:999px;
       --shadow-xs:0 2px 6px rgba(11,38,48,.07);
       --shadow-sm:0 3px 12px rgba(11,38,48,.09);
       --shadow-md:0 10px 28px rgba(11,38,48,.14);
 
+      /* Motion tokens */
       --ease:cubic-bezier(.22,.61,.36,1);
-      --dur-xs:160ms; --dur-sm:220ms; --dur-md:460ms;
+      --ease-decel:cubic-bezier(0.2,0,0,1);
+      --ease-accel:cubic-bezier(0.3,1,0.8,1);
+      --dur-xs:160ms; --dur-sm:220ms; --dur-md:460ms; --dur-lg:640ms;
 
-      --header-h:76px;     /* auto-updated by ResizeObserver */
-      --footer-h:100px;    /* auto-updated by ResizeObserver */
+      /* Typography + spacing */
+      --fs-xxl:1.6rem; --fs-xl:1.375rem; --fs-md:1rem; --fs-sm:.9rem; --fw-bold:800;
+      --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-7:32px;
 
-      --page-bg:url("https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg");
+      /* Layout */
+      --header-h:92px; --footer-h:88px;
     }
 
     html,body{height:100%}
     body{
       margin:0; font-family:'Cairo',sans-serif; color:#fff;
       background:
-        linear-gradient(180deg, rgba(11,38,48,.58), rgba(11,38,48,.34)),
-        var(--page-bg) center/cover no-repeat fixed;
-      min-height:100vh; min-height:100dvh;
-      display:flex; flex-direction:column;
-      padding-top:var(--header-h);   /* space for fixed header */
-      padding-bottom:var(--footer-h);/* space for sticky footer */
+        linear-gradient(180deg, rgba(11,38,48,.65), rgba(11,38,48,.35)),
+        url("https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg") center/cover fixed;
+      min-height:100vh; display:flex; flex-direction:column;
+      padding-top:var(--header-h); padding-bottom:var(--footer-h);
     }
 
-    /* ===== Header (fixed) ===== */
+    /* Header (pinned) */
     header{
-      position:fixed; top:0; left:0; right:0; z-index:999;
-      background:rgba(11,38,48,.36); backdrop-filter:blur(10px);
+      position:sticky; top:0; z-index:50; height:var(--header-h);
+      background:rgba(11,38,48,.50); backdrop-filter:blur(10px);
       border-bottom:1px solid rgba(255,255,255,.15);
+      display:flex; align-items:center; justify-content:center;
     }
-    .header-inner{
-      max-width:1120px; width:100%; margin:0 auto;
-      padding:10px 12px; display:flex; align-items:center; gap:12px; justify-content:space-between;
-    }
+    .header-inner{max-width:1120px; width:100%; padding:6px 12px; display:flex; align-items:flex-start; gap:12px}
     .brand{display:flex; align-items:center; gap:10px}
-    .brand img{height:84px; width:auto; object-fit:contain; filter:drop-shadow(0 6px 20px rgba(0,0,0,.25));}
+    .brand img{height:52px; width:auto; object-fit:contain; filter:drop-shadow(0 6px 20px rgba(0,0,0,.25))}
+    .mini-col{flex:1 1 auto; min-width:0}
+    .mini-progress{display:flex; align-items:center; gap:10px}
+    .mini-progress .label{font-weight:800; font-size:1.1rem}
+    .mini-progress .bar{flex:1; height:8px; background:rgba(255,255,255,.28); border-radius:999px; overflow:hidden}
+    .mini-progress .bar>span{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--brand-600), var(--brand-200)); transition:width var(--dur-md) var(--ease-decel)}
+    .mini-progress .step{font-weight:var(--fw-bold); font-size:.95rem; margin-inline-start:10px}
 
-    .header-right{flex:1; display:flex; flex-direction:column; gap:6px}
-    .mini-progress{display:flex; align-items:center; gap:10px; width:100%}
-    .mini-progress .bar{flex:1; height:8px; background:rgba(255,255,255,.25); border-radius:999px; overflow:hidden}
-    .mini-progress .bar>span{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--brand-600), var(--brand-200)); transition:width var(--dur-md) var(--ease); will-change:width}
-    .mini-progress .step{font-weight:800; font-size:1rem}
-
-    /* ===== Summary chips ===== */
-    .summary-chips{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+    /* Header summary chips */
+    .summary-wrap{margin-top:8px; display:flex; gap:8px; overflow:auto; padding-bottom:2px}
+    .summary-wrap::-webkit-scrollbar{height:6px}
+    .summary-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.25); border-radius:999px}
     .chip{
-      display:inline-flex; align-items:center; gap:6px; max-width:100%;
-      padding:6px 10px; border:1px solid rgba(255,255,255,.35);
-      border-radius:999px; color:#fff; font-size:.85rem; background:transparent;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      display:inline-flex; align-items:center; gap:6px;
+      padding:7px 10px; background:rgba(255,255,255,.16); color:#fff;
+      border:1px solid rgba(255,255,255,.22); border-radius:999px; white-space:nowrap;
+      font-size:.84rem; line-height:1; box-shadow:var(--shadow-xs);
     }
-    .chip.current{ background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.75); box-shadow:0 0 0 2px rgba(255,255,255,.16) inset; }
+    .chip .title{opacity:.9}
+    .chip .value{font-weight:700}
+    .chip.current{background:rgba(255,255,255,.22)}
 
-    /* ===== Layout / pages ===== */
-    main{flex:1 0 auto; display:flex; justify-content:center; padding:8px 12px 0}
+    /* Main */
+    main{flex:1 0 auto; display:flex; justify-content:center; padding:var(--sp-2) var(--sp-3) 0}
     #app{width:100%; max-width:1120px}
-    .stage{position:relative; min-height:560px; padding:8px 0 20px}
+
+    /* Stage & Pages */
+    .stage{position:relative; min-height:540px; padding:8px 0 20px}
     .page{
-      position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; gap:20px;
-      padding:24px 12px 28px; overflow:auto; opacity:0; transform:translateY(12px) scale(.992);
+      position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; gap:var(--sp-5);
+      padding:var(--sp-5) var(--sp-3) var(--sp-6); overflow:auto; opacity:0; transform:translateY(12px) scale(.992);
       pointer-events:none;
     }
-    .page.active{ pointer-events:auto; animation:pageIn var(--dur-md) var(--ease) both }
-    .page.exit  { animation:pageOut var(--dur-sm) var(--ease) both }
+    @media (prefers-reduced-motion: no-preference){
+      .page.active{ pointer-events:auto; animation:pageIn var(--dur-md) var(--ease-decel) both; }
+      .page.exit  { animation:pageOut var(--dur-sm) var(--ease-accel) both; }
+    }
     @keyframes pageIn{ from{opacity:0; transform:translateY(12px) scale(.992)} to{opacity:1; transform:translateY(0) scale(1)} }
     @keyframes pageOut{ from{opacity:1; transform:translateY(0) scale(1)} to{opacity:0; transform:translateY(14px) scale(.985)} }
-    .page h1{font-size:1.375rem; font-weight:800; margin:0; text-align:center}
+    .page h1{font-size:var(--fs-xl); font-weight:var(--fw-bold); margin:0; text-align:center}
 
-    .card{
-      background:rgba(255,255,255,.88); color:#0B2630;
-      border-radius:14px; box-shadow:var(--shadow-md);
-      padding:24px; width:100%; max-width:920px; backdrop-filter:blur(6px);
-    }
-
-    /* ===== Welcome deck ===== */
-    .ppt-deck{position:relative; width:100%; max-width:920px; height:200px}
-    .ppt-slide{
-      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-      opacity:0; transform:translateY(14px) scale(.98); transition:opacity .6s var(--ease), transform .6s var(--ease);
-    }
-    .ppt-slide .slide-card{ background:rgba(255,255,255,.92); color:#0B2630; border-radius:14px; box-shadow:var(--shadow-md); padding:18px 20px; text-align:center; width:min(820px,92%) }
-    .ppt-slide.is-active{opacity:1; transform:none; z-index:2}
-    .ppt-slide.is-exiting{opacity:0; transform:translateY(-8px) scale(.985); z-index:1}
-    .ppt-dots{display:flex; gap:8px; justify-content:center; margin-top:12px}
-    .ppt-dot{width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.55)}
-    .ppt-dot.active{background:#fff}
-
-    /* ===== Forms & Select2 ===== */
+    /* Cards + fields */
+    .card{background:rgba(255,255,255,.90); color:var(--ink-900); border-radius:var(--radius-md); box-shadow:var(--shadow-md); padding:var(--sp-6); width:100%; max-width:920px}
     .form-control, select, .select2-selection{
-      background:#fff; color:#0B2630; border:1px solid var(--border-300)!important; border-radius:14px!important;
-      min-height:52px; text-align:center; font-size:16px;
+      background:var(--surface-000); color:#0B2630;
+      border:1px solid var(--border-300) !important; border-radius:var(--radius-md)!important;
+      min-height:48px; text-align:center; font-size:var(--fs-md);
       transition:border-color var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease);
     }
     .form-control:focus{ box-shadow:0 0 0 4px rgba(2,122,147,.12) }
-    .form-label{display:inline-block; margin-bottom:6px; font-size:.9rem; font-weight:800; color:#224652}
-    .field-error{color:#dc2626; font-size:.85rem; margin-top:6px; display:none}
-    .has-error .form-control, .has-error .select2-selection{ border-color:#dc2626 !important; }
-    .has-error .field-error{display:block}
+    .select2-selection{height:48px !important; display:flex; align-items:center}
+    .select2-selection__rendered{line-height:48px !important}
 
-    .select2-container .select2-selection--single .select2-selection__rendered{color:#0B2630!important; line-height:52px!important;}
-    .select2-container .select2-selection--single{height:52px!important; display:flex; align-items:center}
-    .select2-dropdown{background:#fff; color:#0B2630}
-    .select2-results__option, .select2-search__field{color:#0B2630}
+    /* Select2 dropdown contrast */
+    .select2-container--open .select2-dropdown{
+      border:1px solid var(--border-300); box-shadow:var(--shadow-sm); overflow:hidden;
+      transform-origin:top center; animation:dropdownIn var(--dur-sm) var(--ease-decel) both;
+      color:#0B2630;
+    }
+    .select2-results__option--highlighted{ background:#027A93 !important; color:#fff !important; }
+    .select2-selection__rendered{ color:#0B2630 !important; }
 
-    /* ===== Time grid ===== */
-    .time-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px}
+    @keyframes dropdownIn{ from{opacity:0; transform:translateY(6px) scale(.99)} to{opacity:1; transform:none} }
+
+    /* Time grid */
+    .time-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:var(--sp-4)}
     @media (min-width:540px){ .time-grid{grid-template-columns:repeat(3,1fr)} }
     .time-option{
-      background:#fff; color:#0B2630; font-weight:800;
-      border:1px solid var(--border-300); border-radius:14px;
-      padding:14px 10px; min-height:64px; box-shadow:var(--shadow-xs);
+      background:#fff; color:#0B2630; font-weight:var(--fw-bold);
+      border:1px solid var(--border-300); border-radius:var(--radius-md);
+      padding:14px 10px; min-height:56px; box-shadow:var(--shadow-xs);
       transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
       display:flex; flex-direction:column; align-items:center; justify-content:center;
     }
     .time-option:hover{transform:translateY(-2px); background:var(--brand-050); box-shadow:var(--shadow-sm)}
+    .time-option:active{transform:translateY(0) scale(.995)}
     .time-option[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
 
-    /* ===== Overlays ===== */
-    .load-overlay{
-      position:absolute; inset:0; background:rgba(255,255,255,.88); color:#0B2630;
-      display:none; align-items:center; justify-content:center; gap:12px; border-radius:14px; backdrop-filter:blur(2px);
-    }
+    /* Overlays */
+    .load-overlay{ position:absolute; inset:0; background:rgba(255,255,255,.85); color:#0B2630; display:none; align-items:center; justify-content:center; gap:12px; border-radius:var(--radius-md); }
     .load-overlay.show{display:flex; animation:fadeIn var(--dur-sm) var(--ease) both}
     @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
 
-    /* ===== Payment ===== */
-    .pay-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; width:100%; max-width:920px}
+    /* Payment */
+    .pay-grid{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-4); width:100%; max-width:920px}
     .pay-card{
-      background:#fff; color:#0B2630; border:1px solid var(--border-300); border-radius:14px;
-      padding:24px; display:flex; justify-content:center; align-items:center; gap:16px;
-      min-height:76px; cursor:pointer; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
+      background:#fff; color:#0B2630; border:1px solid var(--border-300); border-radius:var(--radius-md);
+      padding:var(--sp-6); display:flex; justify-content:center; align-items:center; gap:var(--sp-4);
+      min-height:64px; cursor:pointer; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
     }
     .pay-card:hover{transform:translateY(-2px); box-shadow:var(--shadow-sm); background:var(--brand-050)}
-    .pay-card img{max-width:140px; height:auto}
+    .pay-card:active{transform:translateY(0) scale(.995)}
+    .pay-card img{max-width:120px; height:auto}
     .pay-card[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
 
-    /* ===== Map ===== */
-    #googleMap{width:100%;height:420px;border-radius:14px;overflow:hidden}
-
-    /* ===== Footer ===== */
-    footer.sticky-nav{
-      position:sticky; bottom:0; z-index:40; background:rgba(11,38,48,.45);
-      backdrop-filter:blur(10px); border-top:1px solid rgba(255,255,255,.15);
-    }
-    .footer-inner{ max-width:1120px; width:100%; margin:0 auto; padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px}
-    .footer-brand{ font-size:.95rem; color:#fff; opacity:.94; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-    .footer-brand a{color:#fff; text-decoration:underline}
-    .footer-social{display:flex; align-items:center; gap:12px}
-    .footer-social a{color:#fff; opacity:.95; font-size:1.2rem}
-    .footer-actions{display:flex; gap:12px}
-    .btn-footer{ flex:1; border:1px solid var(--border-300); border-radius:14px; padding:16px 16px; min-height:56px; font-size:1rem; font-weight:800; background:#fff; color:#027A93; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease), color var(--dur-xs) var(--ease), border-color var(--dur-xs) var(--ease); }
+    /* Footer nav (pinned) */
+    footer.sticky-nav{ position:sticky; bottom:0; z-index:40; height:var(--footer-h); background:rgba(11,38,48,.45); backdrop-filter:blur(10px); border-top:1px solid rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; }
+    .footer-inner{ max-width:1120px; width:100%; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px }
+    .footer-brand{ font-size:.95rem; color:#fff; opacity:.92 }
+    .footer-actions{display:flex; gap:12px; flex:1; justify-content:flex-end}
+    .btn-footer{ flex:0 0 auto; border:1px solid var(--border-300); border-radius:var(--radius-md); padding:12px 16px; min-height:52px; min-width:120px; font-size:1.05rem; font-weight:var(--fw-bold); background:#fff; color:#027A93; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease), color var(--dur-xs) var(--ease), border-color var(--dur-xs) var(--ease); }
     .btn-footer:hover{transform:translateY(-2px); box-shadow:var(--shadow-sm)}
+    .btn-footer:active{transform:translateY(0) scale(.995)}
     .btn-footer.primary{background:#027A93; color:#fff; border-color:#027A93}
     .btn-footer.hidden{visibility:hidden}
-    .btn-footer:disabled{opacity:.6; pointer-events:none}
+    .btn-footer.disabled, .btn-footer:disabled{opacity:.6; pointer-events:none}
 
-    /* ===== Mobile polish ===== */
-    @media (max-width: 480px){
-      :root{ --footer-h: 118px; }
-      .header-inner{
-        padding-top: max(8px, env(safe-area-inset-top));
-        padding-bottom:8px; gap:10px;
-      }
-      .brand img{ height:72px }
-      /* compact chips & horizontal scroll to save vertical space */
-      .summary-chips{
-        overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
-        gap:6px; padding-bottom:2px; scrollbar-width:thin;
-      }
-      .summary-chips::-webkit-scrollbar{ height:4px }
-      .chip{ padding:4px 8px; font-size:.78rem }
-      .chip .title{ display:none }            /* hide labels on mobile to keep it small */
-      .chip .value{ max-width:140px; overflow:hidden; text-overflow:ellipsis }
-      .btn-footer{min-height:58px; font-size:1.05rem}
-      .footer-inner{flex-wrap:wrap}
-      .footer-actions{width:100%}
-      .footer-brand{width:100%; justify-content:space-between}
-    }
+    .form-block{margin-bottom:var(--sp-5)}
+    .form-label{display:inline-block; margin-bottom:6px; font-size:var(--fs-sm); font-weight:var(--fw-bold); color:#224652}
 
-    /* ===== Phone input tweaks (fit + country code LEFT) ===== */
-    .iti{ width:100%; } /* make the intl-tel container fill the column */
-    html[dir="rtl"] .iti--allow-dropdown .iti__flag-container{
-      left:8px; right:auto;      /* move flag/country code to LEFT side */
+    /* intl-tel-input: keep flag/code on LEFT (even in RTL) */
+    .iti{width:100%!important}
+    html[dir="rtl"] .iti--allow-dropdown .iti__flag-container{left:0; right:auto}
+    html[dir="rtl"] .iti--allow-dropdown input#mobile.form-control{padding-left:62px; padding-right:12px; text-align:center}
+    #mobile.form-control{height:48px; line-height:48px}
+
+    /* Toast */
+    .toast-wrap{position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:1050; display:flex; flex-direction:column; gap:8px}
+    .toast-msg{min-width:260px; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:var(--shadow-md); animation:toastIn var(--dur-sm) var(--ease-decel) both}
+    @keyframes toastIn{ from{opacity:0; transform:translateY(-8px)} to{opacity:1; transform:none} }
+    .toast-success{background:#16a34a}
+    .toast-error{background:#dc2626}
+    .toast-info{background:#0284c7}
+    .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;border:0;margin:-1px}
+
+    /* serviceCount full width */
+    #serviceCount{ width:100% !important; }
+
+    /* ===== Welcome “deck” ===== */
+    .ppt-deck{ position:relative; width:100%; max-width:860px; min-height:220px; margin:8px auto 0; overflow:hidden; border-radius:14px; background:linear-gradient(180deg,#ffffff, #f6fbfd); box-shadow:var(--shadow-md); }
+    .ppt-slide{ position:absolute; inset:0; padding:28px 18px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; opacity:0; transform:translateY(10px) scale(.995); }
+    .ppt-slide h2{ font-size:var(--fs-xxl); font-weight:800; color:var(--ink-900); margin:0 0 8px; letter-spacing:.2px }
+    .ppt-slide p{ font-size:1.05rem; color:#33545f; margin:0; opacity:.92 }
+    @media (prefers-reduced-motion: no-preference) {
+      .ppt-slide.is-active{ animation: pptIn var(--dur-md) var(--ease-decel) both; }
+      .ppt-slide.is-exiting{ animation: pptOut var(--dur-sm) var(--ease-accel) both; }
+      .ppt-slide .ppt-hero{ animation: heroFloat 1400ms var(--ease) 120ms both; }
     }
-    html[dir="rtl"] .iti--allow-dropdown input#mobile.form-control{
-      padding-left: calc(76px + 8px);  /* space for the left flag/dial code */
-      padding-right: 12px;
-      text-align: left; direction: ltr;/* enter digits naturally LTR */
-    }
+    @keyframes pptIn{ from{opacity:0; transform:translateY(14px) scale(.985)} to{opacity:1; transform:none} }
+    @keyframes pptOut{ from{opacity:1; transform:none} to{opacity:0; transform:translateY(-12px) scale(.992)} }
+    @keyframes heroFloat{ from{ transform:translateY(6px) } to{ transform:translateY(0) } }
   </style>
 </head>
 <body>
   <!-- Toasts -->
-  <div id="toastWrap" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:1050;display:flex;flex-direction:column;gap:8px"></div>
+  <div id="toastWrap" class="toast-wrap" aria-live="polite" aria-atomic="true"></div>
 
-  <!-- ===== Header (fixed) ===== -->
-  <header id="siteHeader">
+  <!-- Header (pinned) -->
+  <header>
     <div class="header-inner">
       <div class="brand">
-        <img id="brandLogo"
-             alt="Nahl Time"
-             src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/ChatGPT%20Image%20Sep%2013,%202025,%2001_21_33%20PM.png"
-             onerror="handleLogoError(this)" />
+        <img id="brandLogo" alt="Sponge &amp; Soap" src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/logo.png" loading="eager" decoding="async" fetchpriority="high" onerror="handleLogoError(this)"/>
       </div>
 
-      <div class="header-right">
+      <div class="mini-col">
         <div class="mini-progress" aria-hidden="true">
+          <span class="label" id="miniStepTitle">الترحيب</span>
           <div class="bar"><span id="miniBarFill" style="width:0%"></span></div>
-          <div class="step" id="miniStepTitle">الترحيب</div>
         </div>
-        <!-- chips are injected here (hidden on welcome page) -->
-        <div id="summaryChips" class="summary-chips" aria-live="polite"></div>
+        <!-- Summary chips in header -->
+        <div id="summaryChips" class="summary-wrap" role="list" aria-label="ملخص الحجز"></div>
       </div>
     </div>
   </header>
 
-  <!-- ===== Body ===== -->
+  <!-- Body -->
   <main>
     <div id="app">
       <div class="stage">
-        <!-- 1) Welcome -->
+        <!-- 1) Welcome with Deck -->
         <section id="page1" class="page active" aria-label="الترحيب">
-          <h1>✨ غسيل بدون طوابير</h1>
-
-          <div id="pptDeck" class="ppt-deck">
-            <div class="ppt-slide is-active">
-              <div class="slide-card">
-                <h3 class="mb-2">نجيك لين باب بيتك</h3>
-                <p class="m-0">حجز سريع • خدمة متنقلة • احترافية في كل تفصيل</p>
-              </div>
+          <h1 class="visually-hidden">عرض ترحيبي</h1>
+          <div class="card text-center" style="background:transparent; box-shadow:none; padding:0;">
+            <div id="pptDeck" class="ppt-deck" aria-live="polite">
+              <div class="ppt-slide kb"><div class="ppt-hero"><h2>✨ غسيل بدون طوابير</h2><p>نجيك لين باب بيتك — جودة وفخامة بالتفاصيل الصغيرة</p></div></div>
+              <div class="ppt-slide kb"><div class="ppt-hero"><h2>🧼 عناية مدروسة</h2><p>واكس يحمي السيارة • فوط نظيفة • إسفنجة للكفرات</p></div></div>
+              <div class="ppt-slide kb"><div class="ppt-hero"><h2>⏱️ حجز سريع</h2><p>اختر المنطقة والخدمة والوقت — والباقي علينا</p></div></div>
+              <div class="ppt-dots" id="pptDots" aria-hidden="true"></div>
             </div>
-            <div class="ppt-slide">
-              <div class="slide-card">
-                <h3 class="mb-2">مواد فاخرة</h3>
-                <p class="m-0">منتجات آمنة على الطلاء والداخلية مع عناية دقيقة</p>
-              </div>
-            </div>
-            <div class="ppt-slide">
-              <div class="slide-card">
-                <h3 class="mb-2">موعدك على راحتك</h3>
-                <p class="m-0">حدد المنطقة والخدمة والوقت المناسب — والباقي علينا</p>
-              </div>
-            </div>
-          </div>
-          <div id="pptDots" class="ppt-dots" aria-hidden="true"></div>
-
-          <div class="card text-center" style="max-width:860px">
-            <p class="mb-0" style="color:#224652">انطلق — الخطوة التالية لاختيار المنطقة والخدمة</p>
           </div>
         </section>
 
@@ -278,19 +247,16 @@
 
           <div class="card position-relative" id="servicesCard">
             <label class="form-label">اختيار المنطقة</label>
-            <select id="area" style="width:100%"></select>
-            <div class="field-error" id="err-area">يرجى اختيار المنطقة</div>
+            <select id="area" class="js-example-basic-single" style="width:100%"></select>
 
             <div class="row g-3 mt-3">
               <div class="col-12 col-md-6">
                 <label class="form-label">التصنيف</label>
                 <select id="serviceCat" style="width:100%"></select>
-                <div class="field-error" id="err-serviceCat">يرجى اختيار التصنيف</div>
               </div>
               <div class="col-12 col-md-6">
                 <label class="form-label">الخدمة</label>
                 <select id="service" style="width:100%"></select>
-                <div class="field-error" id="err-service">يرجى اختيار الخدمة</div>
               </div>
               <div class="col-12">
                 <label class="form-label">عدد السيارات</label>
@@ -301,23 +267,21 @@
               </div>
             </div>
 
-            <!-- spinner only for services page -->
-            <div id="servicesLoading" class="load-overlay" aria-hidden="true">
+            <div id="servicesLoading" class="load-overlay">
               <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
               <strong>جاري تحميل الخدمات…</strong>
             </div>
           </div>
         </section>
 
-        <!-- 3) Time -->
-        <section id="page3" class="page" aria-label="اختيار الموعد">
+        <!-- 3) Time (selected date only) -->
+        <section id="page4" class="page" aria-label="اختيار الموعد">
           <h1>متى تحب نجيك؟</h1>
           <div class="card position-relative" id="timeCard">
             <div class="row g-3">
               <div class="col-12 col-md-5">
                 <label class="form-label" for="date">التاريخ</label>
                 <input id="date" type="date" class="form-control"/>
-                <div class="field-error" id="err-date">يرجى اختيار تاريخ صحيح</div>
               </div>
             </div>
 
@@ -332,19 +296,17 @@
         </section>
 
         <!-- 4) Contact -->
-        <section id="page4" class="page" aria-label="معلومات الاتصال">
+        <section id="page5" class="page" aria-label="معلومات الاتصال">
           <h1>معلومات الاتصال</h1>
           <div class="card">
             <div class="row g-3">
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-6 form-block">
                 <label for="name" class="form-label">الإسم</label>
                 <input id="name" type="text" class="form-control" placeholder="اسمك الكريم" autocomplete="name"/>
-                <div class="field-error" id="err-name">يرجى إدخال الاسم</div>
               </div>
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-6 form-block">
                 <label for="mobile" class="form-label">رقم الجوال</label>
                 <input id="mobile" type="tel" class="form-control" placeholder="+9665…" autocomplete="tel"/>
-                <div class="field-error" id="err-mobile">الرجاء إدخال رقم جوال صحيح</div>
               </div>
             </div>
           </div>
@@ -363,78 +325,68 @@
               <div class="col-12 col-md-4">
                 <label class="form-label" for="plateNumber">آخر 4 أرقام من اللوحة</label>
                 <input id="plateNumber" type="text" inputmode="numeric" maxlength="4" class="form-control" placeholder="1234" autocomplete="off"/>
-                <small id="plateHelp" class="text-muted d-block mt-1" style="opacity:.9">نستخدم آخر ٤ أرقام للتأكيد فقط</small>
-                <div class="field-error" id="err-plate" style="display:none"></div>
+                <small id="plateHelp" class="text-muted d-block mt-1" style="opacity:.85">لوحتك رقم مميز؟ 🎉 خبرنا هنا</small>
               </div>
               <input id="locationDescription" type="text" hidden/>
             </div>
           </div>
-        </section>
 
-        <!-- 5) Payment -->
-        <section id="page5" class="page" aria-label="طريقة الدفع">
           <h1>طريقة الدفع</h1>
           <div class="pay-grid" role="radiogroup" aria-label="طريقة الدفع" id="payGroup">
             <label class="pay-card" tabindex="0" role="radio" aria-checked="false">
-              <input type="radio" name="payingMethod" value="stc pay" class="visually-hidden"/>
+              <input type="radio" name="payingMethod" value="STC Pay" class="visually-hidden"/>
               <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/STC%20PAY%20LOGO.png" alt="STC Pay">
             </label>
             <label class="pay-card" tabindex="-1" role="radio" aria-checked="false">
-              <input type="radio" name="payingMethod" value="cash" class="visually-hidden"/>
-              <strong>كاش</strong>
+              <input type="radio" name="payingMethod" value="Cash" class="visually-hidden"/>
+              <strong>Cash</strong>
             </label>
             <label class="pay-card" style="grid-column:1/-1" tabindex="-1" role="radio" aria-checked="false">
-              <input type="radio" name="payingMethod" value="mada" class="visually-hidden"/>
+              <input type="radio" name="payingMethod" value="MADA" class="visually-hidden"/>
               <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/MADA%20LOGO.png" alt="Mada">
             </label>
           </div>
-          <div class="field-error" id="err-pay" style="text-align:center">يرجى اختيار طريقة الدفع</div>
         </section>
 
-        <!-- 6) Map -->
+        <!-- 5) Map -->
         <section id="page6" class="page" aria-label="اختيار الموقع">
           <h1>الموقع على خريطة قوقل</h1>
           <div class="card">
-            <div id="googleMap"></div>
+            <div id="googleMap" style="width:100%;height:420px;border-radius:14px;overflow:hidden"></div>
           </div>
           <div class="card text-center">
             <button id="show-my-location" class="btn btn-outline-primary" type="button">إظهار موقعي</button>
           </div>
           <small id="mapHint" class="text-muted d-block mt-2" style="text-align:center">اضغط على الخريطة أو اسحب العلامة لتحديد موقعك</small>
-          <div class="field-error" id="err-map" style="text-align:center">الرجاء تحديد الموقع على الخريطة</div>
         </section>
 
-        <!-- 7) Done -->
+        <!-- 6) Done -->
         <section id="page7" class="page" aria-label="تم الحجز">
-          <h1>شكراً لكم 🌟</h1>
-          <div class="card text-center" style="max-width:720px">
-            <p class="mb-3" style="color:#224652">تم استلام طلبكم، وسنؤكد الموعد على واتساب قريبًا.</p>
-            <button id="rebook" class="btn btn-primary" type="button" style="min-height:52px;font-weight:800;border-radius:12px;padding:12px 18px">🔁 حجز جديد</button>
+          <h1>شكراً لكم</h1>
+          <div class="card text-center">
+            <p class="mb-3" style="color:#224652">تم حجز الموعد، وراح نأكده لكم على الواتساب</p>
+            <button id="rebook" class="btn btn-primary" type="button">🔁 حجز جديد</button>
           </div>
         </section>
       </div>
     </div>
   </main>
 
-  <!-- ===== Footer ===== -->
-  <footer id="siteFooter" class="sticky-nav" aria-label="التنقل بين الخطوات">
+  <!-- Footer nav -->
+  <footer class="sticky-nav" aria-label="التنقل بين الخطوات">
     <div class="footer-inner">
       <div class="footer-brand">
-        <span>نحل • <a href="https://nahl.app" target="_blank" rel="noopener">Nahl.app</a></span>
-        <div class="footer-social">
-          <a href="https://wa.me/966509027172" target="_blank" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
-          <a href="https://www.instagram.com/nahl.app?igsh=ZmljaXNncGtudjJ2" target="_blank" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
-          <a href="https://www.tiktok.com/@nahl.app?_t=ZS-8zgmzEQTSQW&_r=1" target="_blank" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
-        </div>
+        <span>نحل • <a href="https://nahl.app" target="_blank" rel="noopener" style="color:#fff;text-decoration:none">Nahl.app</a></span>
       </div>
       <div class="footer-actions">
         <button id="footer-prev" type="button" class="btn-footer hidden">السابق</button>
         <button id="footer-next" type="button" class="btn-footer primary disabled" disabled>التالي</button>
+        <button id="page1-button" class="btn-footer primary">تخطي العرض</button>
       </div>
     </div>
   </footer>
 
-  <!-- libs -->
+  <!-- JS libs -->
   <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
@@ -442,11 +394,24 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    /* ---------- Logo fallback ---------- */
+    /* ---------------- Background images per page ---------------- */
+    const BG_BY_PAGE = {
+      page1:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg",
+      page2:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG2.jpg",
+      page4:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG3.jpg",
+      page5:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG4.jpg",
+      page6:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG5.jpg",
+      page7:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG7.jpg",
+    };
+    function setPageBackground(id){
+      const url = BG_BY_PAGE[id] || BG_BY_PAGE.page1;
+      document.body.style.backgroundImage =
+        `linear-gradient(180deg, rgba(11,38,48,.65), rgba(11,38,48,.35)), url("${url}")`;
+    }
+
+    /* ---------------- Logo fallback helper ---------------- */
     function handleLogoError(img){
       const fallbacks = [
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20&%20%20Soap/spong&Soap%20-%20logo.png",
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/spong%26Soap%20-%20logo.png",
         "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/logo.png",
         "https://dummyimage.com/180x54/027A93/ffffff.png&text=Sponge+%26+Soap"
       ];
@@ -455,85 +420,103 @@
       else { img.style.display = 'none'; }
     }
 
-    /* ---------- API ---------- */
-    const APP_ID='33e0d05d-d771-46f4-a7e7-7c634b4e3a9e';
-    const defaultLink2=`https://nahl-platform.vercel.app/api/app/AM/general/${APP_ID}/form`;
-    const RESERVE_URL_PRIMARY  =`${defaultLink2}/reserveAppointment`;
-    const RESERVE_URL_FALLBACK =`${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
+    /* ---------------- API ---------------- */
+    // NOTE: reserveAppointment lives at server/api/app/AM/general/[appid]/form/reserveAppointment.post.ts
+    const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${'33e0d05d-d771-46f4-a7e7-7c634b4e3a9e'}/form`;
+    const RESERVE_URL_PRIMARY   = `${defaultLink2}/reserveAppointment`;                   // correct path with /form
+    const RESERVE_URL_FALLBACK  = `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`; // safety only if 404
 
     let controllers=[];
+
     async function callContent2(path, cb, abortable=false, retries=3){
       let signal='';
       if(abortable){
-        controllers.forEach(([c])=>c.abort()); controllers=[];
-        const controller=new AbortController(); signal=controller.signal; controllers.push([controller,signal]);
+        controllers.forEach(([c])=>c.abort());
+        controllers=[];
+        const controller=new AbortController();
+        signal=controller.signal;
+        controllers.push([controller,signal]);
       }
       try{
-        await new Promise(r=>setTimeout(r, 200));
-        const res=await fetch(defaultLink2+path,{method:'GET',redirect:'follow',...(abortable&&{signal}),cache:'no-store'});
-        if(!res.ok){ if(retries>0) return callContent2(path,cb,abortable,retries-1); throw new Error('Network');}
-        cb(await res.json());
+        await new Promise(r=>setTimeout(r, 200)); // small UX debounce
+        const fullUrl = defaultLink2+path;
+        const res=await fetch(fullUrl,{method:'GET',redirect:'follow',...(abortable&&{signal}), cache:'no-store'});
+        if(!res.ok){
+          if(retries>0) return callContent2(path,cb,abortable,retries-1);
+          throw new Error('Network');
+        }
+        const json=await res.json();
+        cb(json);
       }catch(e){
-        if(!String(e).includes('AbortError') && retries>0) setTimeout(()=>callContent2(path,cb,abortable,retries-1),600);
+        if(!String(e).includes('AbortError') && retries>0)
+          setTimeout(()=>callContent2(path,cb,abortable,retries-1),600);
       }
     }
+
+    // POST helper — send as text/plain (server does readBody + JSON.parse)
     async function postReservationTry(url, payload, contentType='text/plain;charset=UTF-8'){
       try{
-        const res=await fetch(url,{method:'POST',mode:'cors',cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',headers:{'Content-Type':contentType,'Accept':'application/json'},body:JSON.stringify(payload)});
-        const raw=await res.text(); let data=null; try{ data=JSON.parse(raw);}catch(_){}
-        return {ok:res.ok,status:res.status,data,raw};
-      }catch(err){ return {ok:false,status:0,error:String(err)} }
+        const res = await fetch(url, {
+          method:'POST',
+          mode:'cors',
+          cache:'no-store',
+          credentials:'omit',
+          referrerPolicy:'no-referrer',
+          headers:{ 'Content-Type': contentType, 'Accept':'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const raw = await res.text();
+        let data=null; try{ data = JSON.parse(raw); }catch(_){}
+        return { ok: res.ok, status: res.status, data, raw };
+      }catch(err){
+        return { ok:false, status:0, error:String(err) };
+      }
     }
+
     async function postReservation(payload){
-      let r=await postReservationTry(RESERVE_URL_PRIMARY,payload,'text/plain;charset=UTF-8');
-      if(!r.ok && (r.status===415||r.status===406||r.status===0)) r=await postReservationTry(RESERVE_URL_PRIMARY,payload,'application/json;charset=UTF-8');
-      if(!r.ok && r.status===404) r=await postReservationTry(RESERVE_URL_FALLBACK,payload,'text/plain;charset=UTF-8');
+      let r = await postReservationTry(RESERVE_URL_PRIMARY, payload, 'text/plain;charset=UTF-8');
+      if(!r.ok && (r.status===415 || r.status===406 || r.status===0)){
+        r = await postReservationTry(RESERVE_URL_PRIMARY, payload, 'application/json;charset=UTF-8');
+      }
+      if(!r.ok && r.status===404){
+        r = await postReservationTry(RESERVE_URL_FALLBACK, payload, 'text/plain;charset=UTF-8');
+      }
       return r;
     }
 
-    /* ---------- Toast ---------- */
+    /* ---------------- Toast ---------------- */
     function showToast(type='info', msg=''){
       const wrap=document.getElementById('toastWrap');
       const div=document.createElement('div');
-      div.style.minWidth='260px'; div.style.color='#fff'; div.style.padding='10px 14px';
-      div.style.borderRadius='10px'; div.style.boxShadow='0 10px 28px rgba(11,38,48,.14)';
-      div.style.background = type==='error' ? '#dc2626' : type==='success' ? '#16a34a' : '#0284c7';
+      div.className='toast-msg '+(type==='error'?'toast-error':type==='success'?'toast-success':'toast-info');
       div.textContent=msg; wrap.appendChild(div);
       setTimeout(()=>{ div.style.opacity='0'; div.style.transform='translateY(-6px)'; setTimeout(()=>div.remove(), 180); }, 2400);
     }
 
-    /* ---------- STATE ---------- */
+    /* ---------------- STATE ---------------- */
     const DateTime=luxon.DateTime;
-    const orderedPages=["page1","page2","page3","page4","page5","page6","page7"];
-    const STEPS_LABELS=["الترحيب","الخدمة","الوقت","البيانات","الدفع","الموقع","تم"];
-    const PAGE_BACKGROUNDS={
-      page1:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg",
-      page2:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG2.jpg",
-      page3:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG3.jpg",
-      page4:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG4.jpg",
-      page5:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG5.jpg",
-      page6:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG6.jpg",
-      page7:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG7.jpg"
-    };
-    const STEP_GROUP_INDEX={page1:0,page2:1,page3:2,page4:3,page5:4,page6:5,page7:6};
-    let selectedTime=null, servicesCache=null, categoriesCache=null, itiPhone=null, positionUrl="";
-    const nForm={date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar'};
+    const orderedPages=["page1","page2","page4","page5","page6","page7"];
+    const STEPS_LABELS=["الترحيب","الخدمة","الوقت","البيانات","الموقع","تم"];
+    // map to summary visibility groups
+    const STEP_GROUP_INDEX = { page1:0, page2:1, page4:2, page5:3, page6:4, page7:5 };
 
-    function setPageBackground(id){ document.documentElement.style.setProperty('--page-bg', `url("${PAGE_BACKGROUNDS[id]||PAGE_BACKGROUNDS.page1}")`); }
+    let selectedTime=null, positionUrl="";
+    let servicesCache=null, categoriesCache=null, itiPhone=null;
 
+    const nForm={date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:''};
+
+    /* ---------------- Helpers ---------------- */
     function showPage(idx){
       const cur=document.querySelector('.page.active');
       const next=document.getElementById(orderedPages[idx]); if(!next||cur===next) return;
-      if(cur && cur.id==='page1') stopWelcomeDeck();
+      if(cur && cur.id==='page1'){ stopWelcomeDeck(); }
       if(cur){ cur.classList.remove('active'); cur.classList.add('exit'); }
       next.style.display='flex';
       requestAnimationFrame(()=>{ next.classList.add('active'); setTimeout(()=>{ if(cur){cur.classList.remove('exit'); cur.style.display='none';} }, 240); });
-
       syncProgress(idx);
       setPageBackground(next.id);
-      renderSummary(next.id);
+      renderSummary(next.id);   // update chips visibility/content
       updateNextAvailability();
-      if(next.id==='page1') startWelcomeDeck();
     }
     function getActiveIndex(){ const id=document.querySelector('.page.active')?.id; return Math.max(0, orderedPages.indexOf(id)); }
     function syncProgress(i){
@@ -542,221 +525,284 @@
       document.getElementById('miniStepTitle').textContent=STEPS_LABELS[Math.min(i,STEPS_LABELS.length-1)];
       const prev=document.getElementById('footer-prev');
       const next=document.getElementById('footer-next');
-      const onThanks=(orderedPages[i]==='page7');
-      prev.classList.toggle('hidden', i===0 || onThanks);
-      next.classList.toggle('hidden', onThanks);
+      const start=document.getElementById('page1-button');
+      const onWelcome = i===0;
+      prev.classList.toggle('hidden', i === 0);
+      next.classList.toggle('hidden', onWelcome);
+      start.classList.toggle('hidden', !onWelcome);
+      if(onWelcome){ start.textContent='تخطي العرض'; }
+    }
+
+    function enforceDateMinToday(){
+      const today = DateTime.now().toFormat('yyyy-LL-dd');
+      const dateEl = document.getElementById('date');
+      if(!dateEl) return;
+      dateEl.setAttribute('min', today);
+      if(!dateEl.value || dateEl.value < today) dateEl.value = today;
     }
 
     function setLoadingTimes(on){ document.getElementById('timeLoading').classList.toggle('show', !!on); }
     function setLoadingServices(on){ document.getElementById('servicesLoading').classList.toggle('show', !!on); }
 
-    function isSpecialPlate(num){
-      if(!/^\d{4}$/.test(num)) return false;
-      const same=/^(\d)\1{3}$/.test(num), asc='0123456789'.includes(num), desc='9876543210'.includes(num), pal=num===num.split('').reverse().join(''), pairs=/^(\d)\1(\d)\2$/.test(num);
-      return same||asc||desc||pal||pairs;
+    function validateMobile(){
+      if(!itiPhone || !itiPhone.isValidNumber()){ showToast('error','الرجاء إدخال رقم جوال صحيح'); return false; }
+      return true;
     }
-    function updatePlateHint(){
-      const v=($('#plateNumber').val()||'').replace(/\D/g,'').slice(0,4);
-      $('#plateNumber').val(v);
-      $('#plateHelp').text(isSpecialPlate(v)?'رقم مميز 👌 — ممتاز للتوثيق السريع.':'نستخدم آخر ٤ أرقام للتأكيد فقط');
-      const pe=document.getElementById('err-plate');
-      if(v.length>0 && v.length<4){ pe.style.display='block'; pe.textContent='رجاءً أدخل ٤ أرقام'; } else { pe.style.display='none'; }
+    function validatePlate(){
+      const el = document.getElementById('plateNumber');
+      const ok = !el.value || el.value.length === 4; // optional but if filled enforce 4
+      if(!ok){ showToast('error','رجاءً أدخل آخر ٤ أرقام من اللوحة'); el.focus(); }
+      return ok;
     }
 
-    /* —— summary chips (NEVER on welcome) —— */
+    /* ---------------- Header Summary chips ---------------- */
     function renderSummary(currentId){
-      const wrap=document.getElementById('summaryChips'); if(!wrap) return;
-      const activeId=currentId || (document.querySelector('.page.active')?.id) || 'page1';
-      const currGroup=STEP_GROUP_INDEX[activeId] ?? 0;
+      const wrap = document.getElementById('summaryChips');
+      if (!wrap) return;
 
-      // hide completely on welcome
-      wrap.style.display = currGroup === 0 ? 'none' : 'flex';
-      if(currGroup===0){ wrap.innerHTML=''; return; }
+      const activeId = currentId || (document.querySelector('.page.active')?.id) || 'page1';
+      const step = (STEP_GROUP_INDEX[activeId] !== undefined) ? STEP_GROUP_INDEX[activeId] : Math.max(0, orderedPages.indexOf(activeId));
 
-      const areaTxt=$('#area').find(':selected').text()||'';
-      const catTxt=$('#serviceCat').find(':selected').text()||'';
-      const srvTxt=$('#service').find(':selected').text()||'';
-      const cntTxt=$('#serviceCount').val()||'';
-      const dt=nForm.date ? DateTime.fromISO(nForm.date).toFormat('d LLL yyyy') : '';
-      const tm=nForm.time||'';
-      const pay=nForm.paymentMethod||'';
-      const plate=$('#plateNumber').val()||'';
-      const locOk=!!positionUrl;
+      // Hide entirely on welcome page
+      if (step === 0) {
+        wrap.style.display = 'none';
+        wrap.innerHTML = '';
+        return;
+      }
+      wrap.style.display = 'flex';
 
-      const chips=[
-        {i:'fa-location-dot',t:'المنطقة',v:areaTxt,g:1},
-        {i:'fa-layer-group',t:'التصنيف',v:catTxt,g:1},
-        {i:'fa-screwdriver-wrench',t:'الخدمة',v:srvTxt,g:1},
-        {i:'fa-car',t:'عدد',v:cntTxt,g:1},
-        {i:'fa-clock',t:'الموعد',v:(dt||tm)?((dt&&tm)?`${dt} • ${tm}`:(dt||tm)):'',g:2},
-        {i:'fa-user',t:'الاسم',v:(nForm.customerN||''),g:3},
-        {i:'fa-phone',t:'الجوال',v:(nForm.customerM||''),g:3},
-        {i:'fa-id-card',t:'لوحة',v:plate,g:3},
-        {i:'fa-credit-card',t:'الدفع',v:(pay?pay.toUpperCase():''),g:4},
-        {i:'fa-map-pin',t:'الموقع',v:(locOk?'تم التحديد':''),g:5},
+      const areaTxt = $('#area').find(':selected').text() || '';
+      const catTxt  = $('#serviceCat').find(':selected').text() || '';
+      const srvTxt  = $('#service').find(':selected').text() || '';
+      const cntTxt  = $('#serviceCount').val() || '';
+      const dt      = nForm.date ? luxon.DateTime.fromISO(nForm.date).toFormat('d LLL yyyy') : '';
+      const tm      = nForm.time || '';
+      const pay     = nForm.paymentMethod || '';
+      const plate   = $('#plateNumber').val() || '';
+      const locOk   = !!window.positionUrl;
+
+      const chips = [
+        { i:'fa-location-dot',  t:'المنطقة', v:areaTxt,                         g:1 },
+        { i:'fa-layer-group',   t:'التصنيف', v:catTxt,                          g:1 },
+        { i:'fa-screwdriver-wrench', t:'الخدمة', v:srvTxt,                      g:1 },
+        { i:'fa-car',           t:'عدد',     v:cntTxt,                          g:1 },
+        { i:'fa-clock',         t:'الموعد',  v:(dt||tm)?((dt&&tm)?`${dt} • ${tm}`:(dt||tm)):'', g:2 },
+        { i:'fa-user',          t:'الاسم',   v:nForm.customerN||'',             g:3 },
+        { i:'fa-phone',         t:'الجوال',  v:nForm.customerM||'',             g:3 },
+        { i:'fa-id-card',       t:'لوحة',    v:plate,                           g:3 },
+        { i:'fa-credit-card',   t:'الدفع',   v:(pay?pay.toUpperCase():''),      g:4 },
+        { i:'fa-map-pin',       t:'الموقع',  v:(locOk?'تم التحديد':''),         g:5 },
       ];
 
-      wrap.innerHTML='';
-      chips.filter(c=>c.v && c.g<=currGroup).forEach(c=>{
-        const el=document.createElement('div');
-        el.className='chip'+(c.g===currGroup?' current':'');
-        el.innerHTML=`<i class="fa-solid ${c.i}"></i><span class="title">${c.t}:</span><span class="value">${c.v}</span>`;
+      wrap.innerHTML = '';
+      chips.filter(c => c.v && c.g <= step).forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'chip' + (c.g === step ? ' current' : '');
+        el.innerHTML = `<i class="fa-solid ${c.i}"></i><span class="title">${c.t}:</span><span class="value">${c.v}</span>`;
         wrap.appendChild(el);
       });
     }
 
-    /* —— Welcome slideshow (3 slides, auto → page2) —— */
-    let deckTimers=[]; let deckIndex=0; let deckRunning=false;
-    const SLIDE_MS=2600; const GAP_MS=220;
+    /* ---------------- PowerPoint Deck Controller ---------------- */
+    let deckTimers = []; let deckIndex = 0; let deckRunning = false;
+    const SLIDE_MS = 2600; const GAP_MS = 180;
     function startWelcomeDeck(){
-      const deck=document.getElementById('pptDeck'); if(!deck) return;
-      const slides=[...deck.querySelectorAll('.ppt-slide')];
-      const dotsWrap=document.getElementById('pptDots');
-      dotsWrap.innerHTML=slides.map((_,i)=>`<span class="ppt-dot${i===0?' active':''}"></span>`).join('');
-      const dots=[...dotsWrap.children];
-
-      const setActive=(i,ex=-1)=>{
-        slides.forEach((s,idx)=>{ s.classList.remove('is-active','is-exiting'); if(idx===i){s.classList.add('is-active'); s.style.zIndex=2;} else if(idx===ex){s.classList.add('is-exiting'); s.style.zIndex=1;} else{s.style.zIndex=0;} });
+      const deck = document.getElementById('pptDeck'); if(!deck) return;
+      const slides = Array.from(deck.querySelectorAll('.ppt-slide'));
+      const dotsWrap = document.getElementById('pptDots');
+      dotsWrap.innerHTML = slides.map((_,i)=>`<span class="ppt-dot${i===0?' active':''}"></span>`).join('');
+      const dots = Array.from(dotsWrap.children);
+      const setActive = (i, exiting=-1)=>{
+        slides.forEach((s,idx)=>{ s.classList.remove('is-active','is-exiting'); if(idx===i){ s.style.zIndex=2; s.classList.add('is-active'); } else if(idx===exiting){ s.style.zIndex=1; s.classList.add('is-exiting'); } else{ s.style.zIndex=0; } });
         dots.forEach((d,idx)=>d.classList.toggle('active', idx===i));
       };
-      deckRunning=true; deckIndex=0; setActive(0,-1);
-      const advance=()=>{ if(!deckRunning) return; const prev=deckIndex; deckIndex++; if(deckIndex>=slides.length){ stopWelcomeDeck(); showPage(1); return; } setActive(deckIndex,prev); schedule(); };
-      const schedule=()=>{ deckTimers.push(setTimeout(advance, SLIDE_MS+GAP_MS)); };
+      deckRunning = true; deckIndex = 0; setActive(0, -1);
+      const advance = ()=>{ if(!deckRunning) return; const prev = deckIndex; deckIndex++; if(deckIndex >= slides.length){ stopWelcomeDeck(); showPage(1); return; } setActive(deckIndex, prev); schedule(); };
+      const schedule = ()=>{ deckTimers.push(setTimeout(advance, SLIDE_MS + GAP_MS)); };
       schedule();
     }
-    function stopWelcomeDeck(){ deckRunning=false; deckTimers.forEach(clearTimeout); deckTimers=[]; }
+    function stopWelcomeDeck(){ deckRunning = false; deckTimers.forEach(t=>clearTimeout(t)); deckTimers = []; }
 
-    /* —— Times API helpers (same as previous working version) —— */
-    function parseTimeToLuxon(raw){ let t=DateTime.fromISO(String(raw||'').trim(),{setZone:true}); if(!t.isValid) t=DateTime.fromFormat(String(raw||''),'HH:mm:ss',{setZone:true}); if(!t.isValid) t=DateTime.fromFormat(String(raw||''),'H:mm a',{setZone:true}); if(!t.isValid) t=DateTime.fromFormat(String(raw||''),'H:mm',{setZone:true}); return t.isValid?t:null; }
-    function normalizeAvailability(r){ const s=String(r.TS_status||r.status||r.TS_appointment_status||'').toLowerCase(); const f=(typeof r.isAvailable==='boolean')?r.isAvailable:undefined; const b=Number(r.booked??r.TS_booked); const c=Number(r.capacity??r.TS_capacity); let rem=Number(r.remaining??r.TS_remaining); if(!Number.isFinite(rem)&&Number.isFinite(c)&&Number.isFinite(b)) rem=c-b; const open=f===true||['available','open','free','empty','vacant','canceled'].includes(s)||(Number.isFinite(rem)?rem>0:(f!==false&&!s)); return {looksOpen:open,remaining:rem}; }
+    /* ---------------- TIMES (Selected date only) ---------------- */
+    let dayTimes = []; let timesLoaded = false;
 
-    let dayTimes=[]; let timesLoaded=false;
+    document.getElementById('date').addEventListener('change', fetchTimesForSelectedDate);
+    document.getElementById('service').addEventListener('change', () => { if (getActiveIndex() === 2) fetchTimesForSelectedDate(); });
+    document.getElementById('area').addEventListener('change', () => { if (getActiveIndex() === 2) fetchTimesForSelectedDate(); });
+
+    (function initDateMin(){
+      const today = DateTime.now().toFormat('yyyy-LL-dd');
+      const dateEl = document.getElementById('date');
+      if (!dateEl.value) dateEl.value = today;
+      dateEl.setAttribute('min', today);
+    })();
+
+    function parseTimeToLuxon(rawTime){
+      let t = DateTime.fromISO(String(rawTime||'').trim(), { setZone:true });
+      if (!t.isValid) t = DateTime.fromFormat(String(rawTime||''), 'HH:mm:ss', { setZone:true });
+      if (!t.isValid) t = DateTime.fromFormat(String(rawTime||''), 'H:mm a',   { setZone:true });
+      if (!t.isValid) t = DateTime.fromFormat(String(rawTime||''), 'H:mm',     { setZone:true });
+      return t.isValid ? t : null;
+    }
+    function normalizeAvailability(r){
+      const status = String(r.TS_status || r.status || r.TS_appointment_status || '').toLowerCase();
+      const availableFlag = (typeof r.isAvailable === 'boolean') ? r.isAvailable : undefined;
+      const booked   = Number(r.booked ?? r.TS_booked);
+      const capacity = Number(r.capacity ?? r.TS_capacity);
+      let remaining  = Number(r.remaining ?? r.TS_remaining);
+      if (!Number.isFinite(remaining) && Number.isFinite(capacity) && Number.isFinite(booked)){
+        remaining = capacity - booked;
+      }
+      const looksOpen =
+        availableFlag === true ||
+        ['available','open','free','empty','vacant','canceled'].includes(status) ||
+        (Number.isFinite(remaining) ? remaining > 0 : (availableFlag !== false && !status));
+      return { looksOpen, remaining, status, availableFlag };
+    }
 
     function fetchTimesForSelectedDate(){
-      const dateEl=document.getElementById('date');
-      const timeContainer=document.getElementById('time-container');
-      const loc=$('#area').val()||''; const srv=$('#service').val()||'';
-      const selectedISO=(dateEl.value||DateTime.now().toFormat('yyyy-LL-dd')).trim();
+      const dateEl = document.getElementById('date');
+      const timeContainer = document.getElementById('time-container');
+      const loc = document.getElementById('area').value || '';
+      const srv = document.getElementById('service').value || '';
+      const selectedISO = (dateEl.value || DateTime.now().toFormat('yyyy-LL-dd')).trim();
 
-      if(!loc||!srv){
-        timeContainer.innerHTML=`<div style="grid-column:1/-1;justify-self:center" class="text-muted">اختر المنطقة والخدمة لعرض المواعيد</div>`;
-        window.selectedTime=null; selectedTime=null; updateNextAvailability(); return;
+      if (!loc || !srv) {
+        timeContainer.innerHTML = `<div style="grid-column:1/-1;justify-self:center" class="text-muted">اختر المنطقة والخدمة لعرض المواعيد</div>`;
+        window.selectedTime = null; selectedTime = null;
+        updateNextAvailability?.();
+        return;
       }
 
-      dateEl.disabled=true; setLoadingTimes(true);
-      timeContainer.innerHTML=`<div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;"></div>`;
+      dateEl.disabled = true;
+      setLoadingTimes(true);
+      timeContainer.innerHTML = `
+        <div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;">
+          <span class="visually-hidden">Loading...</span>
+        </div>`;
 
-      const now=DateTime.now().setZone('Asia/Riyadh');
-      const isToday=selectedISO===now.toISODate();
+      const now = DateTime.now().setZone('Asia/Riyadh');
+      const isToday = selectedISO === now.toISODate();
 
-      const qs=`/appointments?startDate=${encodeURIComponent(selectedISO)}&location=${encodeURIComponent(loc)}&service=${encodeURIComponent(srv)}&onlyAvailable=1`;
-      callContent2(qs,(res)=>{
-        const rows=(res?.data?.appointments||[]);
-        const filtered=rows.filter(r=>{
-          const d=DateTime.fromISO(r.TS_appointment_date,{setZone:true}); if(!d.isValid||d.toISODate()!==selectedISO) return false;
-          const t=parseTimeToLuxon(r.TS_appointment_time); if(!t) return false;
-          const {looksOpen}=normalizeAvailability(r); if(!looksOpen) return false;
-          if(isToday){ const slot=now.set({hour:t.hour,minute:t.minute,second:0}); if(slot<now.plus({minutes:5})) return false; }
+      const qs = `/appointments?startDate=${encodeURIComponent(selectedISO)}&location=${encodeURIComponent(loc)}&service=${encodeURIComponent(srv)}&onlyAvailable=1`;
+
+      callContent2(qs, (res) => {
+        const rowsRaw = (res?.data?.appointments || []);
+
+        const filtered = rowsRaw.filter(r => {
+          const d = DateTime.fromISO(r.TS_appointment_date, { setZone: true });
+          if (!d.isValid || d.toISODate() !== selectedISO) return false;
+          const t = parseTimeToLuxon(r.TS_appointment_time);
+          if (!t) return false;
+          const { looksOpen } = normalizeAvailability(r);
+          if (!looksOpen) return false;
+          if (isToday) {
+            const slot = now.set({ hour: t.hour, minute: t.minute, second: 0 });
+            if (slot < now.plus({ minutes: 5 })) return false;
+          }
           return true;
         });
 
-        const list=filtered.map(r=>{ const t=parseTimeToLuxon(r.TS_appointment_time); return {label:t.toLocaleString(DateTime.TIME_SIMPLE), actual12:t.toFormat('hh:mm a')}; });
-        const seen=new Set();
-        dayTimes=list.filter(x=>{ if(seen.has(x.actual12)) return false; seen.add(x.actual12); return true; }).sort((a,b)=>a.actual12.localeCompare(b.actual12));
+        const list = filtered.map(r => {
+          const t = parseTimeToLuxon(r.TS_appointment_time);
+          return { label: t.toLocaleString(DateTime.TIME_SIMPLE), actual12: t.toFormat('hh:mm a') };
+        });
 
-        timesLoaded=true; renderSelectedDateTimes(selectedISO); dateEl.disabled=false; setLoadingTimes(false);
+        const seen = new Set();
+        dayTimes = list
+          .filter(x => { if (seen.has(x.actual12)) return false; seen.add(x.actual12); return true; })
+          .sort((a,b)=> a.actual12.localeCompare(b.actual12));
+
+        timesLoaded = true;
+        renderSelectedDateTimes(selectedISO);
+        dateEl.disabled = false;
+        setLoadingTimes(false);
       }, true);
     }
 
     function renderSelectedDateTimes(selectedISO){
-      const timeContainer=document.getElementById('time-container');
-      timeContainer.innerHTML='';
+      const timeContainer = document.getElementById('time-container');
+      timeContainer.innerHTML = '';
 
-      if(!timesLoaded){
-        timeContainer.innerHTML=`<div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;"></div>`;
+      if (!timesLoaded) {
+        timeContainer.innerHTML = `
+          <div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;">
+            <span class="visually-hidden">Loading...</span>
+          </div>`;
         return;
       }
 
-      if(!dayTimes.length){
-        timeContainer.innerHTML=`<div style="grid-column:1/-1;justify-self:center" class="text-muted">لا توجد مواعيد متاحة</div>`;
-        window.selectedTime=null; selectedTime=null; updateNextAvailability(); return;
+      if (!dayTimes.length) {
+        timeContainer.innerHTML = `
+          <div style="grid-column:1/-1;justify-self:center" class="text-muted">
+            لا توجد مواعيد متاحة
+          </div>`;
+        window.selectedTime = null;
+        selectedTime = null;
+        updateNextAvailability?.();
+        return;
       }
 
-      dayTimes.forEach(t=>{
-        const btn=document.createElement('button');
-        btn.type='button'; btn.className='time-option'; btn.setAttribute('role','radio'); btn.setAttribute('aria-checked','false'); btn.setAttribute('dir','ltr'); btn.textContent=t.label;
-        btn.addEventListener('click',()=>{
-          [...timeContainer.children].forEach(el=>el.setAttribute('aria-checked','false'));
+      dayTimes.forEach((t) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'time-option';
+        btn.setAttribute('role','radio');
+        btn.setAttribute('aria-checked','false');
+        btn.setAttribute('dir','ltr');
+        btn.textContent = t.label;
+
+        btn.addEventListener('click', () => {
+          [...timeContainer.children].forEach(el => el.setAttribute('aria-checked','false'));
           btn.setAttribute('aria-checked','true');
-          const parsed=DateTime.fromFormat(t.actual12,'h:mm a'); nForm.date=selectedISO; nForm.time=parsed.isValid?parsed.toFormat('HH:mm'):t.actual12;
-          window.selectedTime={ui:t.label,iso:nForm.time}; selectedTime=window.selectedTime; renderSummary('page3'); updateNextAvailability();
+
+          const parsed = DateTime.fromFormat(t.actual12, 'h:mm a');
+          nForm.date = selectedISO;
+          nForm.time = parsed.isValid ? parsed.toFormat('HH:mm') : t.actual12;
+
+          window.selectedTime = { ui: t.label, iso: nForm.time };
+          selectedTime        = window.selectedTime;
+          renderSummary(); // update appointment chip when time is selected
+          updateNextAvailability?.();
         });
+
         timeContainer.appendChild(btn);
       });
     }
 
-    /* ---------- ResizeObservers: keep padding in sync with fixed header & footer ---------- */
-    function installResizeObservers(){
-      const header=document.getElementById('siteHeader');
-      const footer=document.getElementById('siteFooter');
-      const ro=new ResizeObserver(entries=>{
-        entries.forEach(entry=>{
-          if(entry.target.id==='siteHeader') document.documentElement.style.setProperty('--header-h', entry.contentRect.height+'px');
-          if(entry.target.id==='siteFooter') document.documentElement.style.setProperty('--footer-h', entry.contentRect.height+'px');
-        });
-      });
-      header && ro.observe(header); footer && ro.observe(footer);
+    function choosedDate(time12, dateISO) {
+      const parsed = DateTime.fromFormat(time12, "h:mm a");
+      nForm.date = dateISO;
+      nForm.time = parsed.isValid ? parsed.toFormat("HH:mm") : time12;
+      window.selectedTime = { ui: time12, iso: nForm.time };
+      selectedTime        = window.selectedTime;
+      renderSummary();
+      updateNextAvailability?.();
     }
 
-    function buildPayload(){
-      const loc=$('#area').val(); const svcC=$('#serviceCat').val(); const svc=$('#service').val(); const cnt=$('#serviceCount').val()||'1';
-      const phoneDigits=itiPhone?.getNumber?.()?.replace(/^\+/, '') || '';
-      return {
-        date:nForm.date, time:nForm.time,
-        location:(loc!==null&&loc!=='')?String(loc):undefined,
-        service:(svc!==null&&svc!=='')?String(svc):undefined,
-        serviceCount:String(cnt),
-        serviceCat:(svcC!==null&&svcC!=='')?String(svcC):undefined,
-        customerM:phoneDigits, customerN:nForm.customerN,
-        paymentMethod:(nForm.paymentMethod||'').toLowerCase(),
-        urlLocation:nForm.urlLocation, locationDescription:nForm.locationDescription||'', locale:'ar'
-      };
-    }
-
-    /* ---------- Init ---------- */
+    /* ---------------- Init & bindings ---------------- */
     $(function(){
-      installResizeObservers();
+      enforceDateMinToday();
+      const today=DateTime.now().toFormat('yyyy-LL-dd');
+      $('#date').val(today).attr('min',today);
 
-      // preload BGs
-      Object.values(PAGE_BACKGROUNDS).forEach(src=>{ const i=new Image(); i.src=src; });
-
-      // Select2
       $('#area').select2({width:'100%',placeholder:'اختر المنطقة', dir:'rtl'});
       $('#serviceCat').select2({width:'100%',placeholder:'التصنيف', dir:'rtl'});
       $('#service').select2({width:'100%',placeholder:'الخدمة', dir:'rtl'});
       $('#carBrand').select2({width:'100%',placeholder:'ماركة السيارة', dir:'rtl'});
-      $('#area, #serviceCat, #service').on('select2:open', ()=>{$('.select2-search__field').attr('dir','rtl');});
 
-      // Phone input (fits, country code LEFT via CSS)
       itiPhone=window.intlTelInput(document.querySelector('#mobile'),{
-        initialCountry:'sa', onlyCountries:['sa','ae','bh','kw','om','qa'],
-        separateDialCode:true, placeholderNumberType:'MOBILE',
+        initialCountry:'sa',
+        onlyCountries:['sa','ae','bh','kw','om','qa'],
         utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js'
       });
-      $('#mobile').attr({inputmode:'tel',autocomplete:'tel'}).on('blur', ()=> {
-        const ok = itiPhone && itiPhone.isValidNumber();
-        document.getElementById('err-mobile').style.display = ok ? 'none':'block';
-      });
-
-      // Load locations → services
-      const today=DateTime.now().toFormat('yyyy-LL-dd');
-      $('#date').val(today).attr('min',today);
 
       setLoadingServices(true);
       callContent2(`/locations`, res=>{
         const list=res?.data||[]; const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
-        $('#area').empty().select2({data:ds,width:'100%'}); if(ds.length) $('#area').val(ds[0].id).trigger('change'); else { setLoadingServices(false); showToast('error','لا توجد مناطق متاحة حالياً'); }
-        renderSummary('page2');
+        $('#area').empty().select2({data:ds,width:'100%'});
+        if(ds.length){ $('#area').val(ds[0].id).trigger('change'); }
+        else { setLoadingServices(false); showToast('error','لا توجد مناطق متاحة حالياً'); }
       });
 
       $('#area').on('change', function(){
@@ -764,119 +810,211 @@
         callContent2(`/services?location=${encodeURIComponent(this.value)}`, res=>{
           servicesCache=res?.data?.services||[]; categoriesCache=res?.data?.servicesCat||[];
           const cats=categoriesCache.map(c=>({id:c.TS_category_id,text:c.TS_category_arabic_name}));
-          $('#serviceCat').empty().select2({data:cats,width:'100%'}); if(cats.length) $('#serviceCat').val(cats[0].id).trigger('change');
-          setLoadingServices(false); renderSummary('page2'); updateNextAvailability();
+          $('#serviceCat').empty().select2({data:cats,width:'100%'});
+          if(cats.length){ $('#serviceCat').val(cats[0].id).trigger('change'); }
+          setLoadingServices(false);
+          renderSummary();
+          updateNextAvailability();
         }, true);
       });
+
       $('#serviceCat').on('change', function(){
         nForm.serviceCat=this.value; const cid=Number(this.value);
         const items=servicesCache?.filter(s=>Number(s.TS_category_id)===cid)?.sort((a,b)=>a.TS_service_id-b.TS_service_id)?.map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}))||[];
-        $('#service').empty().select2({data:items,width:'100%'}); if(items.length) $('#service').val(items[0].id).trigger('change');
-        renderSummary('page2'); updateNextAvailability();
+        $('#service').empty().select2({data:items,width:'100%'});
+        if(items.length){ $('#service').val(items[0].id).trigger('change'); }
+        renderSummary();
+        updateNextAvailability();
       });
-      $('#service').on('change', function(){ nForm.service=this.value||''; renderSummary('page2'); updateNextAvailability(); });
 
-      // Brands
+      $('#service').on('change', function(){
+        nForm.service = this.value || '';
+        if(getActiveIndex()===2) document.getElementById('date').dispatchEvent(new Event('change'));
+        renderSummary();
+        updateNextAvailability();
+      });
+
       const brands=["Toyota","Nissan","Hyundai","Kia","Honda","Lexus","BMW","Mercedes-Benz","Chevrolet","Ford","Mazda","Mitsubishi","Aston Martin","Other"].sort().map(b=>({id:b,text:b}));
       $('#carBrand').empty().select2({data:brands,width:'100%'});
 
-      // Inputs
-      $('#name').on('input', function(){ nForm.customerN=this.value.trim(); renderSummary('page4'); updateNextAvailability(); });
-      $('#mobile').on('input', function(){ renderSummary('page4'); updateNextAvailability(); });
-      $('#carName').on('input', function(){ updateNextAvailability(); });
-      $('#serviceCount').on('change', function(){ nForm.serviceCount=this.value||'1'; renderSummary('page2'); updateNextAvailability(); });
-      $('#plateNumber').on('input', function(){ updatePlateHint(); renderSummary('page4'); updateNextAvailability(); });
-
-      // Date
-      $('#date').on('change', ()=>{ fetchTimesForSelectedDate(); renderSummary('page3'); });
-
-      // Footer nav
-      const $prev=document.getElementById('footer-prev');
-      const $next=document.getElementById('footer-next');
-
-      async function gotoNext(){
-        const i=getActiveIndex(); const id=orderedPages[i];
-        if(id==='page1'){ stopWelcomeDeck(); showPage(1); return; }
-
-        if(id==='page2'){
-          const areaOk=!!$('#area').val(), catOk=!!$('#serviceCat').val(), svcOk=!!$('#service').val();
-          document.getElementById('err-area').style.display=areaOk?'none':'block';
-          document.getElementById('err-serviceCat').style.display=catOk?'none':'block';
-          document.getElementById('err-service').style.display=svcOk?'none':'block';
-          if(!areaOk||!catOk||!svcOk){ showToast('error','يرجى إكمال اختيار المنطقة/التصنيف/الخدمة'); return; }
-          showPage(2); document.getElementById('date').dispatchEvent(new Event('change')); return;
-        }
-
-        if(id==='page3'){ if(!selectedTime){ showToast('error','الرجاء اختيار وقت'); return; } showPage(3); return; }
-
-        if(id==='page4'){
-          const nameOk=($('#name').val()||'').trim().length>0; const phoneOk=itiPhone && itiPhone.isValidNumber();
-          document.getElementById('err-name').style.display=nameOk?'none':'block';
-          document.getElementById('err-mobile').style.display=phoneOk?'none':'block';
-          if(!nameOk||!phoneOk){ showToast('error','يرجى التحقق من الاسم ورقم الجوال'); return; }
-          nForm.customerN=$('#name').val().trim(); nForm.customerM=itiPhone.getNumber().replace(/^\+/,'');
-          nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
-          showPage(4); return;
-        }
-
-        if(id==='page5'){
-          if(!nForm.paymentMethod){ document.getElementById('err-pay').style.display='block'; showToast('error','اختر طريقة الدفع'); return; }
-          document.getElementById('err-pay').style.display='none'; showPage(5); return;
-        }
-
-        if(id==='page6'){
-          if(!positionUrl){ document.getElementById('err-map').style.display='block'; showToast('error','الرجاء تحديد الموقع'); return; }
-          document.getElementById('err-map').style.display='none'; nForm.urlLocation=positionUrl;
-          const r=await postReservation(buildPayload());
-          if(r.ok && r.data?.success){ showToast('success','تم إنشاء الحجز'); showPage(6); }
-          else{ const msg=r?.data?.msgAR || (r.status===404?'المسار غير موجود':'تعذر إنشاء الحجز'); showToast('error',msg); }
-          return;
-        }
-        showPage(Math.min(i+1, orderedPages.length-1));
-      }
-      $next.addEventListener('click', gotoNext);
-      $prev.addEventListener('click', ()=>{ const i=getActiveIndex(); showPage(Math.max(i-1,0)); });
-
-      // Payment select
-      const payCards=[...document.getElementById('payGroup').querySelectorAll('.pay-card')];
-      payCards.forEach((card,idx)=>{
-        const input=card.querySelector('input');
-        const choose=()=>{ payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; }); card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=input.value; renderSummary('page5'); updateNextAvailability(); };
-        card.addEventListener('click',choose);
-        card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();} });
+      // Payment ARIA
+      const payGroup = document.getElementById('payGroup');
+      const payCards = [...payGroup.querySelectorAll('.pay-card')];
+      payCards.forEach((card, idx)=>{
+        const input = card.querySelector('input');
+        card.setAttribute('role','radio'); card.setAttribute('aria-checked','false'); card.setAttribute('tabindex', idx===0?'0':'-1');
+        const choose = () => {
+          payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; });
+          card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=input.value; renderSummary(); updateNextAvailability(); };
+        card.addEventListener('click', choose);
+        card.addEventListener('keydown', (e)=>{
+          if(e.key==='Enter' || e.key===' '){ e.preventDefault(); choose(); }
+          if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(e.key)){
+            e.preventDefault();
+            const i = payCards.indexOf(card);
+            const nextI = (e.key==='ArrowRight'||e.key==='ArrowDown') ? Math.min(i+1,payCards.length-1) : Math.max(i-1,0);
+            payCards[nextI].focus();
+          }
+        });
       });
+
+      $('#serviceCount').on('change', ()=>{ nForm.serviceCount = $('#serviceCount').val()||'1'; renderSummary(); });
+
+      // Plate: digits only + live validation
+      $('#plateNumber').on('input', function(){ this.value = this.value.replace(/\D/g, '').slice(0,4); renderSummary(); updateNextAvailability(); });
+
+      // Contact field triggers
+      $('#name').on('input', ()=>{ nForm.customerN = $('#name').val().trim(); renderSummary(); updateNextAvailability(); });
+      $('#mobile').on('input', ()=>{ try{ nForm.customerM = itiPhone.getNumber().replace(/^\+/,''); }catch{} renderSummary(); updateNextAvailability(); });
+      $('#carName').on('input', renderSummary);
 
       // Rebook
       $('#rebook').on('click', ()=>location.href='/');
 
-      // Start
-      setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
+      // initial progress + welcome footer state
+      syncProgress(0);
+      setPageBackground('page1');
+      renderSummary('page1'); // chips hidden on welcome
+      startWelcomeDeck();
     });
 
+    // Footer nav + welcome Skip button
+    (function(){
+      const $prev=document.getElementById('footer-prev');
+      const $next=document.getElementById('footer-next');
+      const $start=document.getElementById('page1-button');
+
+      $start.addEventListener('click', ()=>{ stopWelcomeDeck(); showPage(1); });
+
+      async function gotoNext(){
+        const i=getActiveIndex(); const id=orderedPages[i];
+
+        if(id==='page2'){
+          if(!$('#area').val()){ showToast('error','يرجى اختيار المنطقة'); return; }
+          if(!$('#service').val()){ showToast('error','يرجى اختيار الخدمة'); return; }
+          nForm.service=$('#service').val(); nForm.serviceCount=$('#serviceCount').val()||'1';
+          showPage(2); // to page4
+          document.getElementById('date').dispatchEvent(new Event('change')); // initial fetch for selected date
+          return;
+        }
+
+        if(id==='page4'){
+          if(!selectedTime){ showToast('error','الرجاء اختيار وقت'); return; }
+          showPage(3);
+          return;
+        }
+
+        if(id==='page5'){
+          const name=$('#name').val().trim();
+          if(!name){ showToast('error','يرجى إدخال الاسم'); document.getElementById('name').focus(); return; }
+          if(!validateMobile()) return;
+          if(!validatePlate()) return;
+          if(!nForm.paymentMethod){ showToast('error','يرجى اختيار طريقة الدفع'); return; }
+
+          nForm.customerN=name;
+          nForm.customerM=itiPhone.getNumber().replace(/^\+/, '');
+          nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
+          showPage(4);
+          return;
+        }
+
+        if(id==='page6'){
+          if(!positionUrl){ showToast('error','الرجاء تحديد الموقع على الخريطة'); return; }
+          nForm.urlLocation=positionUrl;
+
+          const payload = {
+            date: nForm.date,
+            time: nForm.time,
+            location: nForm.location,
+            service: nForm.service,
+            serviceCount: nForm.serviceCount,
+            serviceCat: nForm.serviceCat,
+            customerM: nForm.customerM,
+            customerN: nForm.customerN,
+            paymentMethod: nForm.paymentMethod,
+            urlLocation: nForm.urlLocation,
+            locationDescription: nForm.locationDescription || '',
+            locale: 'ar'
+          };
+
+          const r = await postReservation(payload);
+
+          if(r.ok && r.data?.success){
+            if(r.data?.otp){
+              showToast('error','الخادم يطلب رمز تحقق (OTP). عطّل خيار OTP في إعدادات التطبيق.');
+              return;
+            }
+            showToast('success','تم إنشاء الحجز');
+            showPage(5);
+          } else {
+            const msg = r?.data?.msgAR
+              || (r.status===404 ? 'المسار غير موجود: تأكد من /form/reserveAppointment'
+                                 : r.status===0   ? 'تعذر الاتصال بالخادم (تحقق من CORS/الشبكة)'
+                                                  : 'تعذر إنشاء الحجز');
+            showToast('error', msg);
+          }
+          return;
+        }
+
+        const nextIndex=Math.min(i+1, orderedPages.length-1);
+        showPage(nextIndex);
+      }
+
+      $next.addEventListener('click', gotoNext);
+      $prev.addEventListener('click', ()=>{ const i=getActiveIndex(); showPage(Math.max(i-1,0)); });
+    })();
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      document.body.classList.add('intro-play');
+      setTimeout(()=>document.body.classList.remove('intro-play'), 820);
+      enforceDateMinToday();
+    });
+
+    /* Enable/disable Next based on step validity */
     function updateNextAvailability(){
-      const i=getActiveIndex(); const nextBtn=document.getElementById('footer-next'); let enable=true;
-      if(i===0){ enable=true; }                   // welcome always enabled
-      else if(i===1){ enable=!!($('#area').val()&&$('#service').val()); }
-      else if(i===2){ enable=!!selectedTime; }
-      else if(i===3){ const nameOk=($('#name').val()||'').trim().length>0; enable=nameOk && (window.intlTelInput && intlTelInputGlobals ? true : true); enable = nameOk && (window.itiPhone ? itiPhone.isValidNumber() : true); }
-      else if(i===4){ enable=!!(document.querySelector('#payGroup input:checked')); }
-      else if(i===5){ enable=!!positionUrl; }
-      nextBtn.disabled=!enable; nextBtn.classList.toggle('disabled',!enable);
+      const i = getActiveIndex();
+      const nextBtn = document.getElementById('footer-next');
+      let enable = true;
+      if(i === 1){ // page2
+        enable = !!($('#area').val() && $('#service').val());
+      } else if(i === 2){ // page4
+        enable = !!selectedTime;
+      } else if(i === 3){ // page5
+        const nameOk = $('#name').val().trim().length > 0;
+        const phoneOk = (itiPhone && itiPhone.isValidNumber());
+        const payOk = !!nForm.paymentMethod;
+        const plateOk = ($('#plateNumber').val()?.length || 0) === 0 || ($('#plateNumber').val()||'').length === 4;
+        enable = nameOk && phoneOk && payOk && plateOk;
+      } else if(i === 4){ // page6
+        enable = !!positionUrl;
+      }
+      nextBtn.disabled = !enable;
+      nextBtn.classList.toggle('disabled', !enable);
     }
 
-    /* ---------- Google Map ---------- */
+    /* ---------------- Google Map ---------------- */
     let map, marker;
     function initMap(){
       const def={lat:26.34165524787632,lng:50.11524831545726};
       map=new google.maps.Map(document.getElementById('googleMap'),{center:def,zoom:12,disableDoubleClickZoom:true});
       marker=new google.maps.Marker({position:def,map,draggable:true,title:'اسحب أو اضغط لتحديد الموقع'});
-      const setPos=(latLng,pan=false)=>{ if(!latLng) return; marker.setPosition(latLng); if(pan) map.panTo(latLng); map.setZoom(17); positionUrl=`https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`; const hint=document.getElementById('mapHint'); if(hint) hint.innerHTML=`تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`; renderSummary('page6'); updateNextAvailability(); };
-      marker.addListener('dragend',({latLng})=>setPos(latLng));
-      map.addListener('click',({latLng})=>setPos(latLng));
+      const setPos=(latLng,pan=false)=>{ if(!latLng) return; marker.setPosition(latLng); if(pan) map.panTo(latLng); map.setZoom(17); positionUrl=`https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`; document.getElementById('mapHint').innerHTML = `تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`; updateNextAvailability(); };
+      marker.addListener('dragend', ({latLng})=>setPos(latLng));
+      map.addEventListener?.('click', ({latLng})=>setPos(latLng));
+      map.addListener?.('click', ({latLng})=>setPos(latLng));
       const btn=document.getElementById('show-my-location');
-      btn?.addEventListener('click',()=>{ if(!navigator.geolocation){ showToast('error','المتصفح لا يدعم تحديد الموقع'); return; } navigator.geolocation.getCurrentPosition(pos=>setPos(new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude),true),err=>{ showToast('error','تعذر تحديد موقعك'); },{ enableHighAccuracy:true, timeout:10000, maximumAge:30000 }); });
+      if(btn){
+        btn.addEventListener('click', ()=>{
+          if(!navigator.geolocation){ showToast('error','المتصفح لا يدعم تحديد الموقع'); return; }
+          navigator.geolocation.getCurrentPosition(
+            pos=>setPos(new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude),true),
+            err=>{ const msg = err?.message || 'رجاءً فعّل الـ GPS وأذونات الموقع'; showToast('error','تعذر تحديد موقعك: '+msg); },
+            { enableHighAccuracy:true, timeout:10000, maximumAge:30000 }
+          );
+        });
+      }
     }
-    window.initMap=initMap;
+    window.initMap = initMap;
   </script>
 
   <!-- Google Maps -->
