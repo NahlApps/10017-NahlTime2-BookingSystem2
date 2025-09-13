@@ -66,6 +66,7 @@
 
     /* ===== Summary chips ===== */
     .summary-chips{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+    .summary-chips.hidden{display:none!important;} /* << force hide on welcome */
     .chip{
       display:inline-flex; align-items:center; gap:6px; max-width:100%;
       padding:6px 10px; border:1px solid rgba(255,255,255,.35);
@@ -192,7 +193,7 @@
       }
       .summary-chips::-webkit-scrollbar{ height:4px }
       .chip{ padding:4px 8px; font-size:.78rem }
-      .chip .title{ display:none }            /* hide labels on mobile to keep it small */
+      .chip .title{ display:none }
       .chip .value{ max-width:140px; overflow:hidden; text-overflow:ellipsis }
       .btn-footer{min-height:58px; font-size:1.05rem}
       .footer-inner{flex-wrap:wrap}
@@ -201,14 +202,14 @@
     }
 
     /* ===== Phone input tweaks (fit + country code LEFT) ===== */
-    .iti{ width:100%; } /* make the intl-tel container fill the column */
+    .iti{ width:100%; }
     html[dir="rtl"] .iti--allow-dropdown .iti__flag-container{
-      left:8px; right:auto;      /* move flag/country code to LEFT side */
+      left:8px; right:auto;
     }
     html[dir="rtl"] .iti--allow-dropdown input#mobile.form-control{
-      padding-left: calc(76px + 8px);  /* space for the left flag/dial code */
+      padding-left: calc(76px + 8px);
       padding-right: 12px;
-      text-align: left; direction: ltr;/* enter digits naturally LTR */
+      text-align: left; direction: ltr;
     }
   </style>
 </head>
@@ -232,7 +233,7 @@
           <div class="step" id="miniStepTitle">الترحيب</div>
         </div>
         <!-- chips are injected here (hidden on welcome page) -->
-        <div id="summaryChips" class="summary-chips" aria-live="polite"></div>
+        <div id="summaryChips" class="summary-chips hidden" aria-live="polite"></div>
       </div>
     </div>
   </header>
@@ -569,9 +570,16 @@
       const activeId=currentId || (document.querySelector('.page.active')?.id) || 'page1';
       const currGroup=STEP_GROUP_INDEX[activeId] ?? 0;
 
-      // hide completely on welcome
-      wrap.style.display = currGroup === 0 ? 'none' : 'flex';
-      if(currGroup===0){ wrap.innerHTML=''; return; }
+      // hide completely on welcome (class + style to prevent flicker)
+      if(currGroup===0){
+        wrap.classList.add('hidden');
+        wrap.style.display='none';
+        wrap.innerHTML='';
+        return;
+      }
+      // show on all other pages
+      wrap.classList.remove('hidden');
+      wrap.style.display='flex';
 
       const areaTxt=$('#area').find(':selected').text()||'';
       const catTxt=$('#serviceCat').find(':selected').text()||'';
