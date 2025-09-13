@@ -37,7 +37,7 @@
       --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-7:32px;
 
       /* Layout (auto-set by ResizeObserver) */
-      --header-h:76px; --footer-h:90px;
+      --header-h:76px; --footer-h:100px;
 
       /* Background per page */
       --page-bg:url("https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg");
@@ -48,9 +48,11 @@
       margin:0; font-family:'Cairo',sans-serif; color:#fff;
       background:
         linear-gradient(180deg, rgba(11,38,48,.58), rgba(11,38,48,.34)),
-        var(--page-bg) center/cover fixed no-repeat;
+        var(--page-bg) center/cover no-repeat fixed;
       min-height:100vh; display:flex; flex-direction:column;
       padding-top:var(--header-h); padding-bottom:var(--footer-h);
+      /* iOS: avoid jump on address bar show/hide */
+      min-height:100dvh;
     }
 
     /* Header */
@@ -64,7 +66,7 @@
       display:flex; align-items:center; gap:12px; justify-content:space-between;
     }
     .brand{display:flex; align-items:center; gap:10px}
-    .brand img{height:80px; width:auto; object-fit:contain; filter:drop-shadow(0 6px 20px rgba(0,0,0,.25));}
+    .brand img{height:84px; width:auto; object-fit:contain; filter:drop-shadow(0 6px 20px rgba(0,0,0,.25));}
 
     .header-right{flex:1; display:flex; flex-direction:column; gap:6px}
     .mini-progress{display:flex; align-items:center; gap:var(--sp-3); width:100%}
@@ -83,7 +85,13 @@
     .chip i{opacity:.9}
     .chip .title{opacity:.85}
     .chip .value{font-weight:700}
+    .chip.current{
+      background:rgba(255,255,255,.18);
+      border-color:rgba(255,255,255,.75);
+      box-shadow:0 0 0 2px rgba(255,255,255,.16) inset;
+    }
 
+    /* Main/stage/pages */
     main{flex:1 0 auto; display:flex; justify-content:center; padding:var(--sp-2) var(--sp-3) 0}
     #app{width:100%; max-width:1120px}
     .stage{position:relative; min-height:560px; padding:8px 0 20px}
@@ -98,7 +106,7 @@
     @keyframes pageOut{ from{opacity:1; transform:translateY(0) scale(1)} to{opacity:0; transform:translateY(14px) scale(.985)} }
     .page h1{font-size:var(--fs-xl); font-weight:var(--fw-bold); margin:0; text-align:center}
 
-    /* Cards (semi-transparent) */
+    /* Cards (semi-transparent to show background) */
     .card{
       background:rgba(255,255,255,.88); color:var(--ink-900);
       border-radius:var(--radius-md); box-shadow:var(--shadow-md);
@@ -109,7 +117,7 @@
     .form-control, select, .select2-selection{
       background:#fff; color:#0B2630;
       border:1px solid var(--border-300) !important; border-radius:var(--radius-md)!important;
-      min-height:48px; text-align:center; font-size:var(--fs-md);
+      min-height:52px; text-align:center; font-size:16px; /* 16px to avoid iOS zoom */
       transition:border-color var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease);
     }
     .form-control:focus{ box-shadow:0 0 0 4px rgba(2,122,147,.12) }
@@ -117,8 +125,9 @@
     .field-error{color:#dc2626; font-size:.85rem; margin-top:6px; display:none}
     .has-error .form-control, .has-error .select2-selection{ border-color:#dc2626 !important; }
     .has-error .field-error{display:block}
-    .select2-container .select2-selection--single .select2-selection__rendered{color:#0B2630!important; line-height:48px!important;}
-    .select2-container .select2-selection--single{height:48px!important; display:flex; align-items:center}
+
+    .select2-container .select2-selection--single .select2-selection__rendered{color:#0B2630!important; line-height:52px!important;}
+    .select2-container .select2-selection--single{height:52px!important; display:flex; align-items:center}
     .select2-dropdown{background:#fff; color:#0B2630}
     .select2-results__option, .select2-search__field{color:#0B2630}
     .select2-container--open .select2-dropdown{border:1px solid var(--border-300); box-shadow:var(--shadow-sm); overflow:hidden; transform-origin:top center; animation:dropdownIn var(--dur-sm) var(--ease-decel) both;}
@@ -130,7 +139,7 @@
     .time-option{
       background:#fff; color:#0B2630; font-weight:var(--fw-bold);
       border:1px solid var(--border-300); border-radius:var(--radius-md);
-      padding:14px 10px; min-height:56px; box-shadow:var(--shadow-xs);
+      padding:14px 10px; min-height:64px; box-shadow:var(--shadow-xs);
       transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
       display:flex; flex-direction:column; align-items:center; justify-content:center;
     }
@@ -152,7 +161,7 @@
     .pay-card{
       background:#fff; color:#0B2630; border:1px solid var(--border-300); border-radius:var(--radius-md);
       padding:var(--sp-6); display:flex; justify-content:center; align-items:center; gap:var(--sp-4);
-      min-height:72px; cursor:pointer; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
+      min-height:76px; cursor:pointer; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
     }
     .pay-card:hover{transform:translateY(-2px); box-shadow:var(--shadow-sm); background:var(--brand-050)}
     .pay-card:active{transform:translateY(0) scale(.995)}
@@ -173,19 +182,35 @@
     .footer-social{display:flex; align-items:center; gap:12px}
     .footer-social a{color:#fff; opacity:.95; font-size:1.2rem}
     .footer-actions{display:flex; gap:12px}
-    .btn-footer{ flex:1; border:1px solid var(--border-300); border-radius:var(--radius-md); padding:14px 16px; min-height:52px; font-size:var(--fs-md); font-weight:var(--fw-bold); background:#fff; color:#027A93; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease), color var(--dur-xs) var(--ease), border-color var(--dur-xs) var(--ease); }
+    .btn-footer{ flex:1; border:1px solid var(--border-300); border-radius:var(--radius-md); padding:16px 16px; min-height:56px; font-size:var(--fs-md); font-weight:var(--fw-bold); background:#fff; color:#027A93; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease), color var(--dur-xs) var(--ease), border-color var(--dur-xs) var(--ease); }
     .btn-footer:hover{transform:translateY(-2px); box-shadow:var(--shadow-sm)}
     .btn-footer:active{transform:translateY(0) scale(.995)}
     .btn-footer.primary{background:#027A93; color:#fff; border-color:#027A93}
     .btn-footer.hidden{visibility:hidden}
     .btn-footer.disabled, .btn-footer:disabled{opacity:.6; pointer-events:none}
 
+    /* Mobile polish */
     @media (max-width: 480px){
-      :root{ --footer-h: 110px; }
-      .btn-footer{min-height:56px; font-size:1.05rem}
+      :root{ --footer-h: 118px; }
+      .header-inner{
+        padding-top: max(8px, env(safe-area-inset-top));
+        padding-bottom: 8px;
+        gap: 10px;
+      }
+      .brand img{ height: 72px }
+      .summary-chips{ gap: 4px }
+      .summary-chips .chip{ padding: 5px 9px; font-size: .82rem; }
+      .btn-footer{min-height:58px; font-size:1.05rem}
       .footer-inner{flex-wrap:wrap}
       .footer-actions{width:100%}
       .footer-brand{width:100%; justify-content:space-between}
+    }
+
+    /* Tel input RTL: keep flag clear */
+    html[dir="rtl"] .iti--allow-dropdown .iti__flag-container{ right: 8px; left: auto; }
+    html[dir="rtl"] .iti--allow-dropdown input#mobile.form-control{
+      padding-right: calc(76px + 8px);
+      padding-left: 12px;
     }
   </style>
 </head>
@@ -219,7 +244,7 @@
   <main>
     <div id="app">
       <div class="stage">
-        <!-- 1) Welcome -->
+        <!-- 1) Welcome (your adjusted PPT can live here if desired) -->
         <section id="page1" class="page active" aria-label="الترحيب">
           <h1>✨ غسيل بدون طوابير</h1>
           <div class="card text-center" style="max-width:860px">
@@ -461,7 +486,7 @@
       }
     }
 
-    // 🔒 DO NOT CHANGE the ordering below (prevents regressions and CORS surprises)
+    // DO NOT CHANGE order (prevents regressions)
     async function postReservation(payload){
       let r = await postReservationTry(RESERVE_URL_PRIMARY, payload, 'text/plain;charset=UTF-8');
       if(!r.ok && (r.status===415 || r.status===406 || r.status===0)){
@@ -500,6 +525,9 @@
       page7: "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG7.jpg"
     };
 
+    // chips group mapping: which step a chip belongs to
+    const STEP_GROUP_INDEX = { page1:0, page2:1, page3:2, page4:3, page5:4, page6:5, page7:6 };
+
     let selectedTime=null;
     let servicesCache=null, categoriesCache=null, itiPhone=null;
     let positionUrl="";
@@ -518,8 +546,8 @@
       requestAnimationFrame(()=>{ next.classList.add('active'); setTimeout(()=>{ if(cur){cur.classList.remove('exit'); cur.style.display='none';} }, 260); });
       syncProgress(idx);
       setPageBackground(next.id);
+      renderSummary(next.id);  // <-- chips reflect current page
       updateNextAvailability();
-      renderSummary();
     }
     function getActiveIndex(){ const id=document.querySelector('.page.active')?.id; return Math.max(0, orderedPages.indexOf(id)); }
     function syncProgress(i){
@@ -562,9 +590,12 @@
       if(v.length>0 && v.length<4){ pe.style.display='block'; pe.textContent='رجاءً أدخل ٤ أرقام'; } else { pe.style.display='none'; }
     }
 
-    /* ---------------- Summary chips ---------------- */
-    function renderSummary(){
+    /* ---------------- Summary chips (context-aware) ---------------- */
+    function renderSummary(currentId){
       const wrap = document.getElementById('summaryChips'); if(!wrap) return;
+      const activeId = currentId || (document.querySelector('.page.active')?.id) || 'page1';
+      const currGroup = STEP_GROUP_INDEX[activeId] ?? 0;
+
       const areaTxt = $('#area').find(':selected').text() || '';
       const catTxt  = $('#serviceCat').find(':selected').text() || '';
       const srvTxt  = $('#service').find(':selected').text() || '';
@@ -573,25 +604,34 @@
       const tm      = nForm.time ? nForm.time : '';
       const pay     = nForm.paymentMethod || '';
       const plate   = $('#plateNumber').val() || '';
+      const locOk   = !!positionUrl;
 
+      // define chips with their group index (which step they belong to)
+      const chips = [
+        {i:'fa-location-dot',   t:'المنطقة',   v:areaTxt, group:1},
+        {i:'fa-layer-group',    t:'التصنيف',   v:catTxt,  group:1},
+        {i:'fa-screwdriver-wrench', t:'الخدمة', v:srvTxt,  group:1},
+        {i:'fa-car',            t:'عدد السيارات', v:cntTxt, group:1},
+        {i:'fa-clock',          t:'الموعد',    v:(dt||tm)?((dt&&tm)?`${dt} • ${tm}`:(dt||tm)):'', group:2},
+        {i:'fa-user',           t:'الاسم',     v:(nForm.customerN||''), group:3},
+        {i:'fa-phone',          t:'الجوال',    v:(nForm.customerM||''), group:3},
+        {i:'fa-id-card',        t:'لوحة',      v:plate, group:3},
+        {i:'fa-credit-card',    t:'الدفع',     v:(pay?pay.toUpperCase():''), group:4},
+        {i:'fa-map-pin',        t:'الموقع',     v:(locOk?'تم التحديد':'') , group:5},
+      ];
+
+      // show chips up to current group only; highlight current group's chips
       wrap.innerHTML='';
-      const items=[];
-      if(areaTxt) items.push({i:'fa-location-dot', t:'المنطقة', v:areaTxt});
-      if(catTxt) items.push({i:'fa-layer-group', t:'التصنيف', v:catTxt});
-      if(srvTxt) items.push({i:'fa-screwdriver-wrench', t:'الخدمة', v:srvTxt});
-      if(cntTxt) items.push({i:'fa-car', t:'عدد السيارات', v:cntTxt});
-      if(dt||tm) items.push({i:'fa-clock', t:'الموعد', v:(dt&&tm)?`${dt} • ${tm}`:(dt||tm)});
-      if(pay) items.push({i:'fa-credit-card', t:'الدفع', v:pay.toUpperCase()});
-      if(plate) items.push({i:'fa-id-card', t:'لوحة', v:plate});
-
-      items.forEach(c=>{
-        const el=document.createElement('div'); el.className='chip';
-        el.innerHTML=`<i class="fa-solid ${c.i}"></i><span class="title">${c.t}:</span><span class="value">${c.v}</span>`;
-        wrap.appendChild(el);
-      });
+      chips
+        .filter(c => c.v && c.group <= currGroup)
+        .forEach(c=>{
+          const el=document.createElement('div'); el.className='chip'+(c.group===currGroup?' current':'');
+          el.innerHTML=`<i class="fa-solid ${c.i}"></i><span class="title">${c.t}:</span><span class="value">${c.v}</span>`;
+          wrap.appendChild(el);
+        });
     }
 
-    /* ---------------- Time (same logic as old) ---------------- */
+    /* ---------------- Time (same logic as working old) ---------------- */
     function parseTimeToLuxon(rawTime){
       let t = DateTime.fromISO(String(rawTime||'').trim(), { setZone:true });
       if (!t.isValid) t = DateTime.fromFormat(String(rawTime||''), 'HH:mm:ss', { setZone:true });
@@ -715,7 +755,7 @@
 
           window.selectedTime = { ui: t.label, iso: nForm.time };
           selectedTime        = window.selectedTime;
-          renderSummary();
+          renderSummary('page3'); // update chips as timing chosen
           updateNextAvailability();
         });
 
@@ -752,7 +792,7 @@
       const service      = (svc  !== null && svc  !== '') ? String(svc)  : undefined;
       const serviceCount = String(cnt);
 
-      // 🔒 DO NOT CHANGE: server expects digits only without "+" (e.g., 9665XXXXXXXX)
+      // IMPORTANT: server expects digits only
       const phoneDigits = itiPhone?.getNumber?.()?.replace(/^\+/, '') || '';
       const pay         = (nForm.paymentMethod || '').toLowerCase();
 
@@ -778,17 +818,31 @@
       setPageBackground('page1');
       enforceDateMinToday();
 
+      // Preload backgrounds
+      (function preloadBG(){
+        Object.values(PAGE_BACKGROUNDS).forEach(src => { const i=new Image(); i.src = src; });
+      })();
+
       // Select2
       $('#area').select2({width:'100%',placeholder:'اختر المنطقة', dir:'rtl'});
       $('#serviceCat').select2({width:'100%',placeholder:'التصنيف', dir:'rtl'});
       $('#service').select2({width:'100%',placeholder:'الخدمة', dir:'rtl'});
       $('#carBrand').select2({width:'100%',placeholder:'ماركة السيارة', dir:'rtl'});
+      $('#area, #serviceCat, #service').on('select2:open', () => {
+        $('.select2-search__field').attr('dir','rtl');
+      });
 
-      // intl-tel-input
+      // intl-tel-input (better mobile UX)
       itiPhone=window.intlTelInput(document.querySelector('#mobile'),{
         initialCountry:'sa',
         onlyCountries:['sa','ae','bh','kw','om','qa'],
+        separateDialCode:true,
+        placeholderNumberType:'MOBILE',
         utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js'
+      });
+      $('#mobile').attr({ inputmode:'tel', autocomplete:'tel' }).on('blur', ()=> {
+        const ok = itiPhone && itiPhone.isValidNumber();
+        document.getElementById('err-mobile').style.display = ok ? 'none':'block';
       });
 
       // Load locations → services (page-2 spinner)
@@ -798,6 +852,7 @@
         $('#area').empty().select2({data:ds,width:'100%'});
         if(ds.length){ $('#area').val(ds[0].id).trigger('change'); }
         else { setLoadingServices(false); showToast('error','لا توجد مناطق متاحة حالياً'); }
+        renderSummary('page2');
       });
 
       $('#area').on('change', function(){
@@ -808,7 +863,7 @@
           $('#serviceCat').empty().select2({data:cats,width:'100%'});
           if(cats.length){ $('#serviceCat').val(cats[0].id).trigger('change'); }
           setLoadingServices(false);
-          renderSummary();
+          renderSummary('page2');
           updateNextAvailability();
         }, true);
       });
@@ -818,13 +873,12 @@
         const items=servicesCache?.filter(s=>Number(s.TS_category_id)===cid)?.sort((a,b)=>a.TS_service_id-b.TS_service_id)?.map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}))||[];
         $('#service').empty().select2({data:items,width:'100%'});
         if(items.length){ $('#service').val(items[0].id).trigger('change'); }
-        renderSummary(); updateNextAvailability();
+        renderSummary('page2'); updateNextAvailability();
       });
 
       $('#service').on('change', function(){
         nForm.service = this.value || '';
-        if(getActiveIndex()===2) document.getElementById('date').dispatchEvent(new Event('change'));
-        renderSummary(); updateNextAvailability();
+        renderSummary('page2'); updateNextAvailability();
       });
 
       // Brands
@@ -832,16 +886,16 @@
       $('#carBrand').empty().select2({data:brands,width:'100%'});
 
       // Contact + vehicle
-      $('#name').on('input', function(){ nForm.customerN = this.value.trim(); renderSummary(); updateNextAvailability(); });
-      $('#mobile').on('input', function(){ updateNextAvailability(); });
+      $('#name').on('input', function(){ nForm.customerN = this.value.trim(); renderSummary('page4'); updateNextAvailability(); });
+      $('#mobile').on('input', function(){ renderSummary('page4'); updateNextAvailability(); });
       $('#carName').on('input', function(){ updateNextAvailability(); });
-      $('#serviceCount').on('change', function(){ nForm.serviceCount = this.value || '1'; renderSummary(); updateNextAvailability(); });
-      $('#plateNumber').on('input', function(){ updatePlateHint(); updateNextAvailability(); });
+      $('#serviceCount').on('change', function(){ nForm.serviceCount = this.value || '1'; renderSummary('page2'); updateNextAvailability(); });
+      $('#plateNumber').on('input', function(){ updatePlateHint(); renderSummary('page4'); updateNextAvailability(); });
 
       // Date init + on change
       const today=DateTime.now().toFormat('yyyy-LL-dd');
       $('#date').val(today).attr('min',today);
-      $('#date').on('change', fetchTimesForSelectedDate);
+      $('#date').on('change', ()=>{ fetchTimesForSelectedDate(); renderSummary('page3'); });
 
       // Footer nav
       const $prev=document.getElementById('footer-prev');
@@ -877,8 +931,7 @@
           if(!nameOk || !phoneOk){ showToast('error','يرجى التحقق من الاسم ورقم الجوال'); return; }
 
           nForm.customerN = ($('#name').val()||'').trim();
-          // 🔒 DO NOT CHANGE: this exact format keeps server 400s away
-          nForm.customerM = itiPhone.getNumber().replace(/^\+/, '');
+          nForm.customerM = itiPhone.getNumber().replace(/^\+/, ''); // digits-only
 
           nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
           showPage(4);
@@ -931,7 +984,7 @@
         const input = card.querySelector('input');
         const choose = () => {
           payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; });
-          card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=input.value; renderSummary(); updateNextAvailability();
+          card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=input.value; renderSummary('page5'); updateNextAvailability();
         };
         card.addEventListener('click', choose);
         card.addEventListener('keydown', (e)=>{
@@ -949,7 +1002,7 @@
       $('#rebook').on('click', ()=>location.href='/');
 
       // initial summary/progress
-      renderSummary();
+      renderSummary('page1');
       syncProgress(0);
     });
 
@@ -989,7 +1042,7 @@
         positionUrl=`https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
         const hint = document.getElementById('mapHint');
         if(hint) hint.innerHTML = `تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`;
-        renderSummary(); updateNextAvailability();
+        renderSummary('page6'); updateNextAvailability();
       };
       marker.addListener('dragend', ({latLng})=>setPos(latLng));
       map.addListener('click', ({latLng})=>setPos(latLng));
