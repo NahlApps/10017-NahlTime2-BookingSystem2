@@ -36,7 +36,7 @@
       --fs-xxl:1.6rem; --fs-xl:1.375rem; --fs-md:1rem; --fs-sm:.9rem; --fw-bold:800;
       --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-7:32px;
 
-      /* Layout (updated by ResizeObserver) */
+      /* Layout (auto-set by ResizeObserver) */
       --header-h:76px; --footer-h:90px;
 
       /* Background per page */
@@ -64,10 +64,7 @@
       display:flex; align-items:center; gap:12px; justify-content:space-between;
     }
     .brand{display:flex; align-items:center; gap:10px}
-    .brand img{
-      height:72px; width:auto; object-fit:contain;
-      filter:drop-shadow(0 6px 20px rgba(0,0,0,.25));
-    }
+    .brand img{height:80px; width:auto; object-fit:contain; filter:drop-shadow(0 6px 20px rgba(0,0,0,.25));}
 
     .header-right{flex:1; display:flex; flex-direction:column; gap:6px}
     .mini-progress{display:flex; align-items:center; gap:var(--sp-3); width:100%}
@@ -75,6 +72,7 @@
     .mini-progress .bar>span{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--brand-600), var(--brand-200)); transition:width var(--dur-md) var(--ease-decel)}
     .mini-progress .step{font-weight:var(--fw-bold); font-size:var(--fs-md)}
 
+    /* Summary chips under progress */
     .summary-chips{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
     .chip{
       display:inline-flex; align-items:center; gap:6px;
@@ -107,7 +105,7 @@
       padding:var(--sp-6); width:100%; max-width:920px; backdrop-filter:blur(6px);
     }
 
-    /* Form + Select2 */
+    /* Form + Select2 (contrast) */
     .form-control, select, .select2-selection{
       background:#fff; color:#0B2630;
       border:1px solid var(--border-300) !important; border-radius:var(--radius-md)!important;
@@ -119,19 +117,11 @@
     .field-error{color:#dc2626; font-size:.85rem; margin-top:6px; display:none}
     .has-error .form-control, .has-error .select2-selection{ border-color:#dc2626 !important; }
     .has-error .field-error{display:block}
-
-    /* Select2 contrast */
-    .select2-container .select2-selection--single .select2-selection__rendered{
-      color:#0B2630 !important; line-height:48px !important;
-    }
-    .select2-container .select2-selection--single{height:48px !important; display:flex; align-items:center}
+    .select2-container .select2-selection--single .select2-selection__rendered{color:#0B2630!important; line-height:48px!important;}
+    .select2-container .select2-selection--single{height:48px!important; display:flex; align-items:center}
     .select2-dropdown{background:#fff; color:#0B2630}
-    .select2-results__option{color:#0B2630}
-    .select2-search__field{color:#0B2630}
-    .select2-container--open .select2-dropdown{
-      border:1px solid var(--border-300); box-shadow:var(--shadow-sm); overflow:hidden;
-      transform-origin:top center; animation:dropdownIn var(--dur-sm) var(--ease-decel) both;
-    }
+    .select2-results__option, .select2-search__field{color:#0B2630}
+    .select2-container--open .select2-dropdown{border:1px solid var(--border-300); box-shadow:var(--shadow-sm); overflow:hidden; transform-origin:top center; animation:dropdownIn var(--dur-sm) var(--ease-decel) both;}
     @keyframes dropdownIn{ from{opacity:0; transform:translateY(6px) scale(.99)} to{opacity:1; transform:none} }
 
     /* Time grid */
@@ -148,7 +138,7 @@
     .time-option:active{transform:translateY(0) scale(.995)}
     .time-option[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
 
-    /* Overlays */
+    /* Overlays (service + time loaders) */
     .load-overlay{
       position:absolute; inset:0; background:rgba(255,255,255,.88);
       color:#0B2630; display:none; align-items:center; justify-content:center; gap:12px; border-radius:var(--radius-md);
@@ -162,11 +152,11 @@
     .pay-card{
       background:#fff; color:#0B2630; border:1px solid var(--border-300); border-radius:var(--radius-md);
       padding:var(--sp-6); display:flex; justify-content:center; align-items:center; gap:var(--sp-4);
-      min-height:68px; cursor:pointer; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
+      min-height:72px; cursor:pointer; transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
     }
     .pay-card:hover{transform:translateY(-2px); box-shadow:var(--shadow-sm); background:var(--brand-050)}
     .pay-card:active{transform:translateY(0) scale(.995)}
-    .pay-card img{max-width:130px; height:auto}
+    .pay-card img{max-width:140px; height:auto}
     .pay-card[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
 
     /* Map */
@@ -191,7 +181,7 @@
     .btn-footer.disabled, .btn-footer:disabled{opacity:.6; pointer-events:none}
 
     @media (max-width: 480px){
-      :root{ --footer-h: 108px; }
+      :root{ --footer-h: 110px; }
       .btn-footer{min-height:56px; font-size:1.05rem}
       .footer-inner{flex-wrap:wrap}
       .footer-actions{width:100%}
@@ -206,7 +196,7 @@
   <!-- Header -->
   <header id="siteHeader">
     <div class="header-inner">
-      <!-- Brand -->
+      <!-- Brand (no frame) -->
       <div class="brand">
         <img id="brandLogo"
              alt="Nahl Time"
@@ -220,8 +210,6 @@
           <div class="bar"><span id="miniBarFill" style="width:0%"></span></div>
           <div class="step" id="miniStepTitle">الترحيب</div>
         </div>
-
-        <!-- Summary chips under progress -->
         <div id="summaryChips" class="summary-chips" aria-live="polite"></div>
       </div>
     </div>
@@ -409,7 +397,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    /* ---------------- Logo fallback (from old script) ---------------- */
+    /* ---------------- Logo fallback ---------------- */
     function handleLogoError(img){
       const fallbacks = [
         "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20&%20%20Soap/spong&Soap%20-%20logo.png",
@@ -422,7 +410,7 @@
       else { img.style.display = 'none'; }
     }
 
-    /* ---------------- API (kept legacy behavior) ---------------- */
+    /* ---------------- API (legacy behavior preserved) ---------------- */
     const APP_ID = '33e0d05d-d771-46f4-a7e7-7c634b4e3a9e';
     const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${APP_ID}/form`;
     const RESERVE_URL_PRIMARY   = `${defaultLink2}/reserveAppointment`;
@@ -473,21 +461,19 @@
       }
     }
 
+    // 🔒 DO NOT CHANGE the ordering below (prevents regressions and CORS surprises)
     async function postReservation(payload){
-      // 1) text/plain (legacy behavior)
       let r = await postReservationTry(RESERVE_URL_PRIMARY, payload, 'text/plain;charset=UTF-8');
-      // 2) retry application/json on certain failures
       if(!r.ok && (r.status===415 || r.status===406 || r.status===0)){
         r = await postReservationTry(RESERVE_URL_PRIMARY, payload, 'application/json;charset=UTF-8');
       }
-      // 3) fallback path without /form (404 only)
       if(!r.ok && r.status===404){
         r = await postReservationTry(RESERVE_URL_FALLBACK, payload, 'text/plain;charset=UTF-8');
       }
       return r;
     }
 
-    /* ---------------- Toast (simple) ---------------- */
+    /* ---------------- Toast ---------------- */
     function showToast(type='info', msg=''){
       const wrap=document.getElementById('toastWrap');
       const div=document.createElement('div');
@@ -517,7 +503,6 @@
     let selectedTime=null;
     let servicesCache=null, categoriesCache=null, itiPhone=null;
     let positionUrl="";
-
     const nForm={date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar'};
 
     /* ---------------- Helpers ---------------- */
@@ -525,7 +510,6 @@
       const url = PAGE_BACKGROUNDS[id] || PAGE_BACKGROUNDS.page1;
       document.documentElement.style.setProperty('--page-bg', `url("${url}")`);
     }
-
     function showPage(idx){
       const cur=document.querySelector('.page.active');
       const next=document.getElementById(orderedPages[idx]); if(!next||cur===next) return;
@@ -537,7 +521,6 @@
       updateNextAvailability();
       renderSummary();
     }
-
     function getActiveIndex(){ const id=document.querySelector('.page.active')?.id; return Math.max(0, orderedPages.indexOf(id)); }
     function syncProgress(i){
       const pct=((i+1)/orderedPages.length)*100;
@@ -549,7 +532,6 @@
       prev.classList.toggle('hidden', i === 0 || onThanks);
       next.classList.toggle('hidden', onThanks);
     }
-
     function enforceDateMinToday(){
       const today = DateTime.now().toFormat('yyyy-LL-dd');
       const dateEl = document.getElementById('date');
@@ -557,12 +539,11 @@
       dateEl.setAttribute('min', today);
       if(!dateEl.value || dateEl.value < today) dateEl.value = today;
     }
-
     function setLoadingTimes(on){ document.getElementById('timeLoading').classList.toggle('show', !!on); }
     function setLoadingServices(on){ document.getElementById('servicesLoading').classList.toggle('show', !!on); }
-
     function validateMobile(){ return !!(itiPhone && itiPhone.isValidNumber()); }
 
+    // Special plate hint
     function isSpecialPlate(numStr){
       if(!/^\d{4}$/.test(numStr)) return false;
       const allSame = /^(\d)\1{3}$/.test(numStr);
@@ -771,7 +752,8 @@
       const service      = (svc  !== null && svc  !== '') ? String(svc)  : undefined;
       const serviceCount = String(cnt);
 
-      const phoneDigits = itiPhone?.getNumber?.()?.replace(/^\+/, '') || '';  // EXACTLY like old script
+      // 🔒 DO NOT CHANGE: server expects digits only without "+" (e.g., 9665XXXXXXXX)
+      const phoneDigits = itiPhone?.getNumber?.()?.replace(/^\+/, '') || '';
       const pay         = (nForm.paymentMethod || '').toLowerCase();
 
       return {
@@ -781,7 +763,7 @@
         service,
         serviceCount,
         serviceCat,
-        customerM: phoneDigits,    // e.g., 9665XXXXXXXX
+        customerM: phoneDigits,
         customerN: nForm.customerN,
         paymentMethod: pay,
         urlLocation: nForm.urlLocation,
@@ -802,7 +784,7 @@
       $('#service').select2({width:'100%',placeholder:'الخدمة', dir:'rtl'});
       $('#carBrand').select2({width:'100%',placeholder:'ماركة السيارة', dir:'rtl'});
 
-      // intl-tel-input (legacy options; no separateDialCode to stay identical)
+      // intl-tel-input
       itiPhone=window.intlTelInput(document.querySelector('#mobile'),{
         initialCountry:'sa',
         onlyCountries:['sa','ae','bh','kw','om','qa'],
@@ -841,7 +823,6 @@
 
       $('#service').on('change', function(){
         nForm.service = this.value || '';
-        // time fetch if on time page
         if(getActiveIndex()===2) document.getElementById('date').dispatchEvent(new Event('change'));
         renderSummary(); updateNextAvailability();
       });
@@ -850,7 +831,7 @@
       const brands=["Toyota","Nissan","Hyundai","Kia","Honda","Lexus","BMW","Mercedes-Benz","Chevrolet","Ford","Mazda","Mitsubishi","Aston Martin","Other"].sort().map(b=>({id:b,text:b}));
       $('#carBrand').empty().select2({data:brands,width:'100%'});
 
-      // Contact
+      // Contact + vehicle
       $('#name').on('input', function(){ nForm.customerN = this.value.trim(); renderSummary(); updateNextAvailability(); });
       $('#mobile').on('input', function(){ updateNextAvailability(); });
       $('#carName').on('input', function(){ updateNextAvailability(); });
@@ -896,7 +877,9 @@
           if(!nameOk || !phoneOk){ showToast('error','يرجى التحقق من الاسم ورقم الجوال'); return; }
 
           nForm.customerN = ($('#name').val()||'').trim();
-          nForm.customerM = itiPhone.getNumber().replace(/^\+/, ''); // legacy
+          // 🔒 DO NOT CHANGE: this exact format keeps server 400s away
+          nForm.customerM = itiPhone.getNumber().replace(/^\+/, '');
+
           nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
           showPage(4);
           return;
@@ -915,8 +898,8 @@
           nForm.urlLocation=positionUrl;
 
           const payload = buildPayload();
-
           const r = await postReservation(payload);
+
           if(r.ok && r.data?.success){
             if(r.data?.otp){
               showToast('error','الخادم يطلب رمز تحقق (OTP). عطّل خيار OTP أو أضف خطوة للرمز.');
@@ -1009,7 +992,7 @@
         renderSummary(); updateNextAvailability();
       };
       marker.addListener('dragend', ({latLng})=>setPos(latLng));
-      map.addListener?.('click', ({latLng})=>setPos(latLng));
+      map.addListener('click', ({latLng})=>setPos(latLng));
       const btn=document.getElementById('show-my-location');
       if(btn){
         btn.addEventListener('click', ()=>{
