@@ -121,7 +121,7 @@
     .select2-results__option, .select2-search__field{color:#0B2630}
 
     .time-toolbar{display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:8px}
-    @media (min-width:768px){ .time-toolbar{grid-template-columns: 1fr; } } /* single column; sort removed */
+    @media (min-width:768px){ .time-toolbar{grid-template-columns: 1fr; } }
     .btn-toggle{display:flex; gap:8px}
     .btn-toggle .btn{flex:1}
 
@@ -334,8 +334,8 @@
           <div class="card">
             <div class="row g-3">
               <div class="col-12 col-md-6">
-                <label for="name" class="form-label">الإسم</label>
-                <input id="name" type="text" class="form-control" placeholder="الاسم الرباعي كما سيظهر في الفاتورة" autocomplete="name"/>
+                <label for="name" class="form-label">الاسم</label>
+                <input id="name" type="text" class="form-control" placeholder="الاسم كما سيظهر في الفاتورة" autocomplete="name"/>
                 <div class="field-error" id="err-name">يرجى إدخال الاسم</div>
               </div>
               <div class="col-12 col-md-6">
@@ -440,7 +440,7 @@
       </div>
       <div class="footer-actions">
         <button id="footer-prev" type="button" class="btn-footer hidden">السابق</button>
-        <button id="footer-next" type="button" class="btn-footer primary disabled" disabled>التالي</button>
+        <button id="footer-next" type="button" class="btn-footer primary disabled" disabled>تخطي العرض</button>
 
         <div id="footer-wait" class="">
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -537,7 +537,6 @@
     let isSubmitting=false;
 
     let currentTimeFilter='all';
-    let sortDir='asc'; /* default early → late; UI removed */
 
     const nForm={date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar'};
 
@@ -569,6 +568,9 @@
       prev.classList.toggle('hidden', i===0 || onThanks);
       next.classList.toggle('hidden', onThanks);
       wait.classList.remove('show');
+
+      // Make Next act as "Skip" on welcome
+      next.textContent = (i===0) ? 'تخطي العرض' : 'التالي';
     }
 
     function setLoadingTimes(on){ document.getElementById('timeLoading').classList.toggle('show', !!on); }
@@ -749,6 +751,8 @@
           nForm.date=selectedISO; nForm.time=parsed.toFormat('HH:mm');
           window.selectedTime={ui:t.label,iso:nForm.time}; selectedTime=window.selectedTime;
           renderSummary('page3'); updateNextAvailability();
+          /* NEW: auto-advance to Contact page after selecting a time */
+          showPage(3);
         });
         timeContainer.appendChild(btn);
       });
@@ -805,7 +809,7 @@
                     document.getElementById('err-mobile').style.display = ok ? 'none':'block';
                   });
 
-      $('#name').attr('placeholder','الاسم الرباعي كما سيظهر في الفاتورة');
+      $('#name').attr('placeholder','الاسم كما سيظهر في الفاتورة');
       $('#carName').attr('placeholder','الموديل/الفئة — مثال: S-Class، LX 570');
       $('#plateNumber').attr('placeholder','أرقام اللوحة — اختياري');
 
@@ -865,7 +869,7 @@
 
       async function gotoNext(){
         const i=getActiveIndex(); const id=orderedPages[i];
-        if(id==='page1'){ stopWelcomeDeck(); showPage(1); return; }
+        if(id==='page1'){ stopWelcomeDeck(); showPage(1); return; } // acts as Skip
 
         if(id==='page2'){
           const areaOk=!!$('#area').val(), catOk=!!$('#serviceCat').val(), svcOk=!!$('#service').val();
@@ -931,11 +935,17 @@
       document.getElementById('footer-next').addEventListener('click', gotoNext);
       document.getElementById('footer-prev').addEventListener('click', ()=>{ const i=getActiveIndex(); showPage(Math.max(i-1,0)); });
 
-      /* Payment cards */
+      /* Payment cards — auto-advance to Map after choosing */
       const payCards=[...document.getElementById('payGroup').querySelectorAll('.pay-card')];
       payCards.forEach((card,idx)=>{
         const input=card.querySelector('input');
-        const choose=()=>{ payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; }); card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; nForm.paymentMethod=input.value; renderSummary('page5'); updateNextAvailability(); };
+        const choose=()=>{ 
+          payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; });
+          card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; 
+          nForm.paymentMethod=input.value; renderSummary('page5'); updateNextAvailability();
+          /* NEW: auto-advance to Map page after selecting payment */
+          showPage(5);
+        };
         card.addEventListener('click',choose);
         card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();} });
       });
