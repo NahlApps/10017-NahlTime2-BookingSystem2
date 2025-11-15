@@ -199,6 +199,49 @@
       padding-right: 12px;
       text-align: left; direction: ltr;
     }
+
+    /* -------- Additional Services (page 2) -------- */
+    .addon-section{
+      margin-top:16px;
+      padding-top:14px;
+      border-top:1px dashed rgba(2,122,147,.25);
+    }
+    .addon-title{
+      font-weight:800;
+      font-size:.9rem;
+      color:#224652;
+      margin-bottom:4px;
+    }
+    .addon-helper{
+      font-size:.8rem;
+      color:#607583;
+      margin-bottom:8px;
+    }
+    .addon-list{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .addon-item{
+      background:#fff;
+      color:#0B2630;
+      border:1px solid var(--border-300);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:.82rem;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      box-shadow:var(--shadow-xs);
+    }
+    .addon-item input{
+      margin:0;
+    }
+    .addon-empty,
+    .addon-error{
+      font-size:.8rem;
+      color:#6b7280;
+    }
   </style>
 </head>
 <body>
@@ -284,6 +327,14 @@
                   <option value="3">3</option><option value="4">4</option><option value="5">5</option>
                 </select>
               </div>
+            </div>
+
+            <!-- Additional Services (NEW) -->
+            <div class="addon-section" id="additionalServicesSection">
+              <div class="addon-title">خدمات إضافية (اختياري)</div>
+              <div class="addon-helper">يمكنك اختيار أكثر من خدمة إضافية حسب الحاجة.</div>
+              <div id="additionalServicesStatus" class="addon-helper">جاري تحميل الخدمات الإضافية…</div>
+              <div id="additionalServicesList" class="addon-list"></div>
             </div>
 
             <div id="servicesLoading" class="load-overlay" aria-hidden="true">
@@ -477,6 +528,9 @@
     const RESERVE_URL_PRIMARY  =`${defaultLink2}/reserveAppointment`;
     const RESERVE_URL_FALLBACK =`${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
 
+    /* NEW: Additional Services API (Google Apps Script Web App) */
+    const ADDITIONAL_SERVICES_URL = 'https://script.google.com/macros/s/AKfycbwsIHQv4nRVjzvG-Jp4RSwl9fTf5OU0Z852--zsPIqx_lEb2dBHlZ8pAxIDysgmN2YPMQ/exec'; // مثال: https://script.google.com/macros/s/XXXXX/exec
+
     let controllers=[];
     async function callContent2(path, cb, abortable=false, retries=3){
       let signal='';
@@ -532,13 +586,13 @@
       page7:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG7.jpg"
     };
     const STEP_GROUP_INDEX={page1:0,page2:1,page3:2,page4:3,page5:4,page6:5,page7:6};
-    let selectedTime=null, servicesCache=null, categoriesCache=null, itiPhone=null, positionUrl="";
+    let selectedTime=null, servicesCache=null, categoriesCache=null, itiPhone=null, positionUrl="", additionalServicesCache=null;
     let lastSelectedISO="";
     let isSubmitting=false;
 
     let currentTimeFilter='all';
 
-    const nForm={date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar'};
+    const nForm={date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar', additionalServices:[]};
 
     function setPageBackground(id){ document.documentElement.style.setProperty('--page-bg', `url("${PAGE_BACKGROUNDS[id]||PAGE_BACKGROUNDS.page1}")`); }
 
@@ -782,8 +836,91 @@
         serviceCat:(svcC!==null&&svcC!=='')?String(svcC):undefined,
         customerM:phoneDigits, customerN:nForm.customerN,
         paymentMethod:(nForm.paymentMethod||'').toLowerCase(),
-        urlLocation:nForm.urlLocation, locationDescription:nForm.locationDescription||'', locale:'ar'
+        urlLocation:nForm.urlLocation, locationDescription:nForm.locationDescription||'',
+        locale:'ar',
+        /* NEW: send selected additional services IDs */
+        additionalServices: Array.isArray(nForm.additionalServices) ? nForm.additionalServices.slice() : []
       };
+    }
+
+    /* ---------- Additional Services Loader ---------- */
+    function loadAdditionalServices(){
+      const section=document.getElementById('additionalServicesSection');
+      const statusEl=document.getElementById('additionalServicesStatus');
+      const listEl=document.getElementById('additionalServicesList');
+      if(!section || !statusEl || !listEl) return;
+
+      if(!ADDITIONAL_SERVICES_URL || ADDITIONAL_SERVICES_URL==='YOUR_APPS_SCRIPT_WEB_APP_URL_HERE'){
+        statusEl.textContent='يمكن تفعيل الخدمات الإضافية عند ربط النموذج بجدول Google Sheets.';
+        return;
+      }
+
+      statusEl.textContent='جاري تحميل الخدمات الإضافية…';
+      listEl.innerHTML='';
+
+      fetch(ADDITIONAL_SERVICES_URL + '?action=getAdditionalServices', {
+        method:'GET',
+        cache:'no-store'
+      })
+        .then(res=>{
+          if(!res.ok) throw new Error('Network ' + res.status);
+          return res.json();
+        })
+        .then(data=>{
+          const items = Array.isArray(data?.services) ? data.services : [];
+          additionalServicesCache = items;
+          if(!items.length){
+            statusEl.textContent='لا توجد خدمات إضافية متاحة حالياً.';
+            return;
+          }
+          statusEl.textContent='';
+          listEl.innerHTML='';
+
+          items.forEach(s=>{
+            const id = String(s.id || '');
+            const name = String(s.name || 'خدمة إضافية');
+            const desc = s.description ? String(s.description) : '';
+            const priceVal = (s.price!=null && s.price!=='') ? Number(s.price) : null;
+            const hasPrice = priceVal!=null && !isNaN(priceVal);
+            const priceText = hasPrice ? priceVal.toLocaleString() + ' ر.س' : '';
+
+            const label=document.createElement('label');
+            label.className='addon-item';
+
+            const cb=document.createElement('input');
+            cb.type='checkbox';
+            cb.value=id;
+            cb.addEventListener('change', function(){
+              if(!Array.isArray(nForm.additionalServices)) nForm.additionalServices=[];
+              const val = String(this.value||'');
+              if(this.checked){
+                if(val && !nForm.additionalServices.includes(val)){ nForm.additionalServices.push(val); }
+              } else {
+                nForm.additionalServices = nForm.additionalServices.filter(x=>x!==val);
+              }
+            });
+
+            const textSpan=document.createElement('span');
+            textSpan.textContent = name + (priceText ? (' - ' + priceText) : '');
+
+            label.appendChild(cb);
+            label.appendChild(textSpan);
+
+            if(desc){
+              const descSpan=document.createElement('span');
+              descSpan.style.fontSize='.78rem';
+              descSpan.style.color='#6b7280';
+              descSpan.textContent='· ' + desc;
+              label.appendChild(descSpan);
+            }
+
+            listEl.appendChild(label);
+          });
+        })
+        .catch(err=>{
+          console.error('loadAdditionalServices error',err);
+          statusEl.textContent='تعذر تحميل الخدمات الإضافية حالياً.';
+        });
     }
 
     /* ---------- Init ---------- */
@@ -953,6 +1090,9 @@
       $('#rebook').on('click', ()=>location.href='/');
 
       setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
+
+      /* NEW: load additional services from Google Sheet via Apps Script proxy */
+      loadAdditionalServices();
     });
 
     function updateNextAvailability(){
