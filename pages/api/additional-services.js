@@ -3,7 +3,7 @@ export default async function handler(req, res) {
   const { appId } = req.query;
 
   const ADDITIONAL_SERVICES_WEBAPP_URL =
-    'https://script.google.com/macros/s/AKfycb9GPr0Enmx02yjbOL1ihCn-_ZJi0xfJVv00dngdCeinzV-JThO5xN677mhN11MmZUn9A/exec';
+    'https://script.google.com/macros/s/AKfycbwXqdR054JlrYb2Q9sUoX9ofYKyhw4fV5gZW5U4TvQwuUb9iq9b4hYNFjr_U8-N4kwMfA/exec';
 
   const url = `${ADDITIONAL_SERVICES_WEBAPP_URL}?action=getAdditionalServices` +
     `&appId=${encodeURIComponent(appId || '')}`;
