@@ -288,6 +288,16 @@
                 </div>
               </div>
 
+              <!-- ✅ Service Price (TS_service_final_price) -->
+              <div class="col-12">
+                <label class="form-label" id="servicePriceLabel">سعر الخدمة (شامل الضريبة)</label>
+                <div id="servicePrice"
+                     class="small bg-white border rounded-3 p-3 fw-bold text-primary"
+                     style="border-radius:14px;">
+                  —
+                </div>
+              </div>
+
               <div class="col-12">
                 <label class="form-label">عدد السيارات</label>
                 <select id="serviceCount" class="form-select">
@@ -304,7 +314,6 @@
               <div id="additionalServicesWrap">
                 <div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>
               </div>
-              <!-- we keep this hidden for now; can be used later if needed -->
               <div class="field-error" id="err-additionalServices" style="display:none"></div>
             </div>
             <!-- ===================== Additional Services – UI END ======================= -->
@@ -501,14 +510,6 @@
     const RESERVE_URL_FALLBACK =`${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
 
     /* ===================== Additional Services – API CONFIG START ===================== */
-    /**
-     * GAS (or proxy) endpoint that exposes:
-     *   ?action=getAdditionalServices&appId=<APP_ID>
-     *
-     * Replace this URL with:
-     *  - Your deployed Apps Script Web App URL, or
-     *  - Your Vercel proxy URL that forwards to Apps Script.
-     */
     const ADDITIONAL_SERVICES_URL = 'https://script.google.com/macros/s/AKfycbz9GPr0Enmx02yjbOL1ihCn-_ZJi0xfJVv00dngdCeinzV-JThO5xN677mhN11MmZUn9A/exec';
     /* ===================== Additional Services – API CONFIG END ======================= */
 
@@ -580,7 +581,6 @@
     const nForm={
       date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',
       customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar',
-      /* additional services: IDs + labels (for summary / payload) */
       additionalServicesIds:[],
       additionalServicesLabels:[]
     };
@@ -589,14 +589,34 @@
     function getServiceDescription(s) {
       const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
       const isEnglish = localeRaw.startsWith('en');
-
       if (isEnglish) {
-        // prefer EN, fallback to AR
         return (s.TS_service_descriptionEN || s.TS_service_descriptionAR || '').trim();
       } else {
-        // prefer AR, fallback to EN
         return (s.TS_service_descriptionAR || s.TS_service_descriptionEN || '').trim();
       }
+    }
+
+    /* ✅ Helper: format TS_service_final_price nicely */
+    function formatServicePrice(priceRaw) {
+      if (priceRaw === null || priceRaw === undefined || priceRaw === '') return '';
+      const num = Number(priceRaw);
+      const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
+      const isEnglish = localeRaw.startsWith('en');
+
+      if (!isFinite(num)) {
+        return isEnglish
+          ? `${priceRaw} SAR (incl. VAT)`
+          : `${priceRaw} ر.س (شامل الضريبة)`;
+      }
+
+      const formatter = new Intl.NumberFormat(isEnglish ? 'en-SA' : 'ar-SA', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      const formatted = formatter.format(num);
+      return isEnglish
+        ? `${formatted} SAR (incl. VAT)`
+        : `${formatted} ر.س (شامل الضريبة)`;
     }
 
     function setPageBackground(id){ document.documentElement.style.setProperty('--page-bg', `url("${PAGE_BACKGROUNDS[id]||PAGE_BACKGROUNDS.page1}")`); }
@@ -628,7 +648,6 @@
       next.classList.toggle('hidden', onThanks);
       wait.classList.remove('show');
 
-      // Make Next act as "Skip" on welcome
       next.textContent = (i===0) ? 'تخطي العرض' : 'التالي';
     }
 
@@ -674,9 +693,7 @@
       const chips=[
         {i:'fa-location-dot',t:'المنطقة',v:areaTxt,g:1},
         {i:'fa-screwdriver-wrench',t:'الخدمة',v:srvTxt,g:1},
-        /* ================= Additional Services – summary chip ================= */
         {i:'fa-plus',t:'خدمات إضافية',v:(nForm.additionalServicesLabels||[]).join('، '),g:1},
-        /* ===================================================================== */
         {i:'fa-clock',t:'الموعد',v:(dt&&tm)?`${dt} • ${tm}`:'',g:2},
         {i:'fa-credit-card',t:'الدفع',v:(pay?pay.toUpperCase():''),g:4},
         {i:'fa-map-pin',t:'الموقع',v:(locOk?'تم التحديد':''),g:5},
@@ -686,7 +703,6 @@
       chips.filter(c=>c.v && c.g<=currGroup).forEach(c=>{
         const el=document.createElement('div');
         el.className='chip'+(c.g===currGroup?' current':'');
-
         el.innerHTML=`<i class="fa-solid ${c.i}"></i><span class="title">${c.t}:</span><span class="value">${c.v}</span>`;
         wrap.appendChild(el);
       });
@@ -797,7 +813,7 @@
 
       const viewList = dayTimes
         .filter(x=>passesFilter(x.mins))
-        .sort((a,b)=> a.mins - b.mins); /* always early → late */
+        .sort((a,b)=> a.mins - b.mins);
 
       if(!viewList.length){
         timeContainer.innerHTML=`<div style="grid-column:1/-1;justify-self:center" class="text-muted">لا توجد مواعيد ضمن الفلتر المحدد</div>`;
@@ -814,14 +830,12 @@
           nForm.date=selectedISO; nForm.time=parsed.toFormat('HH:mm');
           window.selectedTime={ui:t.label,iso:nForm.time}; selectedTime=window.selectedTime;
           renderSummary('page3'); updateNextAvailability();
-          /* NEW: auto-advance to Contact page after selecting a time */
           showPage(3);
         });
         timeContainer.appendChild(btn);
       });
     }
 
-    /* Padding sync with fixed header & footer */
     function installResizeObservers(){
       const header=document.getElementById('siteHeader');
       const footer=document.getElementById('siteFooter');
@@ -847,9 +861,7 @@
         paymentMethod:(nForm.paymentMethod||'').toLowerCase(),
         urlLocation:nForm.urlLocation, locationDescription:nForm.locationDescription||'',
         locale:'ar',
-        /* ================= Additional Services – payload field ================= */
         additionalServices:(nForm.additionalServicesIds||[]).join(',')
-        /* ===================================================================== */
       };
     }
 
@@ -891,7 +903,6 @@
 
       wrap.appendChild(container);
 
-      // Bind change handlers to capture selected additional services
       wrap.querySelectorAll('input[type="checkbox"]').forEach(chk=>{
         chk.addEventListener('change', ()=>{
           const ids=[]; const labels=[];
@@ -927,7 +938,6 @@
     }
     /* ===================== Additional Services – RENDER & LOAD END ======================= */
 
-    /* ---------- Init ---------- */
     $(function(){
       installResizeObservers();
 
@@ -984,7 +994,7 @@
         renderSummary('page2'); updateNextAvailability();
       });
 
-      /* ✅ Update service change handler to populate تفاصيل الخدمة */
+      /* ✅ Service change: تفاصيل الخدمة + السعر مع الضريبة */
       $('#service').on('change', function () {
         nForm.service = this.value || '';
 
@@ -1010,6 +1020,13 @@
           }
         }
 
+        const priceBox = document.getElementById('servicePrice');
+        if (priceBox) {
+          const priceRaw = selectedService ? selectedService.TS_service_final_price : '';
+          const priceText = formatServicePrice(priceRaw);
+          priceBox.textContent = priceText || '—';
+        }
+
         renderSummary('page2');
         updateNextAvailability();
       });
@@ -1031,14 +1048,13 @@
       $('#date').on('change', ()=>{ fetchTimesForSelectedDate(); renderSummary('page3'); });
       $('#timeFilter').on('change', function(){ currentTimeFilter=this.value; renderSelectedDateTimes(lastSelectedISO); });
 
-      /* Footer nav */
       const $prev=document.getElementById('footer-prev');
       const $next=document.getElementById('footer-next');
       const $wait=document.getElementById('footer-wait');
 
       async function gotoNext(){
         const i=getActiveIndex(); const id=orderedPages[i];
-        if(id==='page1'){ stopWelcomeDeck(); showPage(1); return; } // acts as Skip
+        if(id==='page1'){ stopWelcomeDeck(); showPage(1); return; }
 
         if(id==='page2'){
           const areaOk=!!$('#area').val(), catOk=!!$('#serviceCat').val(), svcOk=!!$('#service').val();
@@ -1106,7 +1122,6 @@
       document.getElementById('footer-next').addEventListener('click', gotoNext);
       document.getElementById('footer-prev').addEventListener('click', ()=>{ const i=getActiveIndex(); showPage(Math.max(i-1,0)); });
 
-      /* Payment cards — auto-advance to Map after choosing */
       const payCards=[...document.getElementById('payGroup').querySelectorAll('.pay-card')];
       payCards.forEach((card,idx)=>{
         const input=card.querySelector('input');
@@ -1114,7 +1129,6 @@
           payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; });
           card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; 
           nForm.paymentMethod=input.value; renderSummary('page5'); updateNextAvailability();
-          /* NEW: auto-advance to Map page after selecting payment */
           showPage(5);
         };
         card.addEventListener('click',choose);
@@ -1123,16 +1137,16 @@
 
       $('#rebook').on('click', ()=>location.href='/');
 
-      /* Load additional services (from GAS / proxy) */
       loadAdditionalServices();
 
       setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
 
-      /* Optional: if locale becomes EN in future, rename تفاصيل الخدمة label */
       const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
       if (localeRaw.startsWith('en')) {
-        const lbl = document.getElementById('serviceDetailsLabel');
-        if (lbl) lbl.textContent = 'Service details';
+        const lblDetails = document.getElementById('serviceDetailsLabel');
+        if (lblDetails) lblDetails.textContent = 'Service details';
+        const lblPrice = document.getElementById('servicePriceLabel');
+        if (lblPrice) lblPrice.textContent = 'Service price (incl. VAT)';
       }
     });
 
@@ -1147,7 +1161,6 @@
       nextBtn.disabled=!enable; nextBtn.classList.toggle('disabled',!enable);
     }
 
-    /* Google Map + Places (Saudi focus) */
     let map, marker, autocomplete;
     const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
     function initMap(){
@@ -1195,9 +1208,7 @@
     window.initMap=initMap;
   </script>
 
-  <!-- Google Maps (with Places) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async&libraries=places&language=ar&region=SA" async defer></script>
-  <!-- nahltestTracker -->
   <script
     src="https://rybbit.nahls.app/api/script.js"
     data-site-id="6371ee910e9c"
