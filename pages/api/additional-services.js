@@ -1,35 +1,28 @@
-// pages/api/additional-services.js
-export default async function handler(req, res) {
-  const { appId } = req.query;
+const ADDITIONAL_SERVICES_API_URL =
+  'https://demo.nahl.app/api/additional-services';
 
-  const ADDITIONAL_SERVICES_WEBAPP_URL =
-    'https://script.google.com/macros/s/AKfycbwXqdR054JlrYb2Q9sUoX9ofYKyhw4fV5gZW5U4TvQwuUb9iq9b4hYNFjr_U8-N4kwMfA/exec';
-
-  const url = `${ADDITIONAL_SERVICES_WEBAPP_URL}?action=getAdditionalServices` +
-    `&appId=${encodeURIComponent(appId || '')}`;
+async function loadAdditionalServices() {
+  const wrap = document.getElementById('additionalServicesWrap');
+  if (!wrap) return;
 
   try {
-    const r = await fetch(url, { method: 'GET' });
-    const text = await r.text();
+    wrap.innerHTML = '<div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>';
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      return res.status(500).json({
-        ok: false,
-        error: 'INVALID_JSON',
-        raw: text,
-      });
+    const url = `${ADDITIONAL_SERVICES_API_URL}?appId=${encodeURIComponent(APP_ID)}`;
+    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+
+    if (!res.ok) {
+      throw new Error('HTTP ' + res.status);
     }
 
-    return res.status(r.ok ? 200 : 500).json(data);
+    const data = await res.json();
+    additionalServicesList = Array.isArray(data.services) ? data.services : [];
+    renderAdditionalServicesOptions();
   } catch (err) {
-    console.error('Additional services proxy error:', err);
-    return res.status(500).json({
-      ok: false,
-      error: 'PROXY_ERROR',
-      message: 'حدث خطأ أثناء الاتصال بخدمة الخدمات الإضافية من السيرفر',
-    });
+    console.error('loadAdditionalServices error:', err);
+    if (wrap) {
+      wrap.innerHTML =
+        '<div class="text-danger small">تعذر تحميل الخدمات الإضافية الآن</div>';
+    }
   }
 }
