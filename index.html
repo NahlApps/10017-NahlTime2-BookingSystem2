@@ -277,22 +277,23 @@
                 <select id="service" style="width:100%"></select>
                 <div class="field-error" id="err-service">يرجى اختيار الخدمة</div>
               </div>
+
+              <!-- ✅ Service Details block -->
+              <div class="col-12">
+                <label class="form-label" id="serviceDetailsLabel">تفاصيل الخدمة</label>
+                <div id="serviceDetails"
+                     class="small text-muted bg-white border rounded-3 p-3"
+                     style="border-radius:14px;">
+                  سيتم عرض تفاصيل الخدمة المختارة هنا.
+                </div>
+              </div>
+
               <div class="col-12">
                 <label class="form-label">عدد السيارات</label>
                 <select id="serviceCount" class="form-select">
                   <option value="1" selected>1</option><option value="2">2</option>
                   <option value="3">3</option><option value="4">4</option><option value="5">5</option>
                 </select>
-              </div>
-            </div>
-
-            <!-- Service description box (TS_service_descriptionAR / TS_service_descriptionEN) -->
-            <div class="mt-3">
-              <label class="form-label">تفاصيل الخدمة</label>
-              <div id="serviceDescription"
-                   class="small bg-white rounded-3 border p-3"
-                   style="min-height:48px;">
-                اختر الخدمة لعرض تفاصيلها هنا
               </div>
             </div>
 
@@ -572,9 +573,6 @@
 
     let currentTimeFilter='all';
 
-    /* NEW: map of services by ID so we can show descriptions */
-    let servicesById = {};
-
     /* ===================== Additional Services – STATE START ===================== */
     let additionalServicesList = [];
     /* ===================== Additional Services – STATE END ======================= */
@@ -586,6 +584,20 @@
       additionalServicesIds:[],
       additionalServicesLabels:[]
     };
+
+    /* ✅ Helper: pick the right description (AR/EN) from service object */
+    function getServiceDescription(s) {
+      const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
+      const isEnglish = localeRaw.startsWith('en');
+
+      if (isEnglish) {
+        // prefer EN, fallback to AR
+        return (s.TS_service_descriptionEN || s.TS_service_descriptionAR || '').trim();
+      } else {
+        // prefer AR, fallback to EN
+        return (s.TS_service_descriptionAR || s.TS_service_descriptionEN || '').trim();
+      }
+    }
 
     function setPageBackground(id){ document.documentElement.style.setProperty('--page-bg', `url("${PAGE_BACKGROUNDS[id]||PAGE_BACKGROUNDS.page1}")`); }
 
@@ -675,7 +687,6 @@
         const el=document.createElement('div');
         el.className='chip'+(c.g===currGroup?' current':'');
 
-
         el.innerHTML=`<i class="fa-solid ${c.i}"></i><span class="title">${c.t}:</span><span class="value">${c.v}</span>`;
         wrap.appendChild(el);
       });
@@ -729,91 +740,6 @@
       if(currentTimeFilter==='evening')   return mins>=timeInMins(16,0) && mins<timeInMins(21,0);
       if(currentTimeFilter==='night')     return mins>=timeInMins(21,0) && mins<timeInMins(24,0);
       return true;
-    }
-
-    /* Locale + service description helpers */
-    function getUserLocale(){
-      const langAttr = (document.documentElement.getAttribute('lang') || 'ar').toLowerCase();
-      return langAttr.startsWith('ar') ? 'ar' : 'en';
-    }
-
-    function updateServiceDescription(){
-      const box = document.getElementById('serviceDescription');
-      if (!box) return;
-
-      const selectedId = $('#service').val();
-      if (!selectedId) {
-        box.innerHTML = '<span class="text-muted small">اختر الخدمة لعرض تفاصيلها هنا</span>';
-        return;
-      }
-
-      const svc = servicesById[String(selectedId)];
-      if (!svc) {
-        box.innerHTML = '';
-        return;
-      }
-
-      const locale = getUserLocale();
-
-      const descAR = svc.TS_service_descriptionAR || '';
-      const descEN = svc.TS_service_descriptionEN || '';
-      const nameAR = svc.TS_service_arabic_name   || '';
-      const nameEN = svc.TS_service_english_name  || '';
-      const price  = svc.TS_service_price ?? svc.price;
-
-      const title = locale === 'ar'
-        ? (nameAR || nameEN || '')
-        : (nameEN || nameAR || '');
-
-      const desc = locale === 'ar'
-        ? (descAR || descEN || '')
-        : (descEN || descAR || '');
-
-      box.innerHTML = '';
-
-      if (title) {
-        const titleEl = document.createElement('div');
-        titleEl.className = 'fw-bold mb-1';
-        titleEl.textContent = title;
-        box.appendChild(titleEl);
-      }
-
-      if (desc) {
-        const descEl = document.createElement('div');
-        descEl.className = 'small mb-1';
-        descEl.textContent = desc;
-        box.appendChild(descEl);
-      }
-
-      if (price !== undefined && price !== null && price !== '') {
-        const priceEl = document.createElement('div');
-        priceEl.className = 'small text-primary';
-        priceEl.textContent = `السعر: ${price} ر.س`;
-        box.appendChild(priceEl);
-      }
-    }
-
-    function formatServiceOption(state){
-      if (!state.id) return state.text;
-
-      const svc = servicesById[String(state.id)] || {};
-      const locale = getUserLocale();
-      const descAR = svc.TS_service_descriptionAR || '';
-      const descEN = svc.TS_service_descriptionEN || '';
-      const desc = locale === 'ar'
-        ? (descAR || descEN || '')
-        : (descEN || descAR || '');
-
-      const $container = $('<div class="d-flex flex-column">');
-      $container.append($('<span class="fw-bold">').text(state.text));
-      if (desc) {
-        $container.append($('<small class="text-muted">').text(desc));
-      }
-      return $container;
-    }
-
-    function formatServiceSelection(state){
-      return state.text;
     }
 
     function fetchTimesForSelectedDate(){
@@ -1042,64 +968,50 @@
       $('#area').on('change', function(){
         nForm.location=this.value; setLoadingServices(true);
         callContent2(`/services?location=${encodeURIComponent(this.value)}`, res=>{
-          servicesCache = res?.data?.services || [];
-          categoriesCache = res?.data?.servicesCat || [];
-
-          // build map of services by ID
-          servicesById = {};
-          (servicesCache || []).forEach(s => {
-            if (s && s.TS_service_id != null) {
-              servicesById[String(s.TS_service_id)] = s;
-            }
-          });
-
+          servicesCache=res?.data?.services||[]; categoriesCache=res?.data?.servicesCat||[];
           const cats=categoriesCache.map(c=>({id:c.TS_category_id,text:c.TS_category_arabic_name}));
-          $('#serviceCat').empty().select2({
-            data:cats,
-            width:'100%',
-            placeholder:'فئة الخدمة',
-            dir:'rtl'
-          });
+          $('#serviceCat').empty().select2({data:cats,width:'100%',placeholder:'فئة الخدمة', dir:'rtl'});
           if(cats.length) $('#serviceCat').val(cats[0].id).trigger('change');
           setLoadingServices(false); renderSummary('page2'); updateNextAvailability();
         }, true);
       });
 
       $('#serviceCat').on('change', function(){
-        nForm.serviceCat = this.value;
-        const cid = Number(this.value);
+        nForm.serviceCat=this.value; const cid=Number(this.value);
+        const items=servicesCache?.filter(s=>Number(s.TS_category_id)===cid)?.sort((a,b)=>a.TS_service_id-b.TS_service_id)?.map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}))||[];
+        $('#service').empty().select2({data:items,width:'100%',placeholder:'باقتك المختارة', dir:'rtl'});
+        if(items.length) $('#service').val(items[0].id).trigger('change');
+        renderSummary('page2'); updateNextAvailability();
+      });
 
-        const items = servicesCache
-          ?.filter(s => Number(s.TS_category_id) === cid)
-          ?.sort((a,b) => a.TS_service_id - b.TS_service_id)
-          ?.map(s => ({
-            id: s.TS_service_id,
-            text: s.TS_service_arabic_name
-          })) || [];
+      /* ✅ Update service change handler to populate تفاصيل الخدمة */
+      $('#service').on('change', function () {
+        nForm.service = this.value || '';
 
-        $('#service').empty().select2({
-          data: items,
-          width:'100%',
-          placeholder:'باقتك المختارة',
-          dir:'rtl',
-          templateResult: formatServiceOption,
-          templateSelection: formatServiceSelection
-        });
+        const selectedId = this.value ? String(this.value) : '';
+        let selectedService = null;
+        if (servicesCache && Array.isArray(servicesCache)) {
+          selectedService = servicesCache.find(
+            s => String(s.TS_service_id) === selectedId
+          );
+        }
 
-        if (items.length) {
-          $('#service').val(items[0].id).trigger('change');
-        } else {
-          updateServiceDescription();
+        const descBox = document.getElementById('serviceDetails');
+        if (descBox) {
+          const desc = selectedService ? getServiceDescription(selectedService) : '';
+          if (desc) {
+            descBox.textContent = desc;
+          } else {
+            const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
+            const isEnglish = localeRaw.startsWith('en');
+            descBox.textContent = isEnglish
+              ? 'No details are available for this service yet.'
+              : 'لا توجد تفاصيل متاحة لهذه الخدمة حاليًا.';
+          }
         }
 
         renderSummary('page2');
         updateNextAvailability();
-      });
-
-      $('#service').on('change', function(){
-        nForm.service=this.value||'';
-        updateServiceDescription();
-        renderSummary('page2'); updateNextAvailability();
       });
 
       const luxuryFirstBrands = [
@@ -1146,8 +1058,7 @@
           if(!nameOk||!phoneOk){ showToast('error','يرجى التحقق من الاسم ورقم الجوال'); return; }
           nForm.customerN=$('#name').val().trim(); nForm.customerM=itiPhone.getNumber().replace(/^\+/,'');
 
-          nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||'']
-            .filter(Boolean).join(', ');
+          nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
 
           showPage(4); return;
         }
@@ -1216,6 +1127,13 @@
       loadAdditionalServices();
 
       setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
+
+      /* Optional: if locale becomes EN in future, rename تفاصيل الخدمة label */
+      const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
+      if (localeRaw.startsWith('en')) {
+        const lbl = document.getElementById('serviceDetailsLabel');
+        if (lbl) lbl.textContent = 'Service details';
+      }
     });
 
     function updateNextAvailability(){
