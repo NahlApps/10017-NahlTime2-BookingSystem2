@@ -4,7 +4,7 @@ export default async function handler(req, res) {
 
   // هنا رابط Web App للكوبونات في Apps Script
   const COUPONS_WEBAPP_URL =
-    'https://script.google.com/macros/s/AKfycbyP9aBrv__R__qdiFMH3YDydhJiVVEbqkyLwhNGJ3fprfG3DOWgZM1hj0em22DRQFJj0g/exec';
+    'https://script.google.com/macros/s/AKfycbwLBJriJ05mGHsO-kRzG77ChR2IvyAO3jNY8fqWmvrFVA_UI4RRBnw8caqDRTa7-RE70g/exec';
 
   const url = `${COUPONS_WEBAPP_URL}?action=validateCoupon` +
     `&appId=${encodeURIComponent(appId || '')}` +
