@@ -229,12 +229,6 @@
       padding-right: 12px;
       text-align: left; direction: ltr;
     }
-
-    /* ✅ Coupon pills style */
-    #couponCard .badge {
-      border-radius: 999px;
-      padding-inline: 10px;
-    }
   </style>
 </head>
 <body>
@@ -439,7 +433,6 @@
         <!-- 5) Payment + Coupon -->
         <section id="page5" class="page" aria-label="طريقة الدفع">
           <h1>طريقة الدفع</h1>
-
           <div class="pay-grid" role="radiogroup" aria-label="طريقة الدفع" id="payGroup">
             <label class="pay-card" tabindex="0" role="radio" aria-checked="false">
               <input type="radio" name="payingMethod" value="stc pay" class="visually-hidden"/>
@@ -456,32 +449,17 @@
           </div>
           <div class="field-error" id="err-pay" style="text-align:center">يرجى اختيار طريقة الدفع</div>
 
-          <!-- =================== ✅ Coupon Block START =================== -->
+          <!-- ✅ Coupon block -->
           <div class="card mt-4" id="couponCard">
-            <div class="row g-3 align-items-end">
-              <div class="col-12 col-md-5">
-                <label class="form-label" for="couponCode">كوبون الخصم (اختياري)</label>
-                <input id="couponCode" type="text" class="form-control" placeholder="مثال: WELCOME10" autocomplete="off"/>
-              </div>
-              <div class="col-12 col-md-4 d-flex gap-2">
-                <button id="btn-apply-coupon" type="button" class="btn btn-primary w-100" style="border-radius:14px;min-height:48px;font-weight:800">
-                  تطبيق الكوبون
-                </button>
-                <button id="btn-reset-coupon" type="button" class="btn btn-outline-secondary w-100" style="border-radius:14px;min-height:48px;font-weight:700">
-                  إزالة الكوبون
-                </button>
-              </div>
-              <div class="col-12">
-                <div class="d-flex flex-wrap gap-3 small mb-1">
-                  <span>الإجمالي قبل الخصم: <strong id="couponSubtotal">—</strong></span>
-                  <span>قيمة الخصم: <strong id="couponDiscountValue">—</strong></span>
-                  <span>الإجمالي بعد الخصم: <strong id="couponTotalAfter">—</strong></span>
-                </div>
-                <div id="couponMessage" class="small text-muted">يمكنك إدخال كوبون خصم إن وُجد.</div>
-              </div>
+            <label for="couponCode" class="form-label">كود الخصم (اختياري)</label>
+            <div class="input-group">
+              <input id="couponCode" type="text" class="form-control" placeholder="مثال: WELCOME10" autocomplete="off"/>
+              <button id="applyCouponBtn" type="button" class="btn btn-outline-primary" style="min-width:120px">تطبيق الكوبون</button>
+            </div>
+            <div id="couponMessage" class="small mt-2 text-muted">
+              يمكنك إدخال كوبون خصم إن وجد، وسيتم تطبيقه على إجمالي الطلب.
             </div>
           </div>
-          <!-- =================== ✅ Coupon Block END ===================== -->
         </section>
 
         <!-- 6) Map -->
@@ -574,22 +552,19 @@
       else { img.style.display = 'none'; }
     }
 
-    /* ---------- API ---------- */
-    const APP_ID='21eddbf5-efe5-4a5d-9134-b581717b17ff';
-    const defaultLink2=`https://b0sk44sswgc4kcswoo8sk0og.nahls.app/api/app/AM/general/${APP_ID}/form`;
-    const RESERVE_URL_PRIMARY  =`${defaultLink2}/reserveAppointment`;
-    const RESERVE_URL_FALLBACK =`${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
+    /* ---------- API BASE & CONSTANTS ---------- */
+    const APP_ID = '21eddbf5-efe5-4a5d-9134-b581717b17ff';
 
-    /* ===================== Additional Services – API CONFIG START ===================== */
-    const ADDITIONAL_SERVICES_URL = 'https://script.google.com/macros/s/AKfycb9GPr0Enmx02yjbOL1ihCn-_ZJi0xfJVv00dngdCeinzV-JThO5xN677mhN11MmZUn9A/exec';
-    /* ===================== Additional Services – API CONFIG END ======================= */
+    const defaultLink2 = `https://b0sk44sswgc4kcswoo8sk0og.nahls.app/api/app/AM/general/${APP_ID}/form`;
+    const RESERVE_URL_PRIMARY  = `${defaultLink2}/reserveAppointment`;
+    const RESERVE_URL_FALLBACK = `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
 
-    /* ===================== ✅ Coupons API CONFIG START ===================== */
-    // 👇 غيّر هذا إلى Web App URL لمشروع الكوبونات
-    const COUPONS_API_URL = 'https://script.google.com/macros/s/AKfycbyP9aBrv__R__qdiFMH3YDydhJiVVEbqkyLwhNGJ3fprfG3DOWgZM1hj0em22DRQFJj0g/exec';
-    /* ===================== ✅ Coupons API CONFIG END ======================= */
+    // ✅ كل استدعاءات الخدمات الإضافية والكوبونات تمر عبر نفس الدومين (Proxy في الـ backend)
+    const API_BASE = window.location.origin.replace(/\/$/, '');
+    const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
+    const COUPONS_API_URL         = `${API_BASE}/api/coupons/validate`;
 
-    let controllers=[];
+    let controllers = [];
     async function callContent2(path, cb, abortable=false, retries=3){
       let signal='';
       if(abortable){
@@ -658,15 +633,16 @@
     let baseServicePrice = 0;          // numeric TS_service_final_price
     let additionalServicesTotal = 0;   // sum of selected extra services
 
-    /* ✅ Coupons state */
-    let couponDiscountAmount = 0;
-    let couponAppliedCode = '';
-    let couponAppliedMessage = '';
+    /* ✅ Coupon state */
+    let couponCodeApplied = '';
+    let couponDiscountAmount = 0;      // ما يتم خصمه من الإجمالي
+    let couponMeta = null;
 
     const nForm={
       date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',
       customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar',
-      additionalServicesIds:[], additionalServicesLabels:[],
+      additionalServicesIds:[],
+      additionalServicesLabels:[],
       couponCode:''
     };
 
@@ -727,72 +703,24 @@
       return (!isNaN(n) && n > 0) ? n : 1;
     }
 
-    /* ✅ Subtotal before coupon */
-    function getSubtotalBeforeCoupon(){
+    /* ✅ Helper: get subtotal قبل الخصم */
+    function getOrderSubtotal(){
       const carCount = getCarCount();
       const perCar = (Number(baseServicePrice) || 0) + (Number(additionalServicesTotal) || 0);
       return perCar * carCount;
     }
 
     /* ✅ Recalculate footer total:
-       Total Before = (baseServicePrice + additionalServicesTotal) × carCount
-       Total After  = Total Before − couponDiscountAmount
+       Total = subtotal – couponDiscountAmount (بدون أن ينزل عن 0)
     */
     function updateFooterTotal(){
-      const subtotal = getSubtotalBeforeCoupon();
-      const discount = Number(couponDiscountAmount) || 0;
-      const totalAfter = Math.max(0, subtotal - discount);
-
-      const footerEl = document.getElementById('footer-total-value');
-      if (footerEl){
-        footerEl.textContent = formatTotalAmount(totalAfter);
+      const subtotal = getOrderSubtotal();
+      const discount = Math.min(subtotal, Number(couponDiscountAmount) || 0);
+      const finalTotal = Math.max(0, subtotal - discount);
+      const el = document.getElementById('footer-total-value');
+      if (el){
+        el.textContent = formatTotalAmount(finalTotal);
       }
-
-      const elSubtotal = document.getElementById('couponSubtotal');
-      const elDiscount = document.getElementById('couponDiscountValue');
-      const elTotalAfter = document.getElementById('couponTotalAfter');
-
-      if(elSubtotal)   elSubtotal.textContent   = formatTotalAmount(subtotal);
-      if(elDiscount)   elDiscount.textContent   = formatTotalAmount(discount);
-      if(elTotalAfter) elTotalAfter.textContent = formatTotalAmount(totalAfter);
-    }
-
-    /* ✅ Reset coupon state when البيانات الأساسية تتغير */
-    function resetCouponState(updateUI){
-      couponDiscountAmount = 0;
-      couponAppliedCode = '';
-      couponAppliedMessage = '';
-      nForm.couponCode = '';
-
-      const input = document.getElementById('couponCode');
-      const msg   = document.getElementById('couponMessage');
-
-      if (input) input.value = '';
-
-      if (updateUI !== false && msg){
-        msg.textContent = 'يمكنك إدخال كوبون خصم إن وُجد.';
-        msg.className = 'small text-muted';
-      }
-      updateFooterTotal();
-    }
-
-    /* ✅ استدعاء Coupons API من الفرونت مباشرة */
-    async function validateCouponOnServer(code, subtotal, customerPhone){
-      if (!COUPONS_API_URL || COUPONS_API_URL.indexOf('PUT_YOUR_COUPONS_WEB_APP_URL_HERE') !== -1){
-        throw new Error('COUPONS_API_URL_NOT_CONFIGURED');
-      }
-      const url = COUPONS_API_URL
-        + '?action=validateCoupon'
-        + '&appId='    + encodeURIComponent(APP_ID)
-        + '&code='     + encodeURIComponent(code)
-        + '&subtotal=' + encodeURIComponent(subtotal)
-        + '&customer=' + encodeURIComponent(customerPhone || '');
-
-      const res = await fetch(url, { method:'GET', cache:'no-store' });
-      if (!res.ok){
-        throw new Error('HTTP_' + res.status);
-      }
-      return res.json();
     }
 
     function setPageBackground(id){ document.documentElement.style.setProperty('--page-bg', `url("${PAGE_BACKGROUNDS[id]||PAGE_BACKGROUNDS.page1}")`); }
@@ -865,12 +793,14 @@
       const tm=nForm.time||'';
       const pay=(nForm.paymentMethod||'');
       const locOk=!!positionUrl;
+      const extras=(nForm.additionalServicesLabels||[]).join('، ');
+      const couponTxt = couponCodeApplied ? couponCodeApplied : '';
 
       const chips=[
         {i:'fa-location-dot',t:'المنطقة',v:areaTxt,g:1},
         {i:'fa-screwdriver-wrench',t:'الخدمة',v:srvTxt,g:1},
-        {i:'fa-plus',t:'خدمات إضافية',v:(nForm.additionalServicesLabels||[]).join('، '),g:1},
-        {i:'fa-ticket',t:'الكوبون',v:(couponAppliedCode ? couponAppliedCode : ''),g:4},
+        {i:'fa-plus',t:'خدمات إضافية',v:extras,g:1},
+        {i:'fa-ticket',t:'الكوبون',v:couponTxt,g:4},
         {i:'fa-clock',t:'الموعد',v:(dt&&tm)?`${dt} • ${tm}`:'',g:2},
         {i:'fa-credit-card',t:'الدفع',v:(pay?pay.toUpperCase():''),g:4},
         {i:'fa-map-pin',t:'الموقع',v:(locOk?'تم التحديد':''),g:5},
@@ -1040,8 +970,8 @@
         urlLocation:nForm.urlLocation, locationDescription:nForm.locationDescription||'',
         locale:'ar',
         additionalServices:(nForm.additionalServicesIds||[]).join(','),
-        couponCode: nForm.couponCode || '',
-        couponDiscount: couponDiscountAmount || 0
+        couponCode: couponCodeApplied || '',
+        couponDiscountAmount: couponDiscountAmount || 0
       };
     }
 
@@ -1083,7 +1013,7 @@
 
       wrap.appendChild(container);
 
-      /* ✅ When additional services changed → recalc total extra price + summary + reset coupon */
+      /* ✅ When additional services changed → recalc total extra price + summary */
       wrap.querySelectorAll('input[type="checkbox"]').forEach(chk=>{
         chk.addEventListener('change', ()=>{
           const ids=[]; const labels=[];
@@ -1105,7 +1035,6 @@
           nForm.additionalServicesIds = ids;
           nForm.additionalServicesLabels = labels;
           renderSummary('page2');
-          resetCouponState(false); // حتى لا يبقى الخصم على إجمالي قديم
           updateFooterTotal();
         });
       });
@@ -1116,7 +1045,7 @@
       if(!wrap) return;
       try{
         wrap.innerHTML='<div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>';
-        const url = `${ADDITIONAL_SERVICES_URL}?action=getAdditionalServices&appId=${encodeURIComponent(APP_ID)}`;
+        const url = `${ADDITIONAL_SERVICES_URL}?appId=${encodeURIComponent(APP_ID)}`;
         const res = await fetch(url, { method:'GET', cache:'no-store' });
         if(!res.ok) throw new Error('HTTP '+res.status);
         const data = await res.json();
@@ -1130,6 +1059,100 @@
       }
     }
     /* ===================== Additional Services – RENDER & LOAD END ======================= */
+
+    /* ===================== Coupons – SERVER CALL ===================== */
+    async function validateCouponOnServer(code, subtotal, customer){
+      const params = new URLSearchParams({
+        appId: APP_ID,
+        code: code || '',
+        subtotal: String(subtotal || 0),
+        customer: customer || ''
+      });
+      const url = `${COUPONS_API_URL}?${params.toString()}`;
+      const res = await fetch(url, { method:'GET', cache:'no-store' });
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status);
+      }
+      return res.json();
+    }
+
+    async function validateCouponAndApply(){
+      const input = document.getElementById('couponCode');
+      const msgEl = document.getElementById('couponMessage');
+      const btn = document.getElementById('applyCouponBtn');
+
+      if (!input || !msgEl || !btn) return;
+
+      const code = (input.value || '').trim();
+      if (!code){
+        showToast('error','رجاءً أدخل كود الكوبون أولاً');
+        msgEl.textContent = 'من فضلك أدخل كود خصم ثم اضغط "تطبيق الكوبون".';
+        msgEl.className = 'small mt-2 text-danger';
+        return;
+      }
+
+      const subtotal = getOrderSubtotal();
+      if (subtotal <= 0){
+        showToast('error','من فضلك اختر الخدمة قبل تطبيق الكوبون');
+        msgEl.textContent = 'يجب اختيار الخدمة (والخدمات الإضافية إن وجدت) قبل تطبيق الكوبون.';
+        msgEl.className = 'small mt-2 text-danger';
+        return;
+      }
+
+      const customer = itiPhone && itiPhone.getNumber ? itiPhone.getNumber().replace(/^\+/, '') : '';
+
+      msgEl.textContent = 'جاري التحقق من الكوبون…';
+      msgEl.className = 'small mt-2 text-muted';
+
+      btn.disabled = true;
+      const originalText = btn.dataset.originalText || btn.textContent;
+      btn.dataset.originalText = originalText;
+      btn.textContent = 'جاري التحقق…';
+
+      try {
+        const result = await validateCouponOnServer(code, subtotal, customer);
+
+        if (!result || result.ok === false){
+          couponCodeApplied = '';
+          couponDiscountAmount = 0;
+          couponMeta = null;
+          nForm.couponCode = '';
+
+          updateFooterTotal();
+
+          const msg = result && result.message
+            ? result.message
+            : 'الكوبون غير صالح أو منتهي الصلاحية.';
+          msgEl.textContent = msg;
+          msgEl.className = 'small mt-2 text-danger';
+          showToast('error', msg);
+          return;
+        }
+
+        couponCodeApplied = code;
+        couponDiscountAmount = Number(result.discountAmount || 0);
+        couponMeta = result;
+        nForm.couponCode = code;
+
+        updateFooterTotal();
+        renderSummary('page5');
+
+        const successMsg = result.message || 'تم تطبيق الكوبون بنجاح على إجمالي الطلب.';
+        msgEl.textContent = successMsg;
+        msgEl.className = 'small mt-2 text-success';
+        showToast('success', successMsg);
+
+      } catch (err){
+        console.error('validateCouponAndApply error:', err);
+        msgEl.textContent = 'تعذر التحقق من الكوبون الآن. حاول مرة أخرى لاحقًا.';
+        msgEl.className = 'small mt-2 text-danger';
+        showToast('error','تعذر التحقق من الكوبون الآن.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = btn.dataset.originalText || 'تطبيق الكوبون';
+      }
+    }
+    /* ===================== Coupons – END ============================= */
 
     $(function(){
       installResizeObservers();
@@ -1187,7 +1210,7 @@
         renderSummary('page2'); updateNextAvailability();
       });
 
-      /* ✅ Service change: تفاصيل الخدمة + السعر مع الضريبة + تحديث إجمالي الطلب + إعادة الكوبون */
+      /* ✅ Service change: تفاصيل الخدمة + السعر مع الضريبة + تحديث إجمالي الطلب */
       $('#service').on('change', function () {
         nForm.service = this.value || '';
 
@@ -1223,7 +1246,6 @@
         }
 
         renderSummary('page2');
-        resetCouponState(false);
         updateNextAvailability();
         updateFooterTotal();
       });
@@ -1239,11 +1261,10 @@
       $('#mobile').on('input', function(){ renderSummary('page4'); updateNextAvailability(); });
       $('#carName').on('input', function(){ updateNextAvailability(); });
 
-      /* ✅ Car count change affects total + resets coupon */
+      /* ✅ Car count change affects total */
       $('#serviceCount').on('change', function(){
         nForm.serviceCount=this.value||'1';
         renderSummary('page2');
-        resetCouponState(false);
         updateNextAvailability();
         updateFooterTotal();
       });
@@ -1334,7 +1355,7 @@
           payCards.forEach(c=>{ c.setAttribute('aria-checked','false'); c.setAttribute('tabindex','-1'); c.querySelector('input').checked=false; });
           card.setAttribute('aria-checked','true'); card.setAttribute('tabindex','0'); input.checked=true; 
           nForm.paymentMethod=input.value; renderSummary('page5'); updateNextAvailability();
-          showPage(4); // الانتقال للخطوة التالية (الموقع) بعد اختيار الدفع
+          showPage(5);
         };
         card.addEventListener('click',choose);
         card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();} });
@@ -1342,6 +1363,13 @@
 
       $('#rebook').on('click', ()=>location.href='/');
 
+      // ✅ زر تطبيق الكوبون
+      const applyBtn = document.getElementById('applyCouponBtn');
+      if (applyBtn){
+        applyBtn.addEventListener('click', validateCouponAndApply);
+      }
+
+      // ✅ تحميل الخدمات الإضافية
       loadAdditionalServices();
 
       setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
@@ -1358,93 +1386,6 @@
 
       /* init footer total as "—" */
       updateFooterTotal();
-
-      /* ✅ Coupon buttons logic */
-      const btnApply = document.getElementById('btn-apply-coupon');
-      const btnReset = document.getElementById('btn-reset-coupon');
-      const inputCoupon = document.getElementById('couponCode');
-      const msgCoupon   = document.getElementById('couponMessage');
-
-      async function validateCouponAndApply(){
-        if (!inputCoupon || !btnApply || !msgCoupon) return;
-
-        const rawCode = (inputCoupon.value || '').trim();
-        if (!rawCode){
-          msgCoupon.textContent = 'يرجى إدخال رمز الكوبون أولاً.';
-          msgCoupon.className = 'small text-danger';
-          return;
-        }
-
-        const subtotal = getSubtotalBeforeCoupon();
-        if (!subtotal || subtotal <= 0){
-          msgCoupon.textContent = 'اختر الخدمة وعدد السيارات قبل استخدام الكوبون.';
-          msgCoupon.className = 'small text-danger';
-          return;
-        }
-
-        let customerPhone = '';
-        try{
-          if (itiPhone && itiPhone.getNumber){
-            customerPhone = itiPhone.getNumber().replace(/^\+/,'');
-          }
-        }catch(e){}
-
-        btnApply.disabled = true;
-        msgCoupon.textContent = 'جاري التحقق من الكوبون...';
-        msgCoupon.className = 'small text-muted';
-
-        try{
-          const res = await validateCouponOnServer(rawCode, subtotal, customerPhone);
-          console.log('Coupons API response:', res);
-
-          if (!res || res.ok === false){
-            const msg = (res && res.message) ? res.message : 'تعذر التحقق من الكوبون.';
-            msgCoupon.textContent = msg;
-            msgCoupon.className = 'small text-danger';
-            resetCouponState(false);
-            return;
-          }
-
-          if (!res.valid){
-            const msg = res.message || 'الكوبون غير صالح أو لا ينطبق على هذه الفاتورة.';
-            msgCoupon.textContent = msg;
-            msgCoupon.className = 'small text-danger';
-            resetCouponState(false);
-            return;
-          }
-
-          couponDiscountAmount = Number(res.discountAmount) || 0;
-          couponAppliedCode = res.code || rawCode.toUpperCase();
-          couponAppliedMessage = res.message || 'تم تطبيق الكوبون بنجاح.';
-          nForm.couponCode = couponAppliedCode;
-
-          inputCoupon.value = couponAppliedCode;
-
-          msgCoupon.textContent = couponAppliedMessage;
-          msgCoupon.className = 'small text-success';
-
-          renderSummary('page5');
-          updateFooterTotal();
-          showToast('success','تم تطبيق الكوبون بنجاح ✅');
-        }catch(err){
-          console.error('validateCouponAndApply error:', err);
-          msgCoupon.textContent = 'حدث خطأ أثناء الاتصال بخدمة الكوبونات';
-          msgCoupon.className = 'small text-danger';
-          resetCouponState(false);
-        }finally{
-          btnApply.disabled = false;
-        }
-      }
-
-      if (btnApply){
-        btnApply.addEventListener('click', validateCouponAndApply);
-      }
-      if (btnReset){
-        btnReset.addEventListener('click', ()=>{
-          resetCouponState(true);
-          showToast('info','تم إزالة الكوبون.');
-        });
-      }
     });
 
     function updateNextAvailability(){
