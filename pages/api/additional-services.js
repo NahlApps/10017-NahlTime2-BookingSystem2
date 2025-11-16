@@ -1,28 +1,61 @@
-const ADDITIONAL_SERVICES_API_URL =
-  'https://demo.nahl.app/api/additional-services';
+// pages/api/additional-services.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-async function loadAdditionalServices() {
-  const wrap = document.getElementById('additionalServicesWrap');
-  if (!wrap) return;
+const GAS_BASE_URL =
+  process.env.ADDITIONAL_SERVICES_GAS_URL ||
+  'https://script.google.com/macros/s/AKfycbwXqdR054JlrYb2Q9sUoX9ofYKyhw4fV5gZW5U4TvQwuUb9iq9b4hYNFjr_U8-N4kwMfA/exec';
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    return res.status(405).json({
+      success: false,
+      error: 'METHOD_NOT_ALLOWED',
+    });
+  }
 
   try {
-    wrap.innerHTML = '<div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>';
+    // appId من الكويري نفس ما يرسله الفرونت
+    const appIdParam = req.query.appId;
+    const appId = Array.isArray(appIdParam)
+      ? appIdParam[0]
+      : appIdParam || '';
 
-    const url = `${ADDITIONAL_SERVICES_API_URL}?appId=${encodeURIComponent(APP_ID)}`;
-    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+    const url = `${GAS_BASE_URL}?action=getAdditionalServices&appId=${encodeURIComponent(
+      appId
+    )}`;
 
-    if (!res.ok) {
-      throw new Error('HTTP ' + res.status);
+    const upstream = await fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+    });
+
+    const text = await upstream.text();
+    let data: any;
+
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      // لو Google Apps Script رجع نص غير JSON
+      data = {
+        success: false,
+        error: 'INVALID_JSON_FROM_GAS',
+        raw: text,
+      };
     }
 
-    const data = await res.json();
-    additionalServicesList = Array.isArray(data.services) ? data.services : [];
-    renderAdditionalServicesOptions();
-  } catch (err) {
-    console.error('loadAdditionalServices error:', err);
-    if (wrap) {
-      wrap.innerHTML =
-        '<div class="text-danger small">تعذر تحميل الخدمات الإضافية الآن</div>';
-    }
+    // خليه يرجع 200 لو success، وإلا 500
+    const status = upstream.ok && data?.success ? 200 : 500;
+    return res.status(status).json(data);
+  } catch (err: any) {
+    console.error('API /additional-services proxy error:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'PROXY_ERROR',
+      message: String(err),
+    });
   }
 }
