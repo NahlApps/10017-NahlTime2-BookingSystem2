@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>حجوزات المواعيد</title>
 
-<!-- 🔹 Favicon -->
+  <!-- 🔹 Favicon -->
   <link rel="icon" type="image/png" sizes="32x32"
         href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/ChatGPT%20Image%20Sep%2013,%202025,%2001_21_33%20PM.png" />
   <link rel="shortcut icon"
@@ -564,6 +564,7 @@
     const API_BASE = window.location.origin.replace(/\/$/, '');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
     const COUPONS_API_URL         = `${API_BASE}/api/coupons/validate`;
+    const LOCATIONS_API_URL       = `${API_BASE}/api/locations`;  // 🔹 Proxy إلى Apps Script Boundaries API
 
     let controllers = [];
     async function callContent2(path, cb, abortable=false, retries=3){
@@ -631,6 +632,12 @@
     let couponCodeApplied = '';
     let couponDiscountAmount = 0;
     let couponMeta = null;
+
+    // 🔹 Boundaries data (من API)
+    const defaultMapCenter = { lat: 24.7136, lng: 46.6753 };
+    let locationBoundsById = {};   // { locationId: { center:{lat,lng} | null, polygon:[{lat,lng},...] } }
+    let servicePolygon = null;
+    let serviceBounds = null;
 
     const nForm={
       date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',
@@ -793,6 +800,7 @@
       chips.filter(c=>c.v && c.g<=currGroup).forEach(c=>{
         const el=document.createElement('div');
         el.className='chip'+(c.g===currGroup?' current':'');
+
         el.innerHTML=`<i class="fa-solid ${c.i}"></i><span class="title">${c.t}:</span><span class="value">${c.v}</span>`;
         wrap.appendChild(el);
       });
@@ -1130,6 +1138,165 @@
       }
     }
 
+    // 🔹 تحميل المناطق + حدود الخدمة من /api/locations
+    async function loadLocations(){
+      setLoadingServices(true);
+      try{
+        const url = new URL(LOCATIONS_API_URL, window.location.origin);
+        url.searchParams.set('appId', APP_ID);
+
+        const res = await fetch(url.toString(), { method:'GET', cache:'no-store' });
+        if (!res.ok) throw new Error('HTTP '+res.status);
+
+        const data = await res.json();
+        const list = Array.isArray(data.data) ? data.data : [];
+
+        locationBoundsById = {};
+        const ds = list.map(l => {
+          const id   = String(l.id);
+          const name = l.TS_location_arabic_name || l.TS_location_english_name || '';
+
+          const centerLat = parseFloat(l.TS_center_lat);
+          const centerLng = parseFloat(l.TS_center_lng);
+
+          let polygon = [];
+          try {
+            if (l.TS_polygon_json) {
+              const raw = JSON.parse(l.TS_polygon_json);
+              if (Array.isArray(raw)) {
+                polygon = raw
+                  .filter(p => Array.isArray(p) && p.length === 2)
+                  .map(p => ({ lat: Number(p[0]), lng: Number(p[1]) }))
+                  .filter(p => isFinite(p.lat) && isFinite(p.lng));
+              }
+            }
+          } catch (e) {
+            console.warn('Invalid polygon JSON for location', id, e);
+          }
+
+          locationBoundsById[id] = {
+            center: (isFinite(centerLat) && isFinite(centerLng))
+              ? { lat: centerLat, lng: centerLng }
+              : null,
+            polygon
+          };
+
+          return { id, text: name };
+        });
+
+        $('#area').empty().select2({
+          data: ds,
+          width:'100%',
+          placeholder:'اختر المنطقة لخدمة العناية الفاخرة',
+          dir:'rtl'
+        });
+
+        if (ds.length) {
+          $('#area').val(ds[0].id).trigger('change');
+        } else {
+          showToast('error','لا توجد مناطق متاحة حالياً');
+        }
+
+        renderSummary('page2');
+      } catch (err){
+        console.error('loadLocations error:', err);
+        showToast('error','تعذر تحميل المناطق حالياً');
+      } finally {
+        setLoadingServices(false);
+      }
+    }
+
+    // 🔹 التحقق إن النقطة داخل حدود الخدمة
+    function insideService(latLng){
+      if (!servicePolygon || !google.maps.geometry || !google.maps.geometry.poly) {
+        // لو مافي حدود، نسمح بالموقع (سلوك مرن)
+        return true;
+      }
+      const pt = (latLng instanceof google.maps.LatLng)
+        ? latLng
+        : new google.maps.LatLng(latLng.lat, latLng.lng);
+
+      return google.maps.geometry.poly.containsLocation(pt, servicePolygon);
+    }
+
+    // 🔹 إعداد المضلع/الحدود حسب المنطقة المختارة
+    function setBoundariesForCurrentArea(){
+      if (!map) return;
+
+      const locId = $('#area').val();
+      if (!locId) {
+        if (servicePolygon) {
+          servicePolygon.setMap(null);
+          servicePolygon = null;
+        }
+        serviceBounds = null;
+        map.setCenter(defaultMapCenter);
+        map.setZoom(12);
+        return;
+      }
+
+      const conf = locationBoundsById[String(locId)];
+      if (!conf) {
+        if (servicePolygon) {
+          servicePolygon.setMap(null);
+          servicePolygon = null;
+        }
+        serviceBounds = null;
+        map.setCenter(defaultMapCenter);
+        map.setZoom(12);
+        return;
+      }
+
+      const coords = conf.polygon || [];
+      const center = conf.center || defaultMapCenter;
+
+      if (!coords.length) {
+        if (servicePolygon) {
+          servicePolygon.setMap(null);
+          servicePolygon = null;
+        }
+        serviceBounds = null;
+        map.setCenter(center);
+        map.setZoom(13);
+        return;
+      }
+
+      const path = coords.map(c => new google.maps.LatLng(c.lat, c.lng));
+      if (coords.length &&
+          (coords[0].lat !== coords[coords.length-1].lat ||
+           coords[0].lng !== coords[coords.length-1].lng)) {
+        path.push(new google.maps.LatLng(coords[0].lat, coords[0].lng));
+      }
+
+      if (servicePolygon) {
+        servicePolygon.setMap(null);
+      }
+
+      servicePolygon = new google.maps.Polygon({
+        paths: path,
+        strokeColor: "#ff6b6b",
+        strokeOpacity: 0.5,
+        strokeWeight: 2,
+        fillColor: "#06b9d2",
+        fillOpacity: 0.12,
+        clickable: false
+      });
+      servicePolygon.setMap(map);
+
+      const b = new google.maps.LatLngBounds();
+      path.forEach(p => b.extend(p));
+      serviceBounds = b;
+      map.fitBounds(b);
+
+      if (marker) {
+        marker.setMap(null);
+        marker = null;
+      }
+      positionUrl = "";
+      renderSummary('page6');
+      updateNextAvailability();
+    }
+
     $(function(){
       installResizeObservers();
 
@@ -1159,13 +1326,8 @@
       const today=DateTime.now().toFormat('yyyy-LL-dd');
       $('#date').val(today).attr('min',today);
 
-      setLoadingServices(true);
-      callContent2(`/locations`, res=>{
-        const list=res?.data||[]; const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
-        $('#area').empty().select2({data:ds,width:'100%',placeholder:'اختر المنطقة لخدمة العناية الفاخرة', dir:'rtl'});
-        if(ds.length) $('#area').val(ds[0].id).trigger('change'); else { setLoadingServices(false); showToast('error','لا توجد مناطق متاحة حالياً'); }
-        renderSummary('page2');
-      });
+      // 🔹 تحميل المناطق من API الجديد
+      loadLocations();
 
       $('#area').on('change', function(){
         nForm.location=this.value; setLoadingServices(true);
@@ -1175,6 +1337,9 @@
           $('#serviceCat').empty().select2({data:cats,width:'100%',placeholder:'فئة الخدمة', dir:'rtl'});
           if(cats.length) $('#serviceCat').val(cats[0].id).trigger('change');
           setLoadingServices(false); renderSummary('page2'); updateNextAvailability();
+
+          // 🔹 بعد تحميل الخدمات، نضبط حدود الخريطة حسب المنطقة
+          setBoundariesForCurrentArea();
         }, true);
       });
 
@@ -1306,6 +1471,8 @@
             document.getElementById('ts-whatsapp').href = `https://wa.me/?text=${waMsg}`;
 
             showPage(6);
+            isSubmitting = false;
+            $wait.classList.remove('show');
           } else {
             const msg=r?.data?.msgAR || (r.status===404?'المسار غير موجود':'تعذر إنشاء الحجز');
             showToast('error',msg);
@@ -1364,35 +1531,82 @@
       if(i===0){ enable=true; }
       else if(i===1){ enable=!!($('#area').val()&&$('#service').val()); }
       else if(i===2){ enable=!!selectedTime; }
-      else if(i===3){ const nameOk=($('#name').val()||'').trim().length>0; enable=nameOk && (window.itiPhone ? itiPhone.isValidNumber() : true); }
+      else if(i===3){
+        const nameOk = ($('#name').val() || '').trim().length > 0;
+        const phoneOk = itiPhone ? itiPhone.isValidNumber() : true;
+        enable = nameOk && phoneOk;
+      }
       else if(i===4){ enable=!!(document.querySelector('#payGroup input:checked')); }
       else if(i===5){ enable=!!positionUrl; }
       nextBtn.disabled=!enable; nextBtn.classList.toggle('disabled',!enable);
     }
 
-    let map, marker, autocomplete;
+    let map, marker, autocomplete, infoWindow;
     const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
     function initMap(){
-      const def={lat:24.7136,lng:46.6753};
+      const def = defaultMapCenter;
       map=new google.maps.Map(document.getElementById('googleMap'),{
         center:def, zoom:12, disableDoubleClickZoom:true, mapTypeControl:false, fullscreenControl:true,
         restriction:{latLngBounds: SA_BOUNDS, strictBounds:false}
       });
-      marker=new google.maps.Marker({position:def,map,draggable:true,title:'اسحب أو اضغط لتحديد الموقع'});
+      infoWindow = new google.maps.InfoWindow();
 
       const setPos=(latLng,pan=false)=>{
         if(!latLng) return;
-        marker.setPosition(latLng);
-        if(pan){ map.panTo(latLng); }
+        if (!marker) {
+          marker=new google.maps.Marker({
+            position:latLng,
+            map,
+            draggable:true,
+            title:'الموقع المختار'
+          });
+          marker.addListener('dragend',({latLng:dragLatLng})=>{
+            if (!insideService(dragLatLng)) {
+              if (infoWindow){
+                infoWindow.setContent('⚠️ خارج نطاق الخدمة — حرّك المؤشر داخل المنطقة المحددة للخدمة');
+                infoWindow.open(map, marker);
+              }
+              return;
+            }
+            map.panTo(dragLatLng);
+            map.setZoom(17);
+            positionUrl=`https://www.google.com/maps/search/?api=1&query=${dragLatLng.lat()},${dragLatLng.lng()}`;
+            const hint=document.getElementById('mapHint');
+            if(hint) hint.innerHTML=`تم اختيار الموقع: <strong>${dragLatLng.lat().toFixed(5)}, ${dragLatLng.lng().toFixed(5)}</strong>`;
+            renderSummary('page6');
+            updateNextAvailability();
+          });
+        } else {
+          marker.setPosition(latLng);
+        }
+
+        if (pan) map.panTo(latLng);
         map.setZoom(17);
+
         positionUrl=`https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
         const hint=document.getElementById('mapHint');
         if(hint) hint.innerHTML=`تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`;
-        renderSummary('page6'); updateNextAvailability();
+        renderSummary('page6');
+        updateNextAvailability();
+
+        if (infoWindow) {
+          infoWindow.setContent('✅ تم تحديد موقعك هنا (يمكنك سحب المؤشر للتعديل)');
+          infoWindow.open(map, marker);
+        }
       };
 
-      marker.addListener('dragend',({latLng})=>setPos(latLng));
-      map.addListener('click',({latLng})=>setPos(latLng,true));
+      map.addListener('click',({latLng})=>{
+        if (!insideService(latLng)) {
+          showToast('error','هذا الموقع خارج نطاق الخدمة لهذه المنطقة');
+          if (infoWindow) {
+            infoWindow.setContent('⚠️ خارج نطاق الخدمة — اختر موقعًا داخل المنطقة المحددة');
+            infoWindow.setPosition(latLng);
+            infoWindow.open(map);
+          }
+          return;
+        }
+        setPos(latLng,true);
+      });
 
       const input=document.getElementById('mapSearch');
       const opts={ fields:['geometry','name'], componentRestrictions:{country:'sa'}, strictBounds:false };
@@ -1401,6 +1615,15 @@
       autocomplete.addListener('place_changed', ()=>{
         const place=autocomplete.getPlace(); if(!place?.geometry) return;
         const loc=place.geometry.location;
+        if (!insideService(loc)) {
+          showToast('error','هذا الموقع خارج نطاق الخدمة لهذه المنطقة');
+          if (infoWindow) {
+            infoWindow.setContent('⚠️ خارج نطاق الخدمة — اختر موقعًا داخل المنطقة المحددة');
+            infoWindow.setPosition(loc);
+            infoWindow.open(map);
+          }
+          return;
+        }
         map.panTo(loc); map.setZoom(16); setPos(loc,true);
       });
 
@@ -1408,7 +1631,19 @@
       btn?.addEventListener('click',()=>{
         if(!navigator.geolocation){ showToast('error','المتصفح لا يدعم تحديد الموقع'); return; }
         navigator.geolocation.getCurrentPosition(
-          pos=>setPos(new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude),true),
+          pos=>{
+            const userPos = new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude);
+            if (!insideService(userPos)) {
+              showToast('error','موقعك الحالي خارج نطاق الخدمة لهذه المنطقة');
+              if (infoWindow) {
+                infoWindow.setContent('⚠️ خارج نطاق الخدمة — اختر موقعًا داخل المنطقة المحددة');
+                infoWindow.setPosition(userPos);
+                infoWindow.open(map);
+              }
+              return;
+            }
+            setPos(userPos,true);
+          },
           err=>{ showToast('error','تعذر تحديد موقعك'); },
           { enableHighAccuracy:true, timeout:10000, maximumAge:30000 }
         );
@@ -1417,7 +1652,8 @@
     window.initMap=initMap;
   </script>
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async&libraries=places&language=ar&region=SA" async defer></script>
+  <!-- ✅ أضف geometry library لاستخدام containsLocation -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap&v=weekly&loading=async&libraries=places,geometry&language=ar&region=SA" async defer></script>
 
   <script
     src="https://rybbit.nahls.app/api/script.js"
