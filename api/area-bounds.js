@@ -1,72 +1,49 @@
-// pages/api/area-bounds.js
-/**
- * Proxy API for area bounds
- * Frontend calls:
- *   /api/area-bounds?appId=...&areaId=...
- * This forwards the request to the Google Apps Script Web App:
- *   AREA_BOUNDS_SCRIPT_URL + "?path=area-bounds&appId=...&areaId=..."
- */
+// pages/api/area-bounds.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-export default async function handler(req, res) {
-  // Allow only GET (you can extend later if needed)
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
-  }
+const SCRIPT_URL = process.env.AREA_BOUNDS_SCRIPT_URL;
 
-  const baseUrl = process.env.AREA_BOUNDS_SCRIPT_URL;
-  if (!baseUrl) {
-    return res.status(500).json({
-      ok: false,
-      error: 'AREA_BOUNDS_SCRIPT_URL is not configured on the server.',
-    });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!SCRIPT_URL) {
+    return res.status(500).json({ ok: false, error: 'AREA_BOUNDS_SCRIPT_URL is not set' });
   }
 
   try {
-    // Build target URL with original query + path=area-bounds
-    const url = new URL(baseUrl);
-
-    // If your Code.gs expects "path=area-bounds", append it:
-    url.searchParams.set('path', 'area-bounds');
-
-    // Forward all query params from the client (appId, areaId, etc.)
-    for (const [key, value] of Object.entries(req.query)) {
-      if (value === undefined || value === null) continue;
-
-      // Next.js can send string or string[]
+    // Forward all query params (appId, areaId, etc.) to Apps Script
+    const url = new URL(SCRIPT_URL);
+    Object.entries(req.query).forEach(([key, value]) => {
       if (Array.isArray(value)) {
-        value.forEach((v) => url.searchParams.append(key, v));
-      } else {
-        url.searchParams.set(key, value);
+        value.forEach(v => url.searchParams.append(key, v));
+      } else if (value !== undefined) {
+        url.searchParams.set(key, String(value));
       }
-    }
+    });
 
-    // Call Apps Script Web App
     const upstream = await fetch(url.toString(), {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json,text/plain,*/*',
-      },
+      headers: { Accept: 'application/json' },
+      // If your Apps Script is public "Anyone", no auth needed
     });
 
     const text = await upstream.text();
-
-    // Try to parse JSON, but keep raw if not JSON
-    let data;
+    let data: any = null;
     try {
       data = JSON.parse(text);
     } catch {
-      data = text;
+      // If not JSON, just pass raw text
     }
 
-    // Mirror status
-    res.status(upstream.status).json(data);
-  } catch (err) {
+    if (!upstream.ok) {
+      return res.status(upstream.status).json({
+        ok: false,
+        status: upstream.status,
+        upstreamBody: data ?? text,
+      });
+    }
+
+    return res.status(200).json(data ?? { ok: true, raw: text });
+  } catch (err: any) {
     console.error('area-bounds proxy error:', err);
-    res.status(500).json({
-      ok: false,
-      error: 'area-bounds proxy failed',
-      detail: String(err),
-    });
+    return res.status(500).json({ ok: false, error: String(err) });
   }
 }
