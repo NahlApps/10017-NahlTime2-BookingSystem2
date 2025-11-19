@@ -1139,106 +1139,103 @@
 
     /* 🔹 Fetch bounds from /api/area-bounds.js and apply to Google Map */
 async function loadAreaBounds(areaId){
-  if(!areaId) return;
+  if (!areaId) return;
 
-  // If Google Maps not ready, wait until initMap then retry
-  if(!window.google || !window.google.maps || !map){
+  // انتظر إلى أن تكون خريطة قوقل جاهزة
+  if (!window.google || !window.google.maps || !map) {
     pendingAreaForBounds = areaId;
     return;
   }
 
-  try{
+  try {
     const params = new URLSearchParams({
       appId: APP_ID,
       areaId: String(areaId)
     });
 
-    const res = await fetch(`${AREA_BOUNDS_URL}?${params.toString()}`, {
-      method:'GET',
-      cache:'no-store'
-    });
+    const url = `${AREA_BOUNDS_URL}?${params.toString()}`;
+    console.log('📍 loadAreaBounds →', url);
 
-    if(!res.ok){
+    const res = await fetch(url, { method:'GET', cache:'no-store' });
+    if (!res.ok) {
       console.warn('loadAreaBounds HTTP error', res.status);
       return;
     }
 
-    const data = await res.json();
-    console.log('area-bounds response:', data);   // 👀 debug in DevTools
+    const json = await res.json();
+    console.log('📦 area-bounds raw response:', json);
 
-    if(!data){
-      console.warn('loadAreaBounds: empty response');
+    // ✅ الاستجابة الحقيقية تحت json.data
+    if (!json || !json.data) {
+      console.warn('loadAreaBounds: no json.data found');
       return;
     }
 
-    // ✅ Support both shapes:
-    // 1) { bounds: { ... } , polygon: [...] }
-    // 2) { CenterLat, CenterLng, North, South, East, West, PolygonJson, ... }
-    const b = data.bounds || data;
+    const rec = json.data;              // { appId, areaId, center, bounds, polygon }
+    const centerObj = rec.center || {}; // { lat, lng }
+    const boundsObj = rec.bounds || {}; // { north, south, east, west }
 
-    currentAreaBounds = b;
+    const centerLat = Number(centerObj.lat);
+    const centerLng = Number(centerObj.lng);
+    const north     = Number(boundsObj.north);
+    const south     = Number(boundsObj.south);
+    const east      = Number(boundsObj.east);
+    const west      = Number(boundsObj.west);
 
-    const centerLat = Number(b.centerLat ?? b.CenterLat);
-    const centerLng = Number(b.centerLng ?? b.CenterLng);
-    const north     = Number(b.north     ?? b.North);
-    const south     = Number(b.south     ?? b.South);
-    const east      = Number(b.east      ?? b.East);
-    const west      = Number(b.west      ?? b.West);
+    console.log('🔢 parsed center/bounds:', {
+      centerLat, centerLng, north, south, east, west
+    });
 
-    // ---- Center map & marker ----
+    // ---- تحريك الخريطة إلى السنتر ----
     let center;
-    if(Number.isFinite(centerLat) && Number.isFinite(centerLng)){
+    if (Number.isFinite(centerLat) && Number.isFinite(centerLng)) {
       center = new google.maps.LatLng(centerLat, centerLng);
     } else {
       center = map.getCenter();
     }
 
-    if(center){
+    if (center) {
       map.setCenter(center);
       map.setZoom(12);
-      if(marker){
-        marker.setPosition(center);
-      }
+      if (marker) marker.setPosition(center);
     }
 
-    // ---- Restrict + fit bounds if numbers are valid ----
-    if(
+    // ---- تعيين القيود + fitBounds على حدود المنطقة ----
+    if (
       Number.isFinite(north) && Number.isFinite(south) &&
       Number.isFinite(east)  && Number.isFinite(west)
-    ){
+    ) {
       const areaLatLngBounds = new google.maps.LatLngBounds(
         new google.maps.LatLng(south, west),
         new google.maps.LatLng(north, east)
       );
 
+      console.log('🗺️ applying LatLngBounds:', areaLatLngBounds.toJSON());
+
       map.setOptions({
-        restriction:{ latLngBounds: areaLatLngBounds, strictBounds:false }
+        restriction: { latLngBounds: areaLatLngBounds, strictBounds: false }
       });
       map.fitBounds(areaLatLngBounds);
     } else {
-      console.warn('Bounds numbers are not all valid:', {north,south,east,west});
+      console.warn('Bounds numbers invalid:', { north, south, east, west });
     }
 
-    // ---- Polygon: try data.polygon, else parse PolygonJson string ----
-    let polygonArr = data.polygon;
+    // ---- رسم البوليغون ----
+    let polygonArr = rec.polygon; // من JSON: "polygon": [ {lat,lng}, ... ]
 
-    if((!polygonArr || !Array.isArray(polygonArr)) && b.PolygonJson){
-      try{
-        polygonArr = JSON.parse(b.PolygonJson);
-      }catch(e){
-        console.error('Failed to parse PolygonJson:', e, b.PolygonJson);
-      }
-    }
+    if (polygonArr && Array.isArray(polygonArr) && polygonArr.length) {
+      const path = polygonArr
+        .map(pt => {
+          const lat = Number(pt.lat);
+          const lng = Number(pt.lng);
+          return { lat, lng };
+        })
+        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 
-    if(polygonArr && Array.isArray(polygonArr) && polygonArr.length){
-      const path = polygonArr.map(pt => {
-        const lat = Number(pt.lat ?? pt.Lat ?? pt[0]);
-        const lng = Number(pt.lng ?? pt.Lng ?? pt[1]);
-        return { lat, lng };
-      }).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+      console.log('📐 polygon path points:', path);
 
-      if(path.length){
-        if(areaPolygon){
+      if (path.length) {
+        if (areaPolygon) {
           areaPolygon.setMap(null);
         }
         areaPolygon = new google.maps.Polygon({
@@ -1252,13 +1249,14 @@ async function loadAreaBounds(areaId){
         areaPolygon.setMap(map);
       }
     } else {
-      console.warn('No polygon array found in response');
-      if(areaPolygon){
+      console.warn('No polygon array found; clearing existing polygon.');
+      if (areaPolygon) {
         areaPolygon.setMap(null);
         areaPolygon = null;
       }
     }
-  }catch(err){
+
+  } catch (err) {
     console.error('loadAreaBounds error:', err);
   }
 }
