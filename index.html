@@ -1138,94 +1138,131 @@
     const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
 
     /* 🔹 Fetch bounds from /api/area-bounds.js and apply to Google Map */
-    async function loadAreaBounds(areaId){
-      if(!areaId) return;
+async function loadAreaBounds(areaId){
+  if(!areaId) return;
 
-      // if Google Maps not ready yet, wait and retry once initMap runs
-      if(!window.google || !window.google.maps || !map){
-        pendingAreaForBounds = areaId;
-        return;
-      }
+  // If Google Maps not ready, wait until initMap then retry
+  if(!window.google || !window.google.maps || !map){
+    pendingAreaForBounds = areaId;
+    return;
+  }
 
-      try{
-        const params = new URLSearchParams({
-          appId: APP_ID,
-          areaId: String(areaId)
-        });
-        const res = await fetch(`${AREA_BOUNDS_URL}?${params.toString()}`, {
-          method:'GET',
-          cache:'no-store'
-        });
-        if(!res.ok){
-          console.warn('loadAreaBounds HTTP error', res.status);
-          return;
-        }
-        const data = await res.json();
-        if(!data || !data.bounds){
-          console.warn('loadAreaBounds: no "bounds" in response');
-          return;
-        }
+  try{
+    const params = new URLSearchParams({
+      appId: APP_ID,
+      areaId: String(areaId)
+    });
 
-        currentAreaBounds = data.bounds;
+    const res = await fetch(`${AREA_BOUNDS_URL}?${params.toString()}`, {
+      method:'GET',
+      cache:'no-store'
+    });
 
-        const centerLat = Number(data.bounds.centerLat ?? data.bounds.CenterLat);
-        const centerLng = Number(data.bounds.centerLng ?? data.bounds.CenterLng);
-        const north = Number(data.bounds.north ?? data.bounds.North);
-        const south = Number(data.bounds.south ?? data.bounds.South);
-        const east  = Number(data.bounds.east  ?? data.bounds.East);
-        const west  = Number(data.bounds.west  ?? data.bounds.West);
+    if(!res.ok){
+      console.warn('loadAreaBounds HTTP error', res.status);
+      return;
+    }
 
-        let center;
-        if(Number.isFinite(centerLat) && Number.isFinite(centerLng)){
-          center = new google.maps.LatLng(centerLat, centerLng);
-        }else{
-          center = map.getCenter();
-        }
+    const data = await res.json();
+    console.log('area-bounds response:', data);   // 👀 debug in DevTools
 
-        if(center){
-          map.setCenter(center);
-          if(marker){
-            marker.setPosition(center);
-          }
-        }
+    if(!data){
+      console.warn('loadAreaBounds: empty response');
+      return;
+    }
 
-        if(Number.isFinite(north) && Number.isFinite(south) && Number.isFinite(east) && Number.isFinite(west)){
-          const areaLatLngBounds = new google.maps.LatLngBounds(
-            new google.maps.LatLng(south, west),
-            new google.maps.LatLng(north, east)
-          );
-          map.setOptions({
-            restriction:{latLngBounds: areaLatLngBounds, strictBounds:false}
-          });
-          map.fitBounds(areaLatLngBounds);
-        }
+    // ✅ Support both shapes:
+    // 1) { bounds: { ... } , polygon: [...] }
+    // 2) { CenterLat, CenterLng, North, South, East, West, PolygonJson, ... }
+    const b = data.bounds || data;
 
-        // optional polygon drawing
-        if(data.polygon && Array.isArray(data.polygon) && data.polygon.length){
-          const path = data.polygon.map(pt=>{
-            const lat = Number(pt.lat ?? pt[0]);
-            const lng = Number(pt.lng ?? pt[1]);
-            return {lat, lng};
-          }).filter(p=>Number.isFinite(p.lat) && Number.isFinite(p.lng));
-          if(path.length){
-            if(areaPolygon){
-              areaPolygon.setMap(null);
-            }
-            areaPolygon = new google.maps.Polygon({
-              paths: path,
-              strokeColor: '#027A93',
-              strokeOpacity: 0.8,
-              strokeWeight: 2,
-              fillColor: '#027A93',
-              fillOpacity: 0.08
-            });
-            areaPolygon.setMap(map);
-          }
-        }
-      }catch(err){
-        console.error('loadAreaBounds error:', err);
+    currentAreaBounds = b;
+
+    const centerLat = Number(b.centerLat ?? b.CenterLat);
+    const centerLng = Number(b.centerLng ?? b.CenterLng);
+    const north     = Number(b.north     ?? b.North);
+    const south     = Number(b.south     ?? b.South);
+    const east      = Number(b.east      ?? b.East);
+    const west      = Number(b.west      ?? b.West);
+
+    // ---- Center map & marker ----
+    let center;
+    if(Number.isFinite(centerLat) && Number.isFinite(centerLng)){
+      center = new google.maps.LatLng(centerLat, centerLng);
+    } else {
+      center = map.getCenter();
+    }
+
+    if(center){
+      map.setCenter(center);
+      map.setZoom(12);
+      if(marker){
+        marker.setPosition(center);
       }
     }
+
+    // ---- Restrict + fit bounds if numbers are valid ----
+    if(
+      Number.isFinite(north) && Number.isFinite(south) &&
+      Number.isFinite(east)  && Number.isFinite(west)
+    ){
+      const areaLatLngBounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(south, west),
+        new google.maps.LatLng(north, east)
+      );
+
+      map.setOptions({
+        restriction:{ latLngBounds: areaLatLngBounds, strictBounds:false }
+      });
+      map.fitBounds(areaLatLngBounds);
+    } else {
+      console.warn('Bounds numbers are not all valid:', {north,south,east,west});
+    }
+
+    // ---- Polygon: try data.polygon, else parse PolygonJson string ----
+    let polygonArr = data.polygon;
+
+    if((!polygonArr || !Array.isArray(polygonArr)) && b.PolygonJson){
+      try{
+        polygonArr = JSON.parse(b.PolygonJson);
+      }catch(e){
+        console.error('Failed to parse PolygonJson:', e, b.PolygonJson);
+      }
+    }
+
+    if(polygonArr && Array.isArray(polygonArr) && polygonArr.length){
+      const path = polygonArr.map(pt => {
+        const lat = Number(pt.lat ?? pt.Lat ?? pt[0]);
+        const lng = Number(pt.lng ?? pt.Lng ?? pt[1]);
+        return { lat, lng };
+      }).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+
+      if(path.length){
+        if(areaPolygon){
+          areaPolygon.setMap(null);
+        }
+        areaPolygon = new google.maps.Polygon({
+          paths: path,
+          strokeColor: '#027A93',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: '#027A93',
+          fillOpacity: 0.08
+        });
+        areaPolygon.setMap(map);
+      }
+    } else {
+      console.warn('No polygon array found in response');
+      if(areaPolygon){
+        areaPolygon.setMap(null);
+        areaPolygon = null;
+      }
+    }
+  }catch(err){
+    console.error('loadAreaBounds error:', err);
+  }
+}
+
 
     function requestAreaBoundsForCurrentArea(){
       const areaId = $('#area').val() || '';
