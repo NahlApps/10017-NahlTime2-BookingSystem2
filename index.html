@@ -1264,8 +1264,22 @@
 
       setLoadingServices(true);
       callContent2(`/locations`, res=>{
-        const list=res?.data||[]; const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
-        $('#area').empty().select2({data:ds,width:'100%',placeholder:'اختر المنطقة لخدمة العناية الفاخرة', dir:'rtl'});
+        const list=res?.data||[];
+        const isEng = isEnglishLocale();
+        const ds=list.map(l=>{
+          const ar = (l.TS_location_arabic_name || '').trim();
+          const en = (l.TS_location_english_name || '').trim();
+          return {
+            id: l.id,                               // ✅ areaId for API
+            text: isEng ? (en || ar) : (ar || en)   // ✅ bilingual label
+          };
+        });
+        $('#area').empty().select2({
+          data:ds,
+          width:'100%',
+          placeholder:'اختر المنطقة لخدمة العناية الفاخرة',
+          dir:'rtl'
+        });
         if(ds.length){
           $('#area').val(ds[0].id).trigger('change');
         } else {
