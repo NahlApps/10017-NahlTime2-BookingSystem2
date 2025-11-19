@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>حجوزات المواعيد</title>
 
-<!-- 🔹 Favicon -->
+  <!-- 🔹 Favicon -->
   <link rel="icon" type="image/png" sizes="32x32"
         href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/ChatGPT%20Image%20Sep%2013,%202025,%2001_21_33%20PM.png" />
   <link rel="shortcut icon"
@@ -557,13 +557,14 @@
 
     const APP_ID = '21eddbf5-efe5-4a5d-9134-b581717b17ff';
 
-    const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${APP_ID}/form`;
+    const defaultLink2 = `https://b0sk44sswgc4kcswoo8sk0og.nahls.app/api/app/AM/general/${APP_ID}/form`;
     const RESERVE_URL_PRIMARY  = `${defaultLink2}/reserveAppointment`;
     const RESERVE_URL_FALLBACK = `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
 
     const API_BASE = window.location.origin.replace(/\/$/, '');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
     const COUPONS_API_URL         = `${API_BASE}/api/coupons/validate`;
+    const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;   /* 🔹 NEW: area-bounds API */
 
     let controllers = [];
     async function callContent2(path, cb, abortable=false, retries=3){
@@ -615,7 +616,7 @@
       page4:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG4.jpg",
       page5:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG5.jpg",
       page6:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG6.jpg",
-      page7:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG7.jpg",
+      page7:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG7.jpg"
     };
     const STEP_GROUP_INDEX={page1:0,page2:1,page3:2,page4:3,page5:4,page6:5,page7:6};
     let selectedTime=null, servicesCache=null, categoriesCache=null, itiPhone=null, positionUrl="";
@@ -723,6 +724,9 @@
       renderSummary(next.id);
       updateNextAvailability();
       if(next.id==='page1') startWelcomeDeck();
+      if(next.id==='page6'){       /* 🔹 ensure map follows currently selected area */
+        requestAreaBoundsForCurrentArea();
+      }
     }
     function getActiveIndex(){ const id=document.querySelector('.page.active')?.id; return Math.max(0, orderedPages.indexOf(id)); }
     function syncProgress(i){
@@ -756,8 +760,7 @@
       const raw = ($('#plateNumber').val()||'');
       const v   = raw.replace(/\D/g,'');
       $('#plateNumber').val(v);
-      const txt = v ? (isSpecialPlate(v) ? 'رقم مميز 👌 — ممتاز للتوثيق السريع.' : 'اختياري — يساعد فريقنا على التعرف على مركبتك.')
-                    : 'اختياري — يساعد فريقنا على التعرف على مركبتك';
+      const txt = v ? (isSpecialPlate(v) ? 'رقم مميز 👌 — ممتاز للتوثيق السريع.' : 'اختياري — يساعد فريقنا على التعرف على مركبتك.') : 'اختياري — يساعد فريقنا على التعرف على مركبتك';
       $('#plateHelp').text(txt);
       const pe=document.getElementById('err-plate'); if(pe) pe.style.display='none';
     }
@@ -792,7 +795,7 @@
       wrap.innerHTML='';
       chips.filter(c=>c.v && c.g<=currGroup).forEach(c=>{
         const el=document.createElement('div');
-        el.className='chip'+(c.g===currGroup?' current':'');
+        el.className='chip'+(c.g===currGroup?' current':'' );
         el.innerHTML=`<i class="fa-solid ${c.i}"></i><span class="title">${c.t}:</span><span class="value">${c.v}</span>`;
         wrap.appendChild(el);
       });
@@ -1130,6 +1133,106 @@
       }
     }
 
+    /* 🔹 Map globals & area bounds state */
+    let map, marker, autocomplete, areaPolygon, pendingAreaForBounds=null, currentAreaBounds;
+    const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
+
+    /* 🔹 Fetch bounds from /api/area-bounds.js and apply to Google Map */
+    async function loadAreaBounds(areaId){
+      if(!areaId) return;
+
+      // if Google Maps not ready yet, wait and retry once initMap runs
+      if(!window.google || !window.google.maps || !map){
+        pendingAreaForBounds = areaId;
+        return;
+      }
+
+      try{
+        const params = new URLSearchParams({
+          appId: APP_ID,
+          areaId: String(areaId)
+        });
+        const res = await fetch(`${AREA_BOUNDS_URL}?${params.toString()}`, {
+          method:'GET',
+          cache:'no-store'
+        });
+        if(!res.ok){
+          console.warn('loadAreaBounds HTTP error', res.status);
+          return;
+        }
+        const data = await res.json();
+        if(!data || !data.bounds){
+          console.warn('loadAreaBounds: no "bounds" in response');
+          return;
+        }
+
+        currentAreaBounds = data.bounds;
+
+        const centerLat = Number(data.bounds.centerLat ?? data.bounds.CenterLat);
+        const centerLng = Number(data.bounds.centerLng ?? data.bounds.CenterLng);
+        const north = Number(data.bounds.north ?? data.bounds.North);
+        const south = Number(data.bounds.south ?? data.bounds.South);
+        const east  = Number(data.bounds.east  ?? data.bounds.East);
+        const west  = Number(data.bounds.west  ?? data.bounds.West);
+
+        let center;
+        if(Number.isFinite(centerLat) && Number.isFinite(centerLng)){
+          center = new google.maps.LatLng(centerLat, centerLng);
+        }else{
+          center = map.getCenter();
+        }
+
+        if(center){
+          map.setCenter(center);
+          if(marker){
+            marker.setPosition(center);
+          }
+        }
+
+        if(Number.isFinite(north) && Number.isFinite(south) && Number.isFinite(east) && Number.isFinite(west)){
+          const areaLatLngBounds = new google.maps.LatLngBounds(
+            new google.maps.LatLng(south, west),
+            new google.maps.LatLng(north, east)
+          );
+          map.setOptions({
+            restriction:{latLngBounds: areaLatLngBounds, strictBounds:false}
+          });
+          map.fitBounds(areaLatLngBounds);
+        }
+
+        // optional polygon drawing
+        if(data.polygon && Array.isArray(data.polygon) && data.polygon.length){
+          const path = data.polygon.map(pt=>{
+            const lat = Number(pt.lat ?? pt[0]);
+            const lng = Number(pt.lng ?? pt[1]);
+            return {lat, lng};
+          }).filter(p=>Number.isFinite(p.lat) && Number.isFinite(p.lng));
+          if(path.length){
+            if(areaPolygon){
+              areaPolygon.setMap(null);
+            }
+            areaPolygon = new google.maps.Polygon({
+              paths: path,
+              strokeColor: '#027A93',
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+              fillColor: '#027A93',
+              fillOpacity: 0.08
+            });
+            areaPolygon.setMap(map);
+          }
+        }
+      }catch(err){
+        console.error('loadAreaBounds error:', err);
+      }
+    }
+
+    function requestAreaBoundsForCurrentArea(){
+      const areaId = $('#area').val() || '';
+      if(!areaId) return;
+      loadAreaBounds(areaId);
+    }
+
     $(function(){
       installResizeObservers();
 
@@ -1163,12 +1266,19 @@
       callContent2(`/locations`, res=>{
         const list=res?.data||[]; const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
         $('#area').empty().select2({data:ds,width:'100%',placeholder:'اختر المنطقة لخدمة العناية الفاخرة', dir:'rtl'});
-        if(ds.length) $('#area').val(ds[0].id).trigger('change'); else { setLoadingServices(false); showToast('error','لا توجد مناطق متاحة حالياً'); }
+        if(ds.length){
+          $('#area').val(ds[0].id).trigger('change');
+        } else {
+          setLoadingServices(false); showToast('error','لا توجد مناطق متاحة حالياً');
+        }
         renderSummary('page2');
       });
 
       $('#area').on('change', function(){
-        nForm.location=this.value; setLoadingServices(true);
+        nForm.location=this.value;
+        requestAreaBoundsForCurrentArea();           /* 🔹 NEW: load bounds when area changes */
+
+        setLoadingServices(true);
         callContent2(`/services?location=${encodeURIComponent(this.value)}`, res=>{
           servicesCache=res?.data?.services||[]; categoriesCache=res?.data?.servicesCat||[];
           const cats=categoriesCache.map(c=>({id:c.TS_category_id,text:c.TS_category_arabic_name}));
@@ -1176,15 +1286,6 @@
           if(cats.length) $('#serviceCat').val(cats[0].id).trigger('change');
           setLoadingServices(false); renderSummary('page2'); updateNextAvailability();
         }, true);
-
-        // 🔹 NEW: update Google Maps boundaries based on selected area (by ID)
-        try {
-          if (typeof setBoundries === 'function') {
-            setBoundries();
-          }
-        } catch (e) {
-          console.error('setBoundries call failed on area change:', e);
-        }
       });
 
       $('#serviceCat').on('change', function(){
@@ -1379,122 +1480,8 @@
       nextBtn.disabled=!enable; nextBtn.classList.toggle('disabled',!enable);
     }
 
-    // 🔹 Google Maps + Boundaries
-    let map, marker, autocomplete, polygon = null, serviceBounds = null;
-    const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
-    const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 }; // Riyadh
-
-    /**
-     * 🔹 setBoundries()
-     * Reads the selected area ID from #area,
-     * fetches polygon + center by API, and draws them on the map.
-     *
-     * Expected API: GET /boundaries?locationId=<areaId>
-     * via callContent2 (same base as /locations, /services, /appointments).
-     *
-     * Adjust keys here if your JSON shape is different.
-     */
-    function setBoundries(){
-      if (!map || typeof callContent2 !== 'function') return;
-
-      const areaId = $('#area').val();
-      if (!areaId){
-        if (polygon){ polygon.setMap(null); polygon = null; }
-        serviceBounds = null;
-        map.setCenter(DEFAULT_CENTER);
-        map.setZoom(12);
-        return;
-      }
-
-      // Call your backend (Google Sheet API) to get polygon + center
-      callContent2(`/boundaries?locationId=${encodeURIComponent(areaId)}`, function(res){
-        try {
-          // Flexible parsing: support multiple possible shapes
-          const root = res && (res.data || res.boundaries || res);
-          if (!root) return;
-
-          // Polygon candidates: polygon / coords / points / boundary / array itself
-          let coords =
-            root.polygon ||
-            root.coords ||
-            root.points ||
-            root.boundary ||
-            (Array.isArray(root) ? root : null);
-
-          // Center candidates
-          const meta = root.meta || root;
-          const cLat = parseFloat(
-            meta.centerLat ??
-            meta.center_lat ??
-            meta.TS_center_lat ??
-            meta.TS_center_Lat
-          );
-          const cLng = parseFloat(
-            meta.centerLng ??
-            meta.center_lng ??
-            meta.TS_center_lng ??
-            meta.TS_center_Lng
-          );
-
-          // Clear old polygon
-          if (polygon){ polygon.setMap(null); polygon = null; }
-          serviceBounds = null;
-
-          let path = [];
-          if (Array.isArray(coords)){
-            path = coords.map(pt => {
-              const lat = Number(
-                pt.lat ??
-                pt.Lat ??
-                pt.latitude ??
-                (Array.isArray(pt) ? pt[0] : NaN)
-              );
-              const lng = Number(
-                pt.lng ??
-                pt.Lng ??
-                pt.lon ??
-                pt.longitude ??
-                (Array.isArray(pt) ? pt[1] : NaN)
-              );
-              if (isNaN(lat) || isNaN(lng)) return null;
-              return new google.maps.LatLng(lat, lng);
-            }).filter(Boolean);
-          }
-
-          if (path.length){
-            polygon = new google.maps.Polygon({
-              paths: path,
-              strokeColor: "#ff6b6b",
-              strokeOpacity: 0.5,
-              strokeWeight: 2,
-              fillColor: "#06b9d2",
-              fillOpacity: 0.12,
-              clickable: false
-            });
-            polygon.setMap(map);
-
-            const b = new google.maps.LatLngBounds();
-            path.forEach(p => b.extend(p));
-            serviceBounds = b;
-            map.fitBounds(b);
-
-            // Optionally move marker to center of bounds
-            const center = b.getCenter();
-            if (marker){ marker.setPosition(center); }
-          } else if (!isNaN(cLat) && !isNaN(cLng)){
-            const center = new google.maps.LatLng(cLat, cLng);
-            map.setCenter(center);
-            map.setZoom(13);
-            if (marker){ marker.setPosition(center); }
-          }
-        } catch (e){
-          console.error('setBoundries error:', e);
-        }
-      }, true);
-    }
-
     function initMap(){
-      const def = DEFAULT_CENTER;
+      const def={lat:24.7136,lng:46.6753};
       map=new google.maps.Map(document.getElementById('googleMap'),{
         center:def, zoom:12, disableDoubleClickZoom:true, mapTypeControl:false, fullscreenControl:true,
         restriction:{latLngBounds: SA_BOUNDS, strictBounds:false}
@@ -1535,13 +1522,12 @@
         );
       });
 
-      // 🔹 When map is ready, apply boundaries for currently selected area (if any)
-      try {
-        if (typeof setBoundries === 'function') {
-          setBoundries();
-        }
-      } catch (e) {
-        console.error('setBoundries call failed in initMap:', e);
+      // 🔹 apply pending area bounds if area was selected before map loaded
+      if(pendingAreaForBounds){
+        loadAreaBounds(pendingAreaForBounds);
+        pendingAreaForBounds = null;
+      } else {
+        requestAreaBoundsForCurrentArea();
       }
     }
     window.initMap=initMap;
