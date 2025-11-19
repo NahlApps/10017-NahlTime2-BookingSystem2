@@ -564,7 +564,7 @@
     const API_BASE = window.location.origin.replace(/\/$/, '');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
     const COUPONS_API_URL         = `${API_BASE}/api/coupons/validate`;
-    const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;   /* 🔹 NEW: area-bounds API */
+    const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;   /* 🔹 area-bounds API */
 
     let controllers = [];
     async function callContent2(path, cb, abortable=false, retries=3){
@@ -1135,132 +1135,109 @@
 
     /* 🔹 Map globals & area bounds state */
     let map, marker, autocomplete, areaPolygon, pendingAreaForBounds=null, currentAreaBounds;
+    let lastValidLatLng = null; // آخر نقطة صالحة داخل البوليغون أو الحدود
     const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
 
     /* 🔹 Fetch bounds from /api/area-bounds.js and apply to Google Map */
-async function loadAreaBounds(areaId){
-  if (!areaId) return;
+    async function loadAreaBounds(areaId){
+      if(!areaId) return;
 
-  // انتظر إلى أن تكون خريطة قوقل جاهزة
-  if (!window.google || !window.google.maps || !map) {
-    pendingAreaForBounds = areaId;
-    return;
-  }
+      // if Google Maps not ready yet, wait and retry once initMap runs
+      if(!window.google || !window.google.maps || !map){
+        pendingAreaForBounds = areaId;
+        return;
+      }
 
-  try {
-    const params = new URLSearchParams({
-      appId: APP_ID,
-      areaId: String(areaId)
-    });
-
-    const url = `${AREA_BOUNDS_URL}?${params.toString()}`;
-    console.log('📍 loadAreaBounds →', url);
-
-    const res = await fetch(url, { method:'GET', cache:'no-store' });
-    if (!res.ok) {
-      console.warn('loadAreaBounds HTTP error', res.status);
-      return;
-    }
-
-    const json = await res.json();
-    console.log('📦 area-bounds raw response:', json);
-
-    // ✅ الاستجابة الحقيقية تحت json.data
-    if (!json || !json.data) {
-      console.warn('loadAreaBounds: no json.data found');
-      return;
-    }
-
-    const rec = json.data;              // { appId, areaId, center, bounds, polygon }
-    const centerObj = rec.center || {}; // { lat, lng }
-    const boundsObj = rec.bounds || {}; // { north, south, east, west }
-
-    const centerLat = Number(centerObj.lat);
-    const centerLng = Number(centerObj.lng);
-    const north     = Number(boundsObj.north);
-    const south     = Number(boundsObj.south);
-    const east      = Number(boundsObj.east);
-    const west      = Number(boundsObj.west);
-
-    console.log('🔢 parsed center/bounds:', {
-      centerLat, centerLng, north, south, east, west
-    });
-
-    // ---- تحريك الخريطة إلى السنتر ----
-    let center;
-    if (Number.isFinite(centerLat) && Number.isFinite(centerLng)) {
-      center = new google.maps.LatLng(centerLat, centerLng);
-    } else {
-      center = map.getCenter();
-    }
-
-    if (center) {
-      map.setCenter(center);
-      map.setZoom(12);
-      if (marker) marker.setPosition(center);
-    }
-
-    // ---- تعيين القيود + fitBounds على حدود المنطقة ----
-    if (
-      Number.isFinite(north) && Number.isFinite(south) &&
-      Number.isFinite(east)  && Number.isFinite(west)
-    ) {
-      const areaLatLngBounds = new google.maps.LatLngBounds(
-        new google.maps.LatLng(south, west),
-        new google.maps.LatLng(north, east)
-      );
-
-      console.log('🗺️ applying LatLngBounds:', areaLatLngBounds.toJSON());
-
-      map.setOptions({
-        restriction: { latLngBounds: areaLatLngBounds, strictBounds: false }
-      });
-      map.fitBounds(areaLatLngBounds);
-    } else {
-      console.warn('Bounds numbers invalid:', { north, south, east, west });
-    }
-
-    // ---- رسم البوليغون ----
-    let polygonArr = rec.polygon; // من JSON: "polygon": [ {lat,lng}, ... ]
-
-    if (polygonArr && Array.isArray(polygonArr) && polygonArr.length) {
-      const path = polygonArr
-        .map(pt => {
-          const lat = Number(pt.lat);
-          const lng = Number(pt.lng);
-          return { lat, lng };
-        })
-        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
-
-      console.log('📐 polygon path points:', path);
-
-      if (path.length) {
-        if (areaPolygon) {
-          areaPolygon.setMap(null);
-        }
-        areaPolygon = new google.maps.Polygon({
-          paths: path,
-          strokeColor: '#027A93',
-          strokeOpacity: 0.8,
-          strokeWeight: 2,
-          fillColor: '#027A93',
-          fillOpacity: 0.08
+      try{
+        const params = new URLSearchParams({
+          appId: APP_ID,
+          areaId: String(areaId)
         });
-        areaPolygon.setMap(map);
-      }
-    } else {
-      console.warn('No polygon array found; clearing existing polygon.');
-      if (areaPolygon) {
-        areaPolygon.setMap(null);
-        areaPolygon = null;
+        const res = await fetch(`${AREA_BOUNDS_URL}?${params.toString()}`, {
+          method:'GET',
+          cache:'no-store'
+        });
+        if(!res.ok){
+          console.warn('loadAreaBounds HTTP error', res.status);
+          return;
+        }
+        const json = await res.json();
+        const payload = json && json.data ? json.data : json;   // يدعم الشكل {ok,data:{...}} أو مباشر
+
+        if(!payload){
+          console.warn('loadAreaBounds: no payload');
+          return;
+        }
+
+        const boundsObj = payload.bounds || {};
+        currentAreaBounds = boundsObj;
+
+        const centerObj = payload.center || {};
+        const centerLat = Number(centerObj.lat);
+        const centerLng = Number(centerObj.lng);
+
+        const north = Number(boundsObj.north);
+        const south = Number(boundsObj.south);
+        const east  = Number(boundsObj.east);
+        const west  = Number(boundsObj.west);
+
+        let center;
+        if(Number.isFinite(centerLat) && Number.isFinite(centerLng)){
+          center = new google.maps.LatLng(centerLat, centerLng);
+        }else{
+          center = map.getCenter();
+        }
+
+        if(center){
+          map.setCenter(center);
+          if(marker){
+            marker.setPosition(center);
+          }
+          lastValidLatLng = center;   // ✅ بداية صالحة داخل حدود المنطقة
+        }
+
+        if(Number.isFinite(north) && Number.isFinite(south) && Number.isFinite(east) && Number.isFinite(west)){
+          const areaLatLngBounds = new google.maps.LatLngBounds(
+            new google.maps.LatLng(south, west),
+            new google.maps.LatLng(north, east)
+          );
+          // 🔹 Limit pan/zoom to rectangle
+          map.setOptions({
+            restriction:{
+              latLngBounds: areaLatLngBounds,
+              strictBounds:true
+            }
+          });
+          map.fitBounds(areaLatLngBounds);
+        }
+
+        // optional polygon drawing (and later used for booking-limits)
+        const poly = payload.polygon;
+        if(poly && Array.isArray(poly) && poly.length){
+          const path = poly.map(pt=>{
+            const lat = Number(pt.lat ?? pt[0]);
+            const lng = Number(pt.lng ?? pt[1]);
+            return {lat, lng};
+          }).filter(p=>Number.isFinite(p.lat) && Number.isFinite(p.lng));
+          if(path.length){
+            if(areaPolygon){
+              areaPolygon.setMap(null);
+            }
+            areaPolygon = new google.maps.Polygon({
+              paths: path,
+              strokeColor: '#027A93',
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+              fillColor: '#027A93',
+              fillOpacity: 0.08
+            });
+            areaPolygon.setMap(map);
+          }
+        }
+      }catch(err){
+        console.error('loadAreaBounds error:', err);
       }
     }
-
-  } catch (err) {
-    console.error('loadAreaBounds error:', err);
-  }
-}
-
 
     function requestAreaBoundsForCurrentArea(){
       const areaId = $('#area').val() || '';
@@ -1299,22 +1276,8 @@ async function loadAreaBounds(areaId){
 
       setLoadingServices(true);
       callContent2(`/locations`, res=>{
-        const list=res?.data||[];
-        const isEng = isEnglishLocale();
-        const ds=list.map(l=>{
-          const ar = (l.TS_location_arabic_name || '').trim();
-          const en = (l.TS_location_english_name || '').trim();
-          return {
-            id: l.id,                               // ✅ areaId for API
-            text: isEng ? (en || ar) : (ar || en)   // ✅ bilingual label
-          };
-        });
-        $('#area').empty().select2({
-          data:ds,
-          width:'100%',
-          placeholder:'اختر المنطقة لخدمة العناية الفاخرة',
-          dir:'rtl'
-        });
+        const list=res?.data||[]; const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
+        $('#area').empty().select2({data:ds,width:'100%',placeholder:'اختر المنطقة لخدمة العناية الفاخرة', dir:'rtl'});
         if(ds.length){
           $('#area').val(ds[0].id).trigger('change');
         } else {
@@ -1325,7 +1288,7 @@ async function loadAreaBounds(areaId){
 
       $('#area').on('change', function(){
         nForm.location=this.value;
-        requestAreaBoundsForCurrentArea();           /* 🔹 NEW: load bounds when area changes */
+        requestAreaBoundsForCurrentArea();           /* 🔹 load bounds when area changes */
 
         setLoadingServices(true);
         callContent2(`/services?location=${encodeURIComponent(this.value)}`, res=>{
@@ -1535,14 +1498,41 @@ async function loadAreaBounds(areaId){
         center:def, zoom:12, disableDoubleClickZoom:true, mapTypeControl:false, fullscreenControl:true,
         restriction:{latLngBounds: SA_BOUNDS, strictBounds:false}
       });
-      marker=new google.maps.Marker({position:def,map,draggable:true,title:'اسحب أو اضغط لتحديد الموقع'});
+      marker=new google.maps.Marker({
+        position:def,
+        map,
+        draggable:true,
+        title:'اسحب أو اضغط لتحديد الموقع'
+      });
+      lastValidLatLng = def;
 
-      const setPos=(latLng,pan=false)=>{
-        if(!latLng) return;
+      const setPos = (latLng, pan = false) => {
+        if (!latLng) return;
+
+        // 🔹 Enforce polygon if present
+        if (areaPolygon && google.maps && google.maps.geometry && google.maps.geometry.poly && typeof google.maps.geometry.poly.containsLocation === 'function') {
+          const inside = google.maps.geometry.poly.containsLocation(latLng, areaPolygon);
+          if (!inside) {
+            // رجوع لآخر نقطة صالحة داخل المنطقة
+            if (lastValidLatLng) {
+              const last = (lastValidLatLng.lat && lastValidLatLng.lng)
+                ? new google.maps.LatLng(lastValidLatLng.lat, lastValidLatLng.lng)
+                : lastValidLatLng;
+              marker.setPosition(last);
+              map.panTo(last);
+            }
+            showToast('error','الخدمة متاحة فقط داخل المنطقة المحددة على الخريطة');
+            return;
+          }
+        }
+
         marker.setPosition(latLng);
-        if(pan){ map.panTo(latLng); }
+        if (pan){ map.panTo(latLng); }
         map.setZoom(17);
+
         positionUrl=`https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
+        lastValidLatLng = latLng;
+
         const hint=document.getElementById('mapHint');
         if(hint) hint.innerHTML=`تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`;
         renderSummary('page6'); updateNextAvailability();
@@ -1582,7 +1572,8 @@ async function loadAreaBounds(areaId){
     window.initMap=initMap;
   </script>
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async&libraries=places&language=ar&region=SA" async defer></script>
+  <!-- 🔹 include geometry library to support point-in-polygon checks -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async&libraries=places,geometry&language=ar&region=SA" async defer></script>
 
   <script
     src="https://rybbit.nahls.app/api/script.js"
