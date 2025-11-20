@@ -563,6 +563,14 @@ footer.sticky-nav {
         </div>
       </div>
     </div>
+    <button id="installPwaBtn"
+        style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+               z-index:9999; padding:10px 18px; border-radius:999px;
+               border:none; background:#027A93; color:#fff; font-weight:800;
+               box-shadow:0 6px 18px rgba(0,0,0,.25);">
+  📲 تثبيت تطبيق NahlTime
+</button>
+
   </footer>
 
   <!-- libs -->
@@ -1623,6 +1631,39 @@ footer.sticky-nav {
         });
     });
   }
+  let deferredInstallPrompt = null;
+const installBtn = document.getElementById('installPwaBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent default mini-info bar
+  e.preventDefault();
+  deferredInstallPrompt = e;
+
+  // Show your custom button
+  if (installBtn) {
+    installBtn.style.display = 'block';
+  }
+});
+
+if (installBtn) {
+  installBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    console.log('User choice:', choice.outcome); // 'accepted' or 'dismissed'
+    deferredInstallPrompt = null;
+
+    // Hide button after user acts
+    installBtn.style.display = 'none';
+  });
+}
+
+// Optional: know when installed
+window.addEventListener('appinstalled', () => {
+  console.log('NahlTime installed ✅');
+});
+
 </script>
 
 
