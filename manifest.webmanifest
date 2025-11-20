@@ -3,8 +3,8 @@
   "short_name": "NahlTime",
   "lang": "ar",
   "dir": "rtl",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/10017-NahlTime2-BookingSystem2/",
+  "scope": "/10017-NahlTime2-BookingSystem2/"
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#01657A",
