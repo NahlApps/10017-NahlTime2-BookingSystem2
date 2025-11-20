@@ -1,0 +1,25 @@
+{
+  "name": "حجوزات المواعيد - NahlTime",
+  "short_name": "NahlTime",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#01657A",
+  "theme_color": "#01657A",
+  "description": "حجوزات غسيل بدون طوابير مع NahlTime.",
+  "icons": [
+    {
+      "src": "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/ChatGPT%20Image%20Sep%2013,%202025,%2001_21_33%20PM.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/ChatGPT%20Image%20Sep%2013,%202025,%2001_21_33%20PM.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
