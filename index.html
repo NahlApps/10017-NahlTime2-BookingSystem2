@@ -1154,135 +1154,124 @@
     }
 
     // 🔹 Dynamic Payment Methods Loader
-    async function loadPaymentMethods() {
-      const wrap = document.getElementById('payGroup');
-      if (!wrap) return;
+async function loadPaymentMethods() {
+  const wrap = document.getElementById('payGroup');
+  const errPay = document.getElementById('err-pay');
+  if (!wrap) return;
 
-      // show loading placeholder
+  wrap.innerHTML = `
+    <div style="grid-column:1/-1;justify-self:center" class="text-muted">
+      جاري تحميل طرق الدفع…
+    </div>
+  `;
+
+  try {
+    const url = `${PAYMENT_METHODS_URL}?action=listPaymentMethods&appId=${encodeURIComponent(APP_ID)}`;
+    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const data = await res.json();
+
+    const methods =
+      Array.isArray(data.methods) ? data.methods :
+      Array.isArray(data.items)   ? data.items   :
+      Array.isArray(data.paymentMethods) ? data.paymentMethods : [];
+
+    if (!methods.length) {
       wrap.innerHTML = `
         <div style="grid-column:1/-1;justify-self:center" class="text-muted">
-          جاري تحميل طرق الدفع…
+          لا توجد طرق دفع مفعلة حاليًا
         </div>
       `;
+      if (errPay) errPay.style.display = 'block';
+      console.warn('loadPaymentMethods: no methods from API');
+      return;
+    }
 
-      const wireCards = () => {
-        const cards = [...wrap.querySelectorAll('.pay-card')];
-        cards.forEach((card, idx) => {
-          const input = card.querySelector('input[type="radio"]');
-          if (!input) return;
+    // ✅ Render payment cards
+    wrap.innerHTML = '';
+    methods.forEach((m, idx) => {
+      const methodId = m.methodId || m.id || '';
+      const nameAr  = m.nameAr || m.NameAr || '';
+      const nameEn  = m.nameEn || m.NameEn || '';
+      const logo    = m.logoUrl || m.LogoUrl || '';
+      const type    = (m.type || '').toLowerCase();
 
-          const selectCard = () => {
-            cards.forEach(c => {
-              c.setAttribute('aria-checked', 'false');
-              c.setAttribute('tabindex', '-1');
-              const r = c.querySelector('input[type="radio"]');
-              if (r) r.checked = false;
-            });
+      const label = isEnglishLocale() ? (nameEn || nameAr || methodId) : (nameAr || nameEn || methodId);
 
-            card.setAttribute('aria-checked', 'true');
-            card.setAttribute('tabindex', '0');
-            input.checked = true;
+      const card = document.createElement('label');
+      card.className = 'pay-card';
+      card.setAttribute('tabindex', idx === 0 ? '0' : '-1');
+      card.setAttribute('role', 'radio');
+      card.setAttribute('aria-checked', 'false');
 
-            nForm.paymentMethod = input.value;
-            renderSummary('page5');
-            updateNextAvailability();
-            // نفس السلوك القديم: الانتقال مباشرة لصفحة الموقع بعد اختيار الدفع
-            showPage(5); // index 5 => page6
-          };
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'payingMethod';
+      input.value = methodId;
+      input.className = 'visually-hidden';
 
-          card.addEventListener('click', selectCard);
-          card.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              selectCard();
-            }
-          });
+      const content = document.createElement('div');
+      content.style.display = 'flex';
+      content.style.alignItems = 'center';
+      content.style.gap = '12px';
+
+      if (logo) {
+        const img = document.createElement('img');
+        img.src = logo;
+        img.alt = label;
+        img.style.maxWidth = '120px';
+        img.style.height = 'auto';
+        content.appendChild(img);
+      } else {
+        const span = document.createElement('strong');
+        span.textContent = label;
+        content.appendChild(span);
+      }
+
+      card.appendChild(input);
+      card.appendChild(content);
+      wrap.appendChild(card);
+
+      const choose = () => {
+        wrap.querySelectorAll('.pay-card').forEach(c => {
+          c.setAttribute('aria-checked', 'false');
+          c.setAttribute('tabindex', '-1');
+          const r = c.querySelector('input[type="radio"]');
+          if (r) r.checked = false;
         });
+
+        card.setAttribute('aria-checked', 'true');
+        card.setAttribute('tabindex', '0');
+        input.checked = true;
+
+        nForm.paymentMethod = methodId;
+        renderSummary('page5');
+        updateNextAvailability();
+        showPage(5);
       };
 
-      try {
-        const url = `${PAYMENT_METHODS_URL}?appId=${encodeURIComponent(APP_ID)}`;
-        const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-
-        if (!json || json.ok === false || !Array.isArray(json.paymentMethods) || !json.paymentMethods.length) {
-          throw new Error(json && json.message ? json.message : 'No methods');
+      card.addEventListener('click', choose);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          choose();
         }
+      });
+    });
 
-        const methods = json.paymentMethods;
-        wrap.innerHTML = '';
+    if (errPay) errPay.style.display = 'none';
+  } catch (err) {
+    console.error('loadPaymentMethods error:', err);
+    wrap.innerHTML = `
+      <div style="grid-column:1/-1;justify-self:center" class="text-danger">
+        تعذر تحميل طرق الدفع الآن، حاول لاحقًا.
+      </div>
+    `;
+    if (errPay) errPay.style.display = 'block';
+  }
+}
 
-        methods.forEach((m, index) => {
-          const id        = String(m.id || m.methodId || '');
-          const nameAr    = m.nameAr || '';
-          const nameEn    = m.nameEn || '';
-          const logoUrl   = m.logoUrl || '';
-
-          const isEnglish = isEnglishLocale();
-          const label = (isEnglish && nameEn) ? nameEn : (nameAr || nameEn || id);
-
-          const card = document.createElement('label');
-          card.className = 'pay-card';
-          card.setAttribute('role', 'radio');
-          card.setAttribute('aria-checked', 'false');
-          card.setAttribute('tabindex', index === 0 ? '0' : '-1');
-
-          const input = document.createElement('input');
-          input.type = 'radio';
-          input.name = 'payingMethod';
-          input.value = id;
-          input.className = 'visually-hidden';
-
-          const content = document.createElement('div');
-          content.style.display = 'flex';
-          content.style.alignItems = 'center';
-          content.style.justifyContent = 'center';
-          content.style.gap = '10px';
-          content.style.width = '100%';
-
-          if (logoUrl) {
-            const img = document.createElement('img');
-            img.src = logoUrl;
-            img.alt = label;
-            img.style.maxWidth = '140px';
-            img.style.height = 'auto';
-            content.appendChild(img);
-          } else {
-            const span = document.createElement('span');
-            span.textContent = label;
-            span.style.fontWeight = 'bold';
-            content.appendChild(span);
-          }
-
-          card.appendChild(input);
-          card.appendChild(content);
-          wrap.appendChild(card);
-        });
-
-        wireCards();
-      } catch (err) {
-        console.error('loadPaymentMethods error:', err);
-        showToast('error', 'تعذر تحميل طرق الدفع — سيتم استخدام الإعدادات الافتراضية.');
-
-        // Fallback to static 3 methods (STC Pay / Cash / Mada) with same old look
-        wrap.innerHTML = `
-          <label class="pay-card" tabindex="0" role="radio" aria-checked="false">
-            <input type="radio" name="payingMethod" value="stc pay" class="visually-hidden"/>
-            <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/STC%20PAY%20LOGO.png" alt="STC Pay">
-          </label>
-          <label class="pay-card" tabindex="-1" role="radio" aria-checked="false">
-            <input type="radio" name="payingMethod" value="cash" class="visually-hidden"/>
-            <strong>كاش</strong>
-          </label>
-          <label class="pay-card" style="grid-column:1/-1" tabindex="-1" role="radio" aria-checked="false">
-            <input type="radio" name="payingMethod" value="mada" class="visually-hidden"/>
-            <img src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/MADA%20LOGO.png" alt="Mada">
-          </label>
-        `;
-        wireCards();
-      }
-    }
 
     /* Map globals */
     let map, marker, autocomplete, areaPolygon, pendingAreaForBounds=null, currentAreaBounds;
