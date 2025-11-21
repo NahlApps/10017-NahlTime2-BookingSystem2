@@ -35,7 +35,7 @@ export default async function handler(req, res) {
   // 🔁 Optional: hard-coded fallback for quick testing
   // TODO: replace with your real Apps Script Web App URL and then (later) remove this line.
   if (!GAS_WEBAPP_URL) {
-    GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyhycgEtgQrAc6Bhq5UIAJwGoaJ0RKwjbmN51Q1tnAnpTPp6BkjFkK15fxwkKu-j7M/exec';
+    GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyw8ONpuV9EE1Og5B2qdgyYjRVYid8lMLKQ7cZZu74KCAbd63CPRMq_r2BpC2FCc2Q/exec';
   }
 
   if (!GAS_WEBAPP_URL) {
