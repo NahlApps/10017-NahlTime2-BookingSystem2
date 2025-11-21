@@ -34,9 +34,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NahlTime">
 
-<!-- iOS home-screen icon -->
 <link rel="apple-touch-icon"
       href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeProLogoImage.png">
+
 
 
   <style>
@@ -1618,11 +1618,14 @@ footer.sticky-nav {
     data-site-id="6371ee910e9c"
     defer
   ></script>
-<script>
+
+
+  <script>
+  // ✅ تسجيل Service Worker
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('/10017-NahlTime2-BookingSystem2/service-worker.js')
-
+      navigator.serviceWorker
+        .register('/10017-NahlTime2-BookingSystem2/service-worker.js')
         .then(function (reg) {
           console.log('Service worker registered 👍', reg.scope);
         })
@@ -1631,40 +1634,82 @@ footer.sticky-nav {
         });
     });
   }
+
+  // ====== PWA Install Prompt (Android + iOS Hint) ======
   let deferredInstallPrompt = null;
-const installBtn = document.getElementById('installPwaBtn');
+  const installBtn = document.getElementById('installPwaBtn');
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevent default mini-info bar
-  e.preventDefault();
-  deferredInstallPrompt = e;
-
-  // Show your custom button
-  if (installBtn) {
-    installBtn.style.display = 'block';
+  function isIos() {
+    return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
   }
-});
 
-if (installBtn) {
-  installBtn.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
+  function isInStandaloneMode() {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
+    );
+  }
 
-    deferredInstallPrompt.prompt();
-    const choice = await deferredInstallPrompt.userChoice;
-    console.log('User choice:', choice.outcome); // 'accepted' or 'dismissed'
-    deferredInstallPrompt = null;
+  function showIosInstallInstructions() {
+    alert(
+      'لتثبيت NahlTime على جهازك:\n' +
+      '1️⃣ اضغط زر "المشاركة" في أسفل سفاري.\n' +
+      '2️⃣ اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).\n' +
+      '3️⃣ بعد التثبيت افتح التطبيق من الأيقونة الجديدة ✅'
+    );
+  }
 
-    // Hide button after user acts
-    installBtn.style.display = 'none';
+  // 🔔 إظهار زر التثبيت/التنبيه عند فتح التطبيق
+  window.addEventListener('load', () => {
+    // ANDROID / CHROME: يستخدم beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+
+      if (installBtn) {
+        installBtn.style.display = 'block';
+        installBtn.textContent = '📲 تثبيت تطبيق NahlTime';
+      }
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        // أولوية: إن كان عندنا beforeinstallprompt (أندرويد / كروم)
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          const choice = await deferredInstallPrompt.userChoice;
+          console.log('User choice:', choice.outcome); // accepted / dismissed
+          deferredInstallPrompt = null;
+          installBtn.style.display = 'none';
+          return;
+        }
+
+        // iOS: أعرض التعليمات اليدوية
+        if (isIos() && !isInStandaloneMode()) {
+          showIosInstallInstructions();
+          return;
+        }
+      });
+    }
+
+    // iOS: لو فتح من سفاري وليس مثبت، أظهر تنبيه التثبيت (زر) من البداية
+    if (isIos() && !isInStandaloneMode()) {
+      if (installBtn) {
+        installBtn.style.display = 'block';
+        installBtn.textContent = '📲 تثبيت NahlTime على الشاشة الرئيسية';
+      }
+    }
   });
-}
 
-// Optional: know when installed
-window.addEventListener('appinstalled', () => {
-  console.log('NahlTime installed ✅');
-});
-
+  // Optional: نعرف متى فعليًا تم التثبيت (أندرويد/كروم)
+  window.addEventListener('appinstalled', () => {
+    console.log('NahlTime installed ✅');
+    if (installBtn) {
+      installBtn.style.display = 'none';
+    }
+  });
 </script>
+
 
 
 
