@@ -1483,7 +1483,10 @@
         card.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();} });
       });
 
-      $('#rebook').on('click', ()=>location.href='/');
+      // ✅ إصلاح حجز جديد: يرجع دائماً لنفس index.html بدل الروت /
+      $('#rebook').on('click', ()=>{
+        window.location.href = 'index.html';
+      });
 
       const applyBtn = document.getElementById('applyCouponBtn');
       if (applyBtn){
