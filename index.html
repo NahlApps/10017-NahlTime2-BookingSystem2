@@ -556,13 +556,18 @@ footer.sticky-nav {
       <div class="footer-actions">
         <button id="footer-prev" type="button" class="btn-footer hidden">السابق</button>
         <button id="footer-next" type="button" class="btn-footer primary disabled" disabled>تخطي العرض</button>
-
+      
+        <!-- 🔹 زر تحميل التطبيق من الفوتر -->
+        <button id="footer-install-btn" type="button" class="btn-footer">
+          📲 تحميل التطبيق
+        </button>
+      
         <div id="footer-wait" class="">
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           <span>يتم إرسال الطلب…</span>
         </div>
       </div>
-    </div>
+
     <button id="installPwaBtn"
         style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
                z-index:9999; padding:10px 18px; border-radius:999px;
@@ -1620,7 +1625,7 @@ footer.sticky-nav {
   ></script>
 
 
-  <script>
+<script>
   // ✅ تسجيل Service Worker
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
@@ -1635,9 +1640,11 @@ footer.sticky-nav {
     });
   }
 
-  // ====== PWA Install Prompt (Android + iOS Hint) ======
+  // ====== PWA Install Logic (Android + iOS) ======
   let deferredInstallPrompt = null;
-  const installBtn = document.getElementById('installPwaBtn');
+
+  const floatingInstallBtn = document.getElementById('installPwaBtn');    // الزر العائم الحالي
+  const footerInstallBtn   = document.getElementById('footer-install-btn'); // زر الفوتر الجديد
 
   function isIos() {
     return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
@@ -1651,6 +1658,7 @@ footer.sticky-nav {
   }
 
   function showIosInstallInstructions() {
+    // تقدر تستبدل alert بمودال جميل لاحقًا
     alert(
       'لتثبيت NahlTime على جهازك:\n' +
       '1️⃣ اضغط زر "المشاركة" في أسفل سفاري.\n' +
@@ -1659,56 +1667,82 @@ footer.sticky-nav {
     );
   }
 
-  // 🔔 إظهار زر التثبيت/التنبيه عند فتح التطبيق
+  async function handlePwaInstallClick() {
+    // لو التطبيق مثبت بالفعل، لا داعي لأي شيء
+    if (isInStandaloneMode()) {
+      console.log('App already running in standalone mode.');
+      return;
+    }
+
+    // ANDROID / CHROME: يوجد beforeinstallprompt جاهز
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      console.log('User choice:', choice.outcome); // accepted / dismissed
+      deferredInstallPrompt = null;
+
+      if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
+      if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
+      return;
+    }
+
+    // iOS: لا يوجد beforeinstallprompt → نعرض تعليمات يدوية
+    if (isIos()) {
+      showIosInstallInstructions();
+      return;
+    }
+
+    // متصفحات أخرى أو حالة غير مدعومة
+    alert('يمكنك تثبيت التطبيق من إعدادات المتصفح أو "إضافة إلى الشاشة الرئيسية".');
+  }
+
   window.addEventListener('load', () => {
-    // ANDROID / CHROME: يستخدم beforeinstallprompt
+    // ANDROID / CHROME: يرسل قبل إظهار نافذة "تثبيت التطبيق"
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredInstallPrompt = e;
 
-      if (installBtn) {
-        installBtn.style.display = 'block';
-        installBtn.textContent = '📲 تثبيت تطبيق NahlTime';
+      // أظهر الأزرار (فوتر / عائم) حسب رغبتك
+      if (floatingInstallBtn) {
+        floatingInstallBtn.style.display = 'block';
+        floatingInstallBtn.textContent = '📲 تثبيت تطبيق NahlTime';
+      }
+      if (footerInstallBtn) {
+        footerInstallBtn.style.display = 'block';
+        footerInstallBtn.textContent = '📲 تحميل التطبيق';
       }
     });
 
-    if (installBtn) {
-      installBtn.addEventListener('click', async () => {
-        // أولوية: إن كان عندنا beforeinstallprompt (أندرويد / كروم)
-        if (deferredInstallPrompt) {
-          deferredInstallPrompt.prompt();
-          const choice = await deferredInstallPrompt.userChoice;
-          console.log('User choice:', choice.outcome); // accepted / dismissed
-          deferredInstallPrompt = null;
-          installBtn.style.display = 'none';
-          return;
-        }
-
-        // iOS: أعرض التعليمات اليدوية
-        if (isIos() && !isInStandaloneMode()) {
-          showIosInstallInstructions();
-          return;
-        }
-      });
+    // اربط نفس الهاندلر بالزرين
+    if (floatingInstallBtn) {
+      floatingInstallBtn.addEventListener('click', handlePwaInstallClick);
+    }
+    if (footerInstallBtn) {
+      footerInstallBtn.addEventListener('click', handlePwaInstallClick);
     }
 
-    // iOS: لو فتح من سفاري وليس مثبت، أظهر تنبيه التثبيت (زر) من البداية
+    // iOS: لو فتح من سفاري وليس مثبت → أظهر زر الفوتر/الزر العائم ليشرح للمستخدم
     if (isIos() && !isInStandaloneMode()) {
-      if (installBtn) {
-        installBtn.style.display = 'block';
-        installBtn.textContent = '📲 تثبيت NahlTime على الشاشة الرئيسية';
+      if (footerInstallBtn) {
+        footerInstallBtn.style.display   = 'block';
+        footerInstallBtn.textContent     = '📲 تحميل التطبيق';
+      }
+      // لو حاب الزر العائم أيضًا:
+      if (floatingInstallBtn) {
+        floatingInstallBtn.style.display = 'block';
+        floatingInstallBtn.textContent   = '📲 تثبيت تطبيق NahlTime';
       }
     }
   });
 
-  // Optional: نعرف متى فعليًا تم التثبيت (أندرويد/كروم)
+  // عندما يتم التثبيت فعليًا (أساسًا أندرويد/كروم)
   window.addEventListener('appinstalled', () => {
     console.log('NahlTime installed ✅');
-    if (installBtn) {
-      installBtn.style.display = 'none';
-    }
+    if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
+    if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
   });
 </script>
+
 
 
 
