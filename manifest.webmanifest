@@ -1,27 +1,21 @@
 {
-  "name": "حجوزات المواعيد - NahlTime",
+  "name": "NahlTime Booking",
   "short_name": "NahlTime",
-  "lang": "ar",
-  "dir": "rtl",
-  "start_url": "/10017-NahlTime2-BookingSystem2/",
+  "start_url": "/10017-NahlTime2-BookingSystem2/index.html",
   "scope": "/10017-NahlTime2-BookingSystem2/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#01657A",
   "theme_color": "#01657A",
-  "description": "حجوزات غسيل بدون طوابير مع NahlTime.",
+  "background_color": "#01657A",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/10017-NahlTime2-BookingSystem2/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/10017-NahlTime2-BookingSystem2/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
