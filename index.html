@@ -2,16 +2,15 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <title>حجوزات المواعيد</title>
-    <!-- PWA Manifest -->
-  <link rel="manifest" href="/10017-NahlTime2-BookingSystem2/manifest.webmanifest">
+
+  <!-- ✅ PWA Manifest (relative path for subfolder) -->
+  <link rel="manifest" href="manifest.webmanifest">
   
   <!-- Browser / Taskbar color -->
   <meta name="theme-color" content="#01657A">
-
 
   <!-- 🔹 Favicon -->
   <link rel="icon" type="image/png" sizes="32x32"
@@ -29,15 +28,13 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/css/intlTelInput.css" rel="stylesheet"/>
-<!-- iOS PWA support -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NahlTime">
 
-<link rel="apple-touch-icon"
-      href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeProLogoImage.png">
-
-
+  <!-- iOS PWA support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NahlTime">
+  <link rel="apple-touch-icon"
+        href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeProLogoImage.png">
 
   <style>
     :root{
@@ -68,6 +65,8 @@
       display:flex; flex-direction:column;
       padding-top:var(--header-h);
       padding-bottom:var(--footer-h);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
     }
 
     header{
@@ -187,6 +186,7 @@
     footer.sticky-nav{
       position:sticky; bottom:0; z-index:40; background:rgba(11,38,48,.45);
       backdrop-filter:blur(10px); border-top:1px solid rgba(255,255,255,.15);
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
     }
     .footer-inner{
       max-width:1120px; width:100%; margin:0 auto; padding:12px;
@@ -253,19 +253,6 @@
       padding-right: 12px;
       text-align: left; direction: ltr;
     }
-    body {
-  /* ... إعداداتك الحالية ... */
-  padding-top: var(--header-h);
-  padding-bottom: var(--footer-h);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-/* لو حاب تحمي الفوتر من السحب من الأسفل */
-footer.sticky-nav {
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
-}
-
   </style>
 </head>
 <body>
@@ -372,7 +359,7 @@ footer.sticky-nav {
               </div>
             </div>
 
-            <!-- ===================== Additional Services – UI START ===================== -->
+            <!-- Additional Services UI -->
             <hr class="mt-4 mb-3"/>
             <div class="mt-2">
               <label class="form-label">خدمات إضافية (اختياري)</label>
@@ -381,7 +368,6 @@ footer.sticky-nav {
               </div>
               <div class="field-error" id="err-additionalServices" style="display:none"></div>
             </div>
-            <!-- ===================== Additional Services – UI END ======================= -->
 
             <div id="servicesLoading" class="load-overlay" aria-hidden="true">
               <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
@@ -484,7 +470,7 @@ footer.sticky-nav {
           </div>
           <div class="field-error" id="err-pay" style="text-align:center">يرجى اختيار طريقة الدفع</div>
 
-          <!-- ✅ Coupon block -->
+          <!-- Coupon block -->
           <div class="card mt-4" id="couponCard">
             <label for="couponCode" class="form-label">كود الخصم (اختياري)</label>
             <div class="input-group">
@@ -557,8 +543,8 @@ footer.sticky-nav {
         <button id="footer-prev" type="button" class="btn-footer hidden">السابق</button>
         <button id="footer-next" type="button" class="btn-footer primary disabled" disabled>تخطي العرض</button>
       
-        <!-- 🔹 زر تحميل التطبيق من الفوتر -->
-        <button id="footer-install-btn" type="button" class="btn-footer">
+        <!-- زر تحميل التطبيق من الفوتر -->
+        <button id="footer-install-btn" type="button" class="btn-footer" style="display:none;">
           📲 تحميل التطبيق
         </button>
       
@@ -567,15 +553,16 @@ footer.sticky-nav {
           <span>يتم إرسال الطلب…</span>
         </div>
       </div>
+    </div>
 
+    <!-- زر PWA عائم للايفون/أندرويد -->
     <button id="installPwaBtn"
-        style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
-               z-index:9999; padding:10px 18px; border-radius:999px;
-               border:none; background:#027A93; color:#fff; font-weight:800;
-               box-shadow:0 6px 18px rgba(0,0,0,.25);">
-  📲 تثبيت تطبيق NahlTime
-</button>
-
+      style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+            z-index:9999; padding:10px 18px; border-radius:999px;
+            border:none; background:#027A93; color:#fff; font-weight:800;
+            box-shadow:0 6px 18px rgba(0,0,0,.25);">
+      📲 تثبيت تطبيق NahlTime
+    </button>
   </footer>
 
   <!-- libs -->
@@ -607,7 +594,7 @@ footer.sticky-nav {
     const API_BASE = window.location.origin.replace(/\/$/, '');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
     const COUPONS_API_URL         = `${API_BASE}/api/coupons/validate`;
-    const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;   /* 🔹 area-bounds API */
+    const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;
 
     let controllers = [];
     async function callContent2(path, cb, abortable=false, retries=3){
@@ -767,7 +754,7 @@ footer.sticky-nav {
       renderSummary(next.id);
       updateNextAvailability();
       if(next.id==='page1') startWelcomeDeck();
-      if(next.id==='page6'){       /* 🔹 ensure map follows currently selected area */
+      if(next.id==='page6'){
         requestAreaBoundsForCurrentArea();
       }
     }
@@ -1176,16 +1163,14 @@ footer.sticky-nav {
       }
     }
 
-    /* 🔹 Map globals & area bounds state */
+    /* Map globals */
     let map, marker, autocomplete, areaPolygon, pendingAreaForBounds=null, currentAreaBounds;
-    let lastValidLatLng = null; // آخر نقطة صالحة داخل البوليغون أو الحدود
+    let lastValidLatLng = null;
     const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
 
-    /* 🔹 Fetch bounds from /api/area-bounds.js and apply to Google Map */
     async function loadAreaBounds(areaId){
       if(!areaId) return;
 
-      // if Google Maps not ready yet, wait and retry once initMap runs
       if(!window.google || !window.google.maps || !map){
         pendingAreaForBounds = areaId;
         return;
@@ -1205,7 +1190,7 @@ footer.sticky-nav {
           return;
         }
         const json = await res.json();
-        const payload = json && json.data ? json.data : json;   // يدعم الشكل {ok,data:{...}} أو مباشر
+        const payload = json && json.data ? json.data : json;
 
         if(!payload){
           console.warn('loadAreaBounds: no payload');
@@ -1236,7 +1221,7 @@ footer.sticky-nav {
           if(marker){
             marker.setPosition(center);
           }
-          lastValidLatLng = center;   // ✅ بداية صالحة داخل حدود المنطقة
+          lastValidLatLng = center;
         }
 
         if(Number.isFinite(north) && Number.isFinite(south) && Number.isFinite(east) && Number.isFinite(west)){
@@ -1244,7 +1229,6 @@ footer.sticky-nav {
             new google.maps.LatLng(south, west),
             new google.maps.LatLng(north, east)
           );
-          // 🔹 Limit pan/zoom to rectangle
           map.setOptions({
             restriction:{
               latLngBounds: areaLatLngBounds,
@@ -1254,7 +1238,6 @@ footer.sticky-nav {
           map.fitBounds(areaLatLngBounds);
         }
 
-        // optional polygon drawing (and later used for booking-limits)
         const poly = payload.polygon;
         if(poly && Array.isArray(poly) && poly.length){
           const path = poly.map(pt=>{
@@ -1331,7 +1314,7 @@ footer.sticky-nav {
 
       $('#area').on('change', function(){
         nForm.location=this.value;
-        requestAreaBoundsForCurrentArea();           /* 🔹 load bounds when area changes */
+        requestAreaBoundsForCurrentArea();
 
         setLoadingServices(true);
         callContent2(`/services?location=${encodeURIComponent(this.value)}`, res=>{
@@ -1552,11 +1535,9 @@ footer.sticky-nav {
       const setPos = (latLng, pan = false) => {
         if (!latLng) return;
 
-        // 🔹 Enforce polygon if present
         if (areaPolygon && google.maps && google.maps.geometry && google.maps.geometry.poly && typeof google.maps.geometry.poly.containsLocation === 'function') {
           const inside = google.maps.geometry.poly.containsLocation(latLng, areaPolygon);
           if (!inside) {
-            // رجوع لآخر نقطة صالحة داخل المنطقة
             if (lastValidLatLng) {
               const last = (lastValidLatLng.lat && lastValidLatLng.lng)
                 ? new google.maps.LatLng(lastValidLatLng.lat, lastValidLatLng.lng)
@@ -1604,7 +1585,6 @@ footer.sticky-nav {
         );
       });
 
-      // 🔹 apply pending area bounds if area was selected before map loaded
       if(pendingAreaForBounds){
         loadAreaBounds(pendingAreaForBounds);
         pendingAreaForBounds = null;
@@ -1615,137 +1595,140 @@ footer.sticky-nav {
     window.initMap=initMap;
   </script>
 
-  <!-- 🔹 include geometry library to support point-in-polygon checks -->
+  <!-- Google Maps (with geometry library) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async&libraries=places,geometry&language=ar&region=SA" async defer></script>
 
+  <!-- Analytics or extra script -->
   <script
     src="https://rybbit.nahls.app/api/script.js"
     data-site-id="6371ee910e9c"
     defer
   ></script>
 
-
-<script>
-  // ✅ تسجيل Service Worker
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker
-        .register('/10017-NahlTime2-BookingSystem2/service-worker.js')
-        .then(function (reg) {
-          console.log('Service worker registered 👍', reg.scope);
-        })
-        .catch(function (err) {
-          console.error('Service worker registration failed:', err);
-        });
-    });
-  }
-
-  // ====== PWA Install Logic (Android + iOS) ======
-  let deferredInstallPrompt = null;
-
-  const floatingInstallBtn = document.getElementById('installPwaBtn');    // الزر العائم الحالي
-  const footerInstallBtn   = document.getElementById('footer-install-btn'); // زر الفوتر الجديد
-
-  function isIos() {
-    return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
-  }
-
-  function isInStandaloneMode() {
-    return (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true
-    );
-  }
-
-  function showIosInstallInstructions() {
-    // تقدر تستبدل alert بمودال جميل لاحقًا
-    alert(
-      'لتثبيت NahlTime على جهازك:\n' +
-      '1️⃣ اضغط زر "المشاركة" في أسفل سفاري.\n' +
-      '2️⃣ اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).\n' +
-      '3️⃣ بعد التثبيت افتح التطبيق من الأيقونة الجديدة ✅'
-    );
-  }
-
-  async function handlePwaInstallClick() {
-    // لو التطبيق مثبت بالفعل، لا داعي لأي شيء
-    if (isInStandaloneMode()) {
-      console.log('App already running in standalone mode.');
-      return;
+  <!-- PWA Service Worker + Install logic -->
+  <script>
+    // ✅ Register Service Worker (relative path for subfolder)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker
+          .register('service-worker.js')
+          .then(function (reg) {
+            console.log('Service worker registered 👍', reg.scope);
+          })
+          .catch(function (err) {
+            console.error('Service worker registration failed:', err);
+          });
+      });
     }
 
-    // ANDROID / CHROME: يوجد beforeinstallprompt جاهز
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-      const choice = await deferredInstallPrompt.userChoice;
-      console.log('User choice:', choice.outcome); // accepted / dismissed
-      deferredInstallPrompt = null;
+    // ====== PWA Install Logic (Android + iOS) ======
+    let deferredInstallPrompt = null;
 
+    const floatingInstallBtn = document.getElementById('installPwaBtn');
+    const footerInstallBtn   = document.getElementById('footer-install-btn');
+
+    function isIos() {
+      return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
+    }
+
+    function isInStandaloneMode() {
+      return (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true
+      );
+    }
+
+    function showIosInstallInstructions() {
+      alert(
+        'لتثبيت NahlTime على جهازك:\n' +
+        '1️⃣ اضغط زر "المشاركة" في أسفل سفاري.\n' +
+        '2️⃣ اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).\n' +
+        '3️⃣ بعد التثبيت افتح التطبيق من الأيقونة الجديدة ✅'
+      );
+    }
+
+    async function handlePwaInstallClick() {
+      if (isInStandaloneMode()) {
+        console.log('App already running in standalone mode.');
+        return;
+      }
+
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        console.log('User choice:', choice.outcome);
+        deferredInstallPrompt = null;
+
+        if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
+        if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
+        return;
+      }
+
+      if (isIos()) {
+        showIosInstallInstructions();
+        return;
+      }
+
+      alert('يمكنك تثبيت التطبيق من إعدادات المتصفح أو "إضافة إلى الشاشة الرئيسية".');
+    }
+
+    window.addEventListener('load', () => {
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+
+        if (floatingInstallBtn) {
+          floatingInstallBtn.style.display = 'block';
+          floatingInstallBtn.textContent = '📲 تثبيت تطبيق NahlTime';
+        }
+        if (footerInstallBtn) {
+          footerInstallBtn.style.display = 'block';
+          footerInstallBtn.textContent = '📲 تحميل التطبيق';
+        }
+      });
+
+      if (floatingInstallBtn) {
+        floatingInstallBtn.addEventListener('click', handlePwaInstallClick);
+      }
+      if (footerInstallBtn) {
+        footerInstallBtn.addEventListener('click', handlePwaInstallClick);
+      }
+
+      // iOS: إظهار زر التثبيت + توست بسيط لو التطبيق غير مثبت
+      if (isIos() && !isInStandaloneMode()) {
+        if (footerInstallBtn) {
+          footerInstallBtn.style.display   = 'block';
+          footerInstallBtn.textContent     = '📲 تحميل التطبيق';
+        }
+        if (floatingInstallBtn) {
+          floatingInstallBtn.style.display = 'block';
+          floatingInstallBtn.textContent   = '📲 تثبيت تطبيق NahlTime';
+        }
+
+        // 🔔 إشعار بسيط عند الفتح يشرح طريقة التثبيت
+        if (typeof showToast === 'function') {
+          setTimeout(() => {
+            showToast('info', '📲 تقدر تثبت NahlTime من زر "تحميل التطبيق" في الأسفل أو من مشاركة سفاري → إضافة إلى الشاشة الرئيسية');
+          }, 2500);
+        }
+      } else if (!isInStandaloneMode()) {
+        // لأغلب المتصفحات على أندرويد/ديسكتوب: توست توعوي بسيط
+        if (typeof showToast === 'function') {
+          setTimeout(() => {
+            showToast('info', '📲 عند ظهور زر "تحميل التطبيق" في الأسفل تقدر تثبت NahlTime كتطبيق على جهازك');
+          }, 2500);
+        }
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      console.log('NahlTime installed ✅');
       if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
       if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
-      return;
-    }
-
-    // iOS: لا يوجد beforeinstallprompt → نعرض تعليمات يدوية
-    if (isIos()) {
-      showIosInstallInstructions();
-      return;
-    }
-
-    // متصفحات أخرى أو حالة غير مدعومة
-    alert('يمكنك تثبيت التطبيق من إعدادات المتصفح أو "إضافة إلى الشاشة الرئيسية".');
-  }
-
-  window.addEventListener('load', () => {
-    // ANDROID / CHROME: يرسل قبل إظهار نافذة "تثبيت التطبيق"
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-
-      // أظهر الأزرار (فوتر / عائم) حسب رغبتك
-      if (floatingInstallBtn) {
-        floatingInstallBtn.style.display = 'block';
-        floatingInstallBtn.textContent = '📲 تثبيت تطبيق NahlTime';
-      }
-      if (footerInstallBtn) {
-        footerInstallBtn.style.display = 'block';
-        footerInstallBtn.textContent = '📲 تحميل التطبيق';
+      if (typeof showToast === 'function') {
+        showToast('success', 'تم تثبيت تطبيق NahlTime على جهازك ✅');
       }
     });
-
-    // اربط نفس الهاندلر بالزرين
-    if (floatingInstallBtn) {
-      floatingInstallBtn.addEventListener('click', handlePwaInstallClick);
-    }
-    if (footerInstallBtn) {
-      footerInstallBtn.addEventListener('click', handlePwaInstallClick);
-    }
-
-    // iOS: لو فتح من سفاري وليس مثبت → أظهر زر الفوتر/الزر العائم ليشرح للمستخدم
-    if (isIos() && !isInStandaloneMode()) {
-      if (footerInstallBtn) {
-        footerInstallBtn.style.display   = 'block';
-        footerInstallBtn.textContent     = '📲 تحميل التطبيق';
-      }
-      // لو حاب الزر العائم أيضًا:
-      if (floatingInstallBtn) {
-        floatingInstallBtn.style.display = 'block';
-        floatingInstallBtn.textContent   = '📲 تثبيت تطبيق NahlTime';
-      }
-    }
-  });
-
-  // عندما يتم التثبيت فعليًا (أساسًا أندرويد/كروم)
-  window.addEventListener('appinstalled', () => {
-    console.log('NahlTime installed ✅');
-    if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
-    if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
-  });
-</script>
-
-
-
-
-
+  </script>
 </body>
 </html>
