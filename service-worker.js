@@ -1,72 +1,106 @@
-const CACHE_NAME = 'nahltime-cache-v1';
+// NahlTime2 Booking PWA Service Worker
+// Scope: ./ (subfolder)
+// Make sure index.html is cached and used for all navigation requests.
 
-// ✅ مسارات نسبية لأن الـ SW داخل مجلد /10017-NahlTime2-BookingSystem2/
-const PRE_CACHE_ASSETS = [
+const CACHE_NAME = 'nahltime2-cache-v3';
+const OFFLINE_URL = './index.html';
+
+// Files we want to cache on install
+const PRECACHE_URLS = [
   './',
   './index.html',
-  './manifest.webmanifest',
-  // أضف ملفاتك المحلية (إن وجدت):
-  // './styles.css',
-  // './main.js',
+  './manifest.webmanifest'
 ];
 
-// Install: cache basic shell
+// ---- Install ----
 self.addEventListener('install', (event) => {
-  console.log('[SW] Install');
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRE_CACHE_ASSETS);
-    })
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.addAll(PRECACHE_URLS);
+      await self.skipWaiting();
+    })()
   );
-  self.skipWaiting();
 });
 
-// Activate: cleanup old caches
+// ---- Activate ----
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activate');
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      )
-    )
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.map((key) => {
+          if (key.startsWith('nahltime2-cache-') && key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+          return null;
+        })
+      );
+      await self.clients.claim();
+    })()
   );
-  self.clients.claim();
 });
 
-// Fetch: cache-first for static assets
+// ---- Fetch ----
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+  const request = event.request;
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200) {
-            return networkResponse;
+  // Only handle GET
+  if (request.method !== 'GET') return;
+
+  // 1) All navigations (PWA open, address bar, internal links)
+  //    → always serve our cached index.html (SPA style)
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+
+        // Prefer cached index.html if available
+        const cached = await cache.match(OFFLINE_URL);
+        if (cached) {
+          return cached;
+        }
+
+        // First load (or cache missing): try network, then fallback
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && networkResponse.ok) {
+            // Store as offline copy for next time
+            cache.put(OFFLINE_URL, networkResponse.clone());
           }
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
           return networkResponse;
-        })
-        .catch((err) => {
-          console.error('[SW] Fetch failed:', err);
-          // ممكن مستقبلاً تضيف صفحة offline.html
+        } catch (err) {
+          // If completely offline and we don't have cache yet
           return new Response(
-            '⚠ غير متصل بالإنترنت حاليًا. الرجاء المحاولة لاحقًا.',
-            {
-              status: 503,
-              headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-            }
+            'You are offline and the app is not cached yet.',
+            { status: 503, statusText: 'Offline' }
           );
-        });
-    })
-  );
+        }
+      })()
+    );
+    return;
+  }
+
+  // 2) For same-origin assets (CSS, JS, images…): cache-first, then network
+  if (request.url.startsWith(self.location.origin)) {
+    event.respondWith(
+      (async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+
+        try {
+          const response = await fetch(request);
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(request, response.clone());
+          return response;
+        } catch (err) {
+          // If network fails and no cache, just fail normally
+          return new Response('Network error', {
+            status: 408,
+            statusText: 'Network error'
+          });
+        }
+      })()
+    );
+  }
 });
