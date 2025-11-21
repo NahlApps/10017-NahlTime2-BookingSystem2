@@ -1,6 +1,6 @@
 // api/payment-methods.js (Node on Vercel)
 export default async function handler(req, res) {
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycby1kgkEr1LBfcwILXk0-6Z0LAib8GRvX9wuC4L9xiOOALiPB-WuHKyS6ilqpzQXahRW/exec'; // 👈 your deployed URL
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxu_R0s5NvAP3xBBDFeMYyYjI7pe_O4Bm_pBB6fQ2upNeYq4pMtoRtMh-tDgZar3POq/exec'; // 👈 your deployed URL
 
   const { appId } = req.query;
 
