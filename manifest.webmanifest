@@ -4,10 +4,10 @@
   "lang": "ar",
   "dir": "rtl",
 
-  // ✅ هذا هو الرابط الذي يفتحه التطبيق بعد التثبيت
+
   "start_url": "/10017-NahlTime2-BookingSystem2/index.html",
 
-  // ✅ نطاق عمل التطبيق داخل نفس المجلد
+ 
   "scope": "/10017-NahlTime2-BookingSystem2/",
 
   "display": "standalone",
@@ -16,7 +16,7 @@
   "theme_color": "#01657A",
   "description": "حجوزات غسيل بدون طوابير مع NahlTime.",
 
-  // ✅ تأكد أن هذه الأيقونات موجودة فعلاً في هذا المسار على السيرفر
+ 
   "icons": [
     {
       "src": "/10017-NahlTime2-BookingSystem2/icons/icon-192.png",
