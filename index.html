@@ -425,6 +425,31 @@
                 <label for="mobile" class="form-label">رقم الجوال</label>
                 <input id="mobile" type="tel" class="form-control" placeholder="رقم التواصل الخاص — مثال 5XXXXXXXX" autocomplete="tel"/>
                 <div class="field-error" id="err-mobile">الرجاء إدخال رقم جوال صحيح</div>
+
+                <!-- 🔐 OTP Controls (send + status) -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-2" id="otpControls" style="display:none;">
+                  <button id="btnSendOtp" type="button" class="btn btn-sm btn-outline-primary" style="border-radius:999px; min-height:38px;">
+                    إرسال كود على واتساب
+                  </button>
+                  <span id="otpStatus" class="small text-muted">
+                    سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.
+                  </span>
+                </div>
+
+                <!-- 🔢 OTP Input + Verify -->
+                <div class="row g-2 mt-2" id="otpVerifyRow" style="display:none;">
+                  <div class="col-8 col-sm-6">
+                    <input id="otpCode" type="tel" inputmode="numeric" maxlength="4"
+                      class="form-control"
+                      placeholder="أدخل كود التحقق (4 أرقام)"/>
+                  </div>
+                  <div class="col-4 col-sm-3 d-grid">
+                    <button id="btnVerifyOtp" type="button" class="btn btn-success btn-sm" style="min-height:40px;">
+                      تأكيد
+                    </button>
+                  </div>
+                </div>
+                <div class="field-error" id="err-otp" style="display:none;">يرجى إدخال كود التحقق الصحيح</div>
               </div>
             </div>
           </div>
@@ -586,6 +611,15 @@
     const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;
     const PAYMENT_METHODS_URL     = `${API_BASE}/api/payment-methods`;
 
+    /* 🔐 OTP API endpoints (via proxy → Code.gs → Green API) */
+    const OTP_REQUEST_URL         = `${API_BASE}/api/otp/request`;
+    const OTP_VERIFY_URL          = `${API_BASE}/api/otp/verify`;
+
+    /* 🔄 Toggle OTP feature ON/OFF from here (no backend change required) */
+    const OTP_ENABLED             = true;   // 🟢 true = require OTP verify, 🔴 false = skip OTP
+    const OTP_CODE_LENGTH         = 4;
+    const OTP_RESEND_SECONDS      = 60;
+
     let controllers = [];
     async function callContent2(path, cb, abortable=false, retries=3){
       let signal='';
@@ -652,6 +686,12 @@
     let couponCodeApplied = '';
     let couponDiscountAmount = 0;
     let couponMeta = null;
+
+    /* 🔐 OTP state */
+    let otpRequested = false;
+    let otpVerified  = false;
+    let otpLastSentAt = null;
+    let otpCountdownTimer = null;
 
     const nForm={
       date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',
@@ -1154,124 +1194,360 @@
     }
 
     // 🔹 Dynamic Payment Methods Loader
-async function loadPaymentMethods() {
-  const wrap = document.getElementById('payGroup');
-  const errPay = document.getElementById('err-pay');
-  if (!wrap) return;
+    async function loadPaymentMethods() {
+      const wrap = document.getElementById('payGroup');
+      const errPay = document.getElementById('err-pay');
+      if (!wrap) return;
 
-  wrap.innerHTML = `
-    <div style="grid-column:1/-1;justify-self:center" class="text-muted">
-      جاري تحميل طرق الدفع…
-    </div>
-  `;
-
-  try {
-    const url = `${PAYMENT_METHODS_URL}?action=listPaymentMethods&appId=${encodeURIComponent(APP_ID)}`;
-    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-
-    const data = await res.json();
-
-    const methods =
-      Array.isArray(data.methods) ? data.methods :
-      Array.isArray(data.items)   ? data.items   :
-      Array.isArray(data.paymentMethods) ? data.paymentMethods : [];
-
-    if (!methods.length) {
       wrap.innerHTML = `
         <div style="grid-column:1/-1;justify-self:center" class="text-muted">
-          لا توجد طرق دفع مفعلة حاليًا
+          جاري تحميل طرق الدفع…
         </div>
       `;
-      if (errPay) errPay.style.display = 'block';
-      console.warn('loadPaymentMethods: no methods from API');
-      return;
-    }
 
-    // ✅ Render payment cards
-    wrap.innerHTML = '';
-    methods.forEach((m, idx) => {
-      const methodId = m.methodId || m.id || '';
-      const nameAr  = m.nameAr || m.NameAr || '';
-      const nameEn  = m.nameEn || m.NameEn || '';
-      const logo    = m.logoUrl || m.LogoUrl || '';
-      const type    = (m.type || '').toLowerCase();
+      try {
+        const url = `${PAYMENT_METHODS_URL}?action=listPaymentMethods&appId=${encodeURIComponent(APP_ID)}`;
+        const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
 
-      const label = isEnglishLocale() ? (nameEn || nameAr || methodId) : (nameAr || nameEn || methodId);
+        const data = await res.json();
 
-      const card = document.createElement('label');
-      card.className = 'pay-card';
-      card.setAttribute('tabindex', idx === 0 ? '0' : '-1');
-      card.setAttribute('role', 'radio');
-      card.setAttribute('aria-checked', 'false');
+        const methods =
+          Array.isArray(data.methods) ? data.methods :
+          Array.isArray(data.items)   ? data.items   :
+          Array.isArray(data.paymentMethods) ? data.paymentMethods : [];
 
-      const input = document.createElement('input');
-      input.type = 'radio';
-      input.name = 'payingMethod';
-      input.value = methodId;
-      input.className = 'visually-hidden';
+        if (!methods.length) {
+          wrap.innerHTML = `
+            <div style="grid-column:1/-1;justify-self:center" class="text-muted">
+              لا توجد طرق دفع مفعلة حاليًا
+            </div>
+          `;
+          if (errPay) errPay.style.display = 'block';
+          console.warn('loadPaymentMethods: no methods from API');
+          return;
+        }
 
-      const content = document.createElement('div');
-      content.style.display = 'flex';
-      content.style.alignItems = 'center';
-      content.style.gap = '12px';
+        // ✅ Render payment cards
+        wrap.innerHTML = '';
+        methods.forEach((m, idx) => {
+          const methodId = m.methodId || m.id || '';
+          const nameAr  = m.nameAr || m.NameAr || '';
+          const nameEn  = m.nameEn || m.NameEn || '';
+          const logo    = m.logoUrl || m.LogoUrl || '';
+          const type    = (m.type || '').toLowerCase();
 
-      if (logo) {
-        const img = document.createElement('img');
-        img.src = logo;
-        img.alt = label;
-        img.style.maxWidth = '120px';
-        img.style.height = 'auto';
-        content.appendChild(img);
-      } else {
-        const span = document.createElement('strong');
-        span.textContent = label;
-        content.appendChild(span);
-      }
+          const label = isEnglishLocale() ? (nameEn || nameAr || methodId) : (nameAr || nameEn || methodId);
 
-      card.appendChild(input);
-      card.appendChild(content);
-      wrap.appendChild(card);
+          const card = document.createElement('label');
+          card.className = 'pay-card';
+          card.setAttribute('tabindex', idx === 0 ? '0' : '-1');
+          card.setAttribute('role', 'radio');
+          card.setAttribute('aria-checked', 'false');
 
-      const choose = () => {
-        wrap.querySelectorAll('.pay-card').forEach(c => {
-          c.setAttribute('aria-checked', 'false');
-          c.setAttribute('tabindex', '-1');
-          const r = c.querySelector('input[type="radio"]');
-          if (r) r.checked = false;
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = 'payingMethod';
+          input.value = methodId;
+          input.className = 'visually-hidden';
+
+          const content = document.createElement('div');
+          content.style.display = 'flex';
+          content.style.alignItems = 'center';
+          content.style.gap = '12px';
+
+          if (logo) {
+            const img = document.createElement('img');
+            img.src = logo;
+            img.alt = label;
+            img.style.maxWidth = '120px';
+            img.style.height = 'auto';
+            content.appendChild(img);
+          } else {
+            const span = document.createElement('strong');
+            span.textContent = label;
+            content.appendChild(span);
+          }
+
+          card.appendChild(input);
+          card.appendChild(content);
+          wrap.appendChild(card);
+
+          const choose = () => {
+            wrap.querySelectorAll('.pay-card').forEach(c => {
+              c.setAttribute('aria-checked', 'false');
+              c.setAttribute('tabindex', '-1');
+              const r = c.querySelector('input[type="radio"]');
+              if (r) r.checked = false;
+            });
+
+            card.setAttribute('aria-checked', 'true');
+            card.setAttribute('tabindex', '0');
+            input.checked = true;
+
+            nForm.paymentMethod = methodId;
+            renderSummary('page5');
+            updateNextAvailability();
+            showPage(5);
+          };
+
+          card.addEventListener('click', choose);
+          card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              choose();
+            }
+          });
         });
 
-        card.setAttribute('aria-checked', 'true');
-        card.setAttribute('tabindex', '0');
-        input.checked = true;
+        if (errPay) errPay.style.display = 'none';
+      } catch (err) {
+        console.error('loadPaymentMethods error:', err);
+        wrap.innerHTML = `
+          <div style="grid-column:1/-1;justify-self:center" class="text-danger">
+            تعذر تحميل طرق الدفع الآن، حاول لاحقًا.
+          </div>
+        `;
+        if (errPay) errPay.style.display = 'block';
+      }
+    }
 
-        nForm.paymentMethod = methodId;
-        renderSummary('page5');
-        updateNextAvailability();
-        showPage(5);
-      };
+    /* 🔐 OTP Helpers */
 
-      card.addEventListener('click', choose);
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          choose();
+    function resetOtpState(fullReset){
+      if(!OTP_ENABLED) return;
+      otpRequested = false;
+      otpVerified  = false;
+      otpLastSentAt = null;
+      if(otpCountdownTimer){
+        clearInterval(otpCountdownTimer);
+        otpCountdownTimer = null;
+      }
+      const statusEl = document.getElementById('otpStatus');
+      const errEl    = document.getElementById('err-otp');
+      const codeEl   = document.getElementById('otpCode');
+      const verifyRow= document.getElementById('otpVerifyRow');
+      const sendBtn  = document.getElementById('btnSendOtp');
+
+      if(statusEl){
+        statusEl.className = 'small text-muted';
+        statusEl.textContent = 'سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.';
+      }
+      if(errEl){
+        errEl.style.display = 'none';
+      }
+      if(codeEl){
+        codeEl.removeAttribute('readonly');
+        if(fullReset) codeEl.value = '';
+      }
+      if(verifyRow){
+        verifyRow.style.display = 'none';
+      }
+      if(sendBtn){
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'إرسال كود على واتساب';
+      }
+    }
+
+    function startOtpCountdown(){
+      const sendBtn  = document.getElementById('btnSendOtp');
+      const statusEl = document.getElementById('otpStatus');
+      if(!sendBtn || !statusEl) return;
+
+      otpRequested   = true;
+      otpVerified    = false;
+      otpLastSentAt  = Date.now();
+      let remaining  = OTP_RESEND_SECONDS;
+
+      statusEl.className = 'small text-muted';
+      statusEl.textContent = `تم إرسال الكود، يمكنك إعادة الإرسال بعد ${remaining} ثانية.`;
+      sendBtn.disabled = true;
+      sendBtn.textContent = `إعادة الإرسال (${remaining})`;
+
+      if(otpCountdownTimer){
+        clearInterval(otpCountdownTimer);
+      }
+      otpCountdownTimer = setInterval(()=>{
+        remaining--;
+        if(remaining <= 0){
+          clearInterval(otpCountdownTimer);
+          otpCountdownTimer = null;
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'إعادة إرسال الكود';
+          statusEl.textContent = 'إذا لم يصلك الكود خلال دقيقة، اضغط "إعادة إرسال الكود".';
+        }else{
+          sendBtn.textContent = `إعادة الإرسال (${remaining})`;
+          statusEl.textContent = `تم إرسال الكود، يمكنك إعادة الإرسال بعد ${remaining} ثانية.`;
         }
-      });
-    });
+      }, 1000);
+    }
 
-    if (errPay) errPay.style.display = 'none';
-  } catch (err) {
-    console.error('loadPaymentMethods error:', err);
-    wrap.innerHTML = `
-      <div style="grid-column:1/-1;justify-self:center" class="text-danger">
-        تعذر تحميل طرق الدفع الآن، حاول لاحقًا.
-      </div>
-    `;
-    if (errPay) errPay.style.display = 'block';
-  }
-}
+    async function requestOtpForMobile(){
+      if(!OTP_ENABLED) return;
+      const sendBtn  = document.getElementById('btnSendOtp');
+      const statusEl = document.getElementById('otpStatus');
+      const errEl    = document.getElementById('err-otp');
 
+      if(errEl) errEl.style.display = 'none';
+
+      if(!itiPhone || !itiPhone.isValidNumber()){
+        document.getElementById('err-mobile').style.display = 'block';
+        showToast('error','من فضلك أدخل رقم جوال صحيح قبل طلب الكود');
+        return;
+      }
+
+      const mobile = itiPhone.getNumber().replace(/^\+/, '');
+
+      try{
+        if(sendBtn){
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'جاري الإرسال…';
+        }
+        if(statusEl){
+          statusEl.className = 'small text-muted';
+          statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
+        }
+
+        const res = await fetch(OTP_REQUEST_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ appId: APP_ID, mobileNumber: mobile })
+        });
+
+        const data = await res.json().catch(()=>null);
+
+        if(!res.ok || !data || data.success === false){
+          const msg = data && data.message ? data.message : 'تعذر إرسال كود التحقق الآن، حاول مرة أخرى.';
+          showToast('error', msg);
+          if(statusEl){
+            statusEl.className = 'small text-danger';
+            statusEl.textContent = msg;
+          }
+          if(sendBtn){
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'إرسال كود على واتساب';
+          }
+          return;
+        }
+
+        const verifyRow = document.getElementById('otpVerifyRow');
+        if(verifyRow){
+          verifyRow.style.display = 'flex';
+        }
+        if(statusEl){
+          statusEl.className = 'small text-success';
+          statusEl.textContent = 'تم إرسال الكود إلى واتساب، من فضلك أدخل الكود المكون من 4 أرقام للتحقق من رقمك.';
+        }
+
+        showToast('success','تم إرسال كود التحقق إلى واتساب');
+        startOtpCountdown();
+      }catch(err){
+        console.error('requestOtpForMobile error:', err);
+        if(statusEl){
+          statusEl.className = 'small text-danger';
+          statusEl.textContent = 'حدث خطأ أثناء إرسال الكود، حاول مرة أخرى.';
+        }
+        if(sendBtn){
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'إرسال كود على واتساب';
+        }
+        showToast('error','تعذر إرسال كود التحقق الآن');
+      }
+    }
+
+    async function verifyOtpCode(){
+      if(!OTP_ENABLED) return;
+      const codeInput = document.getElementById('otpCode');
+      const statusEl  = document.getElementById('otpStatus');
+      const errEl     = document.getElementById('err-otp');
+      const btn       = document.getElementById('btnVerifyOtp');
+      if(!codeInput || !btn) return;
+
+      const raw = (codeInput.value || '').trim();
+      if(!new RegExp(`^\\d{${OTP_CODE_LENGTH}}$`).test(raw)){
+        if(errEl){
+          errEl.textContent = `رجاءً أدخل كود مكون من ${OTP_CODE_LENGTH} أرقام`;
+          errEl.style.display = 'block';
+        }
+        showToast('error',`كود التحقق يجب أن يكون ${OTP_CODE_LENGTH} أرقام`);
+        return;
+      }
+
+      if(!itiPhone || !itiPhone.isValidNumber()){
+        document.getElementById('err-mobile').style.display='block';
+        showToast('error','من فضلك تأكد من صحة رقم الجوال أولاً');
+        return;
+      }
+
+      const mobile = itiPhone.getNumber().replace(/^\+/, '');
+
+      try{
+        btn.disabled = true;
+        btn.textContent = 'جاري التحقق…';
+        if(errEl) errEl.style.display = 'none';
+        if(statusEl){
+          statusEl.className = 'small text-muted';
+          statusEl.textContent = 'جاري التحقق من كود التحقق…';
+        }
+
+        const res = await fetch(OTP_VERIFY_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ appId: APP_ID, mobileNumber: mobile, otp: raw })
+        });
+
+        const data = await res.json().catch(()=>null);
+
+        if(!res.ok || !data || data.success === false){
+          const msg = data && data.message ? data.message : 'كود التحقق غير صحيح أو منتهي.';
+          if(errEl){
+            errEl.textContent = msg;
+            errEl.style.display = 'block';
+          }
+          if(statusEl){
+            statusEl.className = 'small text-danger';
+            statusEl.textContent = msg;
+          }
+          showToast('error', msg);
+          otpVerified = false;
+          updateNextAvailability();
+          return;
+        }
+
+        otpVerified = true;
+        if(statusEl){
+          statusEl.className = 'small text-success';
+          statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅ يمكنك المتابعة لإكمال الحجز.';
+        }
+        if(errEl) errEl.style.display = 'none';
+        if(codeInput){
+          codeInput.setAttribute('readonly','readonly');
+        }
+        const sendBtn = document.getElementById('btnSendOtp');
+        if(sendBtn){
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'تم التحقق';
+        }
+        if(otpCountdownTimer){
+          clearInterval(otpCountdownTimer);
+          otpCountdownTimer = null;
+        }
+        showToast('success','تم التحقق من رقم جوالك');
+        updateNextAvailability();
+      }catch(err){
+        console.error('verifyOtpCode error:', err);
+        if(statusEl){
+          statusEl.className = 'small text-danger';
+          statusEl.textContent = 'تعذر التحقق من الكود الآن، حاول مرة أخرى.';
+        }
+        showToast('error','حدث خطأ أثناء التحقق من الكود');
+      }finally{
+        if(btn && !otpVerified){
+          btn.disabled=false;
+          btn.textContent='تأكيد';
+        }
+      }
+    }
 
     /* Map globals */
     let map, marker, autocomplete, areaPolygon, pendingAreaForBounds=null, currentAreaBounds;
@@ -1491,7 +1767,13 @@ async function loadPaymentMethods() {
       $('#carBrand').empty().select2({data:luxuryFirstBrands,width:'100%',placeholder:'اختر ماركة المركبة (الأسماء الفاخرة أولاً)', dir:'rtl'});
 
       $('#name').on('input', function(){ nForm.customerN=this.value.trim(); renderSummary('page4'); updateNextAvailability(); });
-      $('#mobile').on('input', function(){ renderSummary('page4'); updateNextAvailability(); });
+      $('#mobile').on('input', function(){
+        renderSummary('page4');
+        if(OTP_ENABLED){
+          resetOtpState(false);
+        }
+        updateNextAvailability();
+      });
       $('#carName').on('input', function(){ updateNextAvailability(); });
 
       $('#serviceCount').on('change', function(){
@@ -1526,11 +1808,31 @@ async function loadPaymentMethods() {
         if(id==='page3'){ if(!selectedTime){ showToast('error','الرجاء اختيار وقت'); return; } showPage(3); return; }
 
         if(id==='page4'){
-          const nameOk=($('#name').val()||'').trim().length>0; const phoneOk=itiPhone && itiPhone.isValidNumber();
+          const nameOk=($('#name').val()||'').trim().length>0;
+          const phoneOk=itiPhone && itiPhone.isValidNumber();
           document.getElementById('err-name').style.display=nameOk?'none':'block';
           document.getElementById('err-mobile').style.display=phoneOk?'none':'block';
-          if(!nameOk||!phoneOk){ showToast('error','يرجى التحقق من الاسم ورقم الجوال'); return; }
-          nForm.customerN=$('#name').val().trim(); nForm.customerM=itiPhone.getNumber().replace(/^\+/,'');
+
+          if(!nameOk||!phoneOk){
+            showToast('error','يرجى التحقق من الاسم ورقم الجوال');
+            return;
+          }
+
+          if(OTP_ENABLED && !otpVerified){
+            const errOtp = document.getElementById('err-otp');
+            if(errOtp){
+              errOtp.textContent = 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة.';
+              errOtp.style.display = 'block';
+            }
+            showToast('error','يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة');
+            return;
+          }
+
+          const errOtp = document.getElementById('err-otp');
+          if(errOtp) errOtp.style.display = 'none';
+
+          nForm.customerN=$('#name').val().trim(); 
+          nForm.customerM=itiPhone.getNumber().replace(/^\+/,'');
 
           nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
 
@@ -1590,6 +1892,28 @@ async function loadPaymentMethods() {
         applyBtn.addEventListener('click', validateCouponAndApply);
       }
 
+      // 🔐 Wire OTP controls (if enabled)
+      if(OTP_ENABLED){
+        const otpControls = document.getElementById('otpControls');
+        const verifyRow  = document.getElementById('otpVerifyRow');
+        if(otpControls) otpControls.style.display = 'flex';
+        if(verifyRow)   verifyRow.style.display   = 'none';
+
+        const btnSendOtp   = document.getElementById('btnSendOtp');
+        const btnVerifyOtp = document.getElementById('btnVerifyOtp');
+        if(btnSendOtp){   btnSendOtp.addEventListener('click', requestOtpForMobile); }
+        if(btnVerifyOtp){ btnVerifyOtp.addEventListener('click', verifyOtpCode); }
+
+        resetOtpState(true);
+      } else {
+        const otpControls = document.getElementById('otpControls');
+        const verifyRow   = document.getElementById('otpVerifyRow');
+        const errOtp      = document.getElementById('err-otp');
+        if(otpControls) otpControls.style.display = 'none';
+        if(verifyRow)   verifyRow.style.display   = 'none';
+        if(errOtp)      errOtp.style.display      = 'none';
+      }
+
       // Load dynamic extras + payment methods
       loadAdditionalServices();
       loadPaymentMethods();
@@ -1611,12 +1935,27 @@ async function loadPaymentMethods() {
 
     function updateNextAvailability(){
       const i=getActiveIndex(); const nextBtn=document.getElementById('footer-next'); let enable=true;
-      if(i===0){ enable=true; }
-      else if(i===1){ enable=!!($('#area').val()&&$('#service').val()); }
-      else if(i===2){ enable=!!selectedTime; }
-      else if(i===3){ const nameOk=($('#name').val()||'').trim().length>0; enable=nameOk && (window.itiPhone ? itiPhone.isValidNumber() : true); }
-      else if(i===4){ enable=!!(document.querySelector('#payGroup input:checked')); }
-      else if(i===5){ enable=!!positionUrl; }
+      if(i===0){ 
+        enable=true; 
+      }
+      else if(i===1){ 
+        enable=!!($('#area').val()&&$('#service').val()); 
+      }
+      else if(i===2){ 
+        enable=!!selectedTime; 
+      }
+      else if(i===3){ 
+        const nameOk=($('#name').val()||'').trim().length>0; 
+        const phoneOk = (window.itiPhone ? itiPhone.isValidNumber() : true);
+        const otpOk   = (!OTP_ENABLED) || otpVerified;
+        enable = nameOk && phoneOk && otpOk;
+      }
+      else if(i===4){ 
+        enable=!!(document.querySelector('#payGroup input:checked')); 
+      }
+      else if(i===5){ 
+        enable=!!positionUrl; 
+      }
       nextBtn.disabled=!enable; nextBtn.classList.toggle('disabled',!enable);
     }
 
