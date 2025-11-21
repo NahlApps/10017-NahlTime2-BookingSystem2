@@ -1,11 +1,13 @@
 const CACHE_NAME = 'nahltime-cache-v1';
 
-// 👇 عدّل أسماء الملفات حسب مسارك الفعلي
+// ✅ مسارات نسبية لأن الـ SW داخل مجلد /10017-NahlTime2-BookingSystem2/
 const PRE_CACHE_ASSETS = [
-  '/',                // لو صفحتك الرئيسية في الجذر
-  '/index.html',
-  '/manifest.webmanifest',
-  // أضف هنا ملفات CSS/JS الذاتية لو عندك (لو كلها من CDN مو ضروري)
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  // أضف ملفاتك المحلية (إن وجدت):
+  // './styles.css',
+  // './main.js',
 ];
 
 // Install: cache basic shell
@@ -43,17 +45,28 @@ self.addEventListener('fetch', (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).then((networkResponse) => {
-        // فقط خزن الاستجابات الناجحة
-        if (!networkResponse || networkResponse.status !== 200) {
+      return fetch(event.request)
+        .then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200) {
+            return networkResponse;
+          }
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
           return networkResponse;
-        }
-        const responseClone = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
+        })
+        .catch((err) => {
+          console.error('[SW] Fetch failed:', err);
+          // ممكن مستقبلاً تضيف صفحة offline.html
+          return new Response(
+            '⚠ غير متصل بالإنترنت حاليًا. الرجاء المحاولة لاحقًا.',
+            {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+            }
+          );
         });
-        return networkResponse;
-      });
     })
   );
 });
