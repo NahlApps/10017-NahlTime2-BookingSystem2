@@ -1,26 +1,24 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+// api/payment-methods.js (Node on Vercel)
+export default async function handler(req, res) {
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycby1kgkEr1LBfcwILXk0-6Z0LAib8GRvX9wuC4L9xiOOALiPB-WuHKyS6ilqpzQXahRW/exec'; // 👈 your deployed URL
 
-const APPSCRIPT_BASE = process.env.APPSCRIPT_BASE_URL; 
-// e.g. "https://script.google.com/macros/s/XXXX/exec"
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { appId } = req.query;
-  if (!appId || typeof appId !== 'string') {
-    return res.status(400).json({ ok: false, message: 'Missing appId' });
-  }
+
+  const url = `${GAS_URL}?action=listPaymentMethods&appId=${encodeURIComponent(appId || '')}`;
 
   try {
-    const url = `${APPSCRIPT_BASE}?path=payment-methods&appId=${encodeURIComponent(appId)}`;
-    const r = await fetch(url, { method: 'GET' });
+    const r = await fetch(url, { method: 'GET', redirect: 'follow' });
     const text = await r.text();
-    let data: any = null;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { ok: false, raw: text };
+    let data;
+    try { data = JSON.parse(text); } catch {
+      data = { ok: false, error: 'Invalid JSON from GAS', raw: text };
     }
-    return res.status(200).json(data);
-  } catch (err: any) {
-    return res.status(500).json({ ok: false, message: String(err) });
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.status(200).json(data);
+  } catch (err) {
+    console.error('payment-methods proxy error:', err);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.status(500).json({ ok: false, error: String(err) });
   }
 }
