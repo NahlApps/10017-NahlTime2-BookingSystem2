@@ -655,8 +655,8 @@
     const APP_ID = '21eddbf5-efe5-4a5d-9134-b581717b17ff';
 
     const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${APP_ID}/form`;
-    const RESERVE_URL_PRIMARY  = `${defaultLink2}/reserveAppointment`;
-    const RESERVE_URL_FALLBACK = `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
+    const RESERVE_URL_PRIMARY  = `${defaultLink2}?action=reserveAppointment&appid=${encodeURIComponent(APP_ID)}`;
+    const RESERVE_URL_FALLBACK = `${defaultLink2.replace(/\/form\/?$/,'')}?action=reserveAppointment&appid=${encodeURIComponent(APP_ID)}`;
 
     const API_BASE = window.location.origin.replace(/\/$/, '');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
