@@ -482,17 +482,16 @@
                 <!-- 🔢 OTP Input (4 separate digits) + Verify -->
                 <div class="row g-2 mt-2" id="otpVerifyRow" style="display:none;">
                   <div class="col-12 col-sm-8">
-                  <div class="d-flex justify-content-center gap-2 otp-input-group" dir="ltr">
-                    <input id="otpDigit1" type="tel" inputmode="numeric" maxlength="1"
-                           class="form-control otp-input" autocomplete="one-time-code">
-                    <input id="otpDigit2" type="tel" inputmode="numeric" maxlength="1"
-                           class="form-control otp-input">
-                    <input id="otpDigit3" type="tel" inputmode="numeric" maxlength="1"
-                           class="form-control otp-input">
-                    <input id="otpDigit4" type="tel" inputmode="numeric" maxlength="1"
-                           class="form-control otp-input">
-                  </div>
-
+                    <div class="d-flex justify-content-center gap-2 otp-input-group" dir="ltr">
+                      <input id="otpDigit1" type="tel" inputmode="numeric" maxlength="1"
+                             class="form-control otp-input" autocomplete="one-time-code">
+                      <input id="otpDigit2" type="tel" inputmode="numeric" maxlength="1"
+                             class="form-control otp-input">
+                      <input id="otpDigit3" type="tel" inputmode="numeric" maxlength="1"
+                             class="form-control otp-input">
+                      <input id="otpDigit4" type="tel" inputmode="numeric" maxlength="1"
+                             class="form-control otp-input">
+                    </div>
                   </div>
                   <div class="col-12 col-sm-4 d-grid mt-2 mt-sm-0">
                     <button id="btnVerifyOtp" type="button"
@@ -654,11 +653,11 @@
 
     const APP_ID = '21eddbf5-efe5-4a5d-9134-b581717b17ff';
 
-    /* ✅ This is the backend "servicer" URL that will receive the POST */
-    const SERVICER_URL = 'https://nahl-platform.vercel.app';
-
-    /* Existing data API base (GET) */
     const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${APP_ID}/form`;
+
+    // ⬇️ POST bookings directly to the platform root
+    const RESERVE_URL_PRIMARY  = 'https://nahl-platform.vercel.app';
+    const RESERVE_URL_FALLBACK = RESERVE_URL_PRIMARY;
 
     const API_BASE = window.location.origin.replace(/\/$/, '');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
@@ -691,32 +690,35 @@
         if(!String(e).includes('AbortError') && retries>0) setTimeout(()=>callContent2(path,cb,abortable,retries-1),600);
       }
     }
-
-    /* ✅ Single function to POST reservation to SERVICER_URL */
-    async function postReservation(payload){
+    async function postReservationTry(url, payload, contentType='text/plain;charset=UTF-8'){
       try{
-        const res = await fetch(SERVICER_URL, {
+        const res=await fetch(url,{
           method:'POST',
           mode:'cors',
           cache:'no-store',
           credentials:'omit',
           referrerPolicy:'no-referrer',
           headers:{
-            'Content-Type':'application/json;charset=UTF-8',
-            'Accept':'application/json, text/plain, */*'
+            'Content-Type':contentType,
+            'Accept':'application/json'
           },
-          body: JSON.stringify(payload)
+          body:JSON.stringify(payload)
         });
-
-        const raw = await res.text();
-        let data = null;
-        try { data = JSON.parse(raw); } catch(_) {}
-
-        return { ok: res.ok, status: res.status, data, raw };
-      } catch(err){
-        console.error('postReservation error:', err);
-        return { ok:false, status:0, error:String(err) };
+        const raw=await res.text();
+        let data=null;
+        try{ data=JSON.parse(raw);}catch(_){}
+        return {ok:res.ok,status:res.status,data,raw};
+      }catch(err){
+        return {ok:false,status:0,error:String(err)}
       }
+    }
+    async function postReservation(payload){
+      let r=await postReservationTry(RESERVE_URL_PRIMARY,payload,'text/plain;charset=UTF-8');
+      if(!r.ok && (r.status===415||r.status===406||r.status===0))
+        r=await postReservationTry(RESERVE_URL_PRIMARY,payload,'application/json;charset=UTF-8');
+      if(!r.ok && r.status===404)
+        r=await postReservationTry(RESERVE_URL_FALLBACK,payload,'text/plain;charset=UTF-8');
+      return r;
     }
 
     function showToast(type='info', msg=''){
@@ -769,9 +771,10 @@
 
     /* 🔢 Phone helpers */
 
+    // Full digits with country code (E.164 → digits), used for booking/coupons, not OTP.
     function getMobileDigits() {
       if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
-        const e164 = itiPhone.getNumber() || '';
+        const e164 = itiPhone.getNumber() || ''; // e.g. +966564491003
         const digits = e164.replace(/\D/g, '');
         if (digits) return digits;
       }
@@ -779,11 +782,14 @@
       return (el?.value || '').replace(/\D/g, '');
     }
 
+    // Local part only (what user typed in the input, without dial code),
+    // used for OTP; country code will be sent separately.
     function getMobileLocalDigits() {
       const el = document.getElementById('mobile');
       if (!el) return '';
       const raw = el.value || '';
       let digits = raw.replace(/\D/g, '');
+      // strip one leading 0 if exists (e.g. 05XXXXXXXX → 5XXXXXXXX)
       if (digits.startsWith('0')) {
         digits = digits.slice(1);
       }
@@ -792,6 +798,7 @@
 
     function isPhoneDigitsValid() {
       const local = getMobileLocalDigits();
+      // 8–12 digits for local Saudi/GCC numbers is safe
       return local.length >= 8 && local.length <= 12;
     }
 
@@ -1094,21 +1101,21 @@
       header && ro.observe(header); footer && ro.observe(footer);
     }
 
-    /* ✅ Build final payload exactly as requested */
+    // ✅ Build payload exactly as requested
     function buildPayload(){
-      const loc  = $('#area').val()        || '';
-      const svcC = $('#serviceCat').val()  || '';
-      const svc  = $('#service').val()     || '';
-      const cnt  = $('#serviceCount').val()|| '1';
+      const loc  = $('#area').val();
+      const svcC = $('#serviceCat').val();
+      const svc  = $('#service').val();
+      const cnt  = $('#serviceCount').val() || '1';
       const phoneDigits = getMobileDigits();
 
       return {
         date: nForm.date || '',
         time: nForm.time || '',
-        location: String(loc || ''),
-        service: String(svc || ''),
-        serviceCount: String(cnt || '1'),
-        serviceCat: String(svcC || ''),
+        location: (loc !== null && loc !== undefined) ? String(loc) : '',
+        service: (svc !== null && svc !== undefined) ? String(svc) : '',
+        serviceCount: String(cnt),
+        serviceCat: (svcC !== null && svcC !== undefined) ? String(svcC) : '',
         customerM: phoneDigits || '',
         customerN: nForm.customerN || '',
         paymentMethod: (nForm.paymentMethod || '').toLowerCase(),
@@ -1387,7 +1394,7 @@
             nForm.paymentMethod = methodId;
             renderSummary('page5');
             updateNextAvailability();
-            showPage(4);
+            showPage(5);
           };
 
           card.addEventListener('click', choose);
@@ -1528,6 +1535,7 @@
       }, 1000);
     }
 
+    /* ✅ Request OTP – uses selected country code from intl-tel-input */
     async function requestOtpForMobile() {
       const mobileInput = document.getElementById('mobile');
       const btnSend     = document.getElementById('btnSendOtp');
@@ -1539,13 +1547,15 @@
           return;
         }
 
-        const localDigits = getMobileLocalDigits();
+        // ✅ أرقام الجوال المحلية (بدون كود الدولة)
+        const localDigits = getMobileLocalDigits(); // مثال: 564491003
 
         if (!localDigits || localDigits.length < 8) {
           showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
           return;
         }
 
+        // ✅ كود الدولة المختار من القائمة (من intl-tel-input)
         let dialCode = '966';
         if (window.itiPhone && typeof itiPhone.getSelectedCountryData === 'function') {
           const cData = itiPhone.getSelectedCountryData() || {};
@@ -1558,6 +1568,7 @@
                     'localDigits =', localDigits,
                     'dialCode =', dialCode);
 
+        // ⏳ تحديث حالة الزرّ والنص أثناء الإرسال
         if (btnSend) {
           btnSend.disabled = true;
           btnSend.textContent = 'جارٍ الإرسال…';
@@ -1571,8 +1582,8 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            mobileNumber: localDigits,
-            countryCode: dialCode,
+            mobileNumber: localDigits, // ✅ الرقم المحلي فقط
+            countryCode: dialCode,     // ✅ كود الدولة من القائمة
             appid: APP_ID
           })
         });
@@ -1604,6 +1615,7 @@
           return;
         }
 
+        // ✅ نجاح الإرسال
         showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
 
         if (statusEl) {
@@ -1641,6 +1653,7 @@
       }
     }
 
+    /* ✅ Updated OTP verification using 4 inputs – also sends countryCode */
     async function verifyOtpForMobile(otpCode) {
       const errEl       = document.getElementById('err-otp');
       const statusEl    = document.getElementById('otpStatus');
@@ -1663,6 +1676,7 @@
           return;
         }
 
+        // حالة زر التأكيد أثناء الطلب
         if (verifyBtn) {
           verifyBtn.disabled = true;
           verifyBtn.dataset.originalText = verifyBtn.dataset.originalText || verifyBtn.textContent;
@@ -1671,12 +1685,13 @@
 
         let mobilePlain;
         if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
-          const mobileE164 = itiPhone.getNumber() || '';
-          mobilePlain = mobileE164.replace(/^\+/, '');
+          const mobileE164 = itiPhone.getNumber() || '';   // +9665xxxxxxx
+          mobilePlain = mobileE164.replace(/^\+/, '');     // 9665xxxxxxx
         } else {
           mobilePlain = digitsInput;
         }
 
+        // نفس كود الدولة من select
         let dialCode = '966';
         if (window.itiPhone && typeof itiPhone.getSelectedCountryData === 'function') {
           const cData = itiPhone.getSelectedCountryData() || {};
@@ -1717,6 +1732,7 @@
           return;
         }
 
+        // ✅ تم التحقق بنجاح
         otpVerified = true;
         if (otpCountdownTimer) {
           clearInterval(otpCountdownTimer);
@@ -2094,20 +2110,18 @@
 
           const r=await postReservation(buildPayload());
 
-          if(r.ok){
-            showToast('success','تم إنشاء الحجز بنجاح');
-
+          if(r.ok && r.data?.success){
+            showToast('success','تم إنشاء الحجز');
             document.getElementById('ts-area').textContent = $('#area').find(':selected').text()||'—';
             document.getElementById('ts-service').textContent = $('#service').find(':selected').text()||'—';
             document.getElementById('ts-dt').textContent = (nForm.date?DateTime.fromISO(nForm.date).toFormat('d LLL yyyy'):'') + (nForm.time?(' • '+nForm.time):'');
             document.getElementById('ts-pay').textContent = (nForm.paymentMethod||'').toUpperCase()||'—';
-
             const waMsg = encodeURIComponent(`تم إرسال طلب حجز: \nالخدمة: ${$('#service').find(':selected').text()}\nالتاريخ: ${nForm.date} ${nForm.time}\nالرابط: ${location.href}`);
             document.getElementById('ts-whatsapp').href = `https://wa.me/?text=${waMsg}`;
 
             showPage(6);
           } else {
-            const msg=r?.data?.msgAR || r?.data?.message || (r.status===404?'المسار غير موجود':'تعذر إنشاء الحجز');
+            const msg=r?.data?.msgAR || (r.status===404?'المسار غير موجود':'تعذر إنشاء الحجز');
             showToast('error',msg);
             isSubmitting=false;
             $wait.classList.remove('show');
@@ -2141,6 +2155,7 @@
         if(btnSendOtp){   btnSendOtp.addEventListener('click', requestOtpForMobile); }
         if(btnVerifyOtp){ btnVerifyOtp.addEventListener('click', verifyOtpCode); }
 
+        // 🔢 تحسين تجربة إدخال OTP (الانتقال بين الخانات + لصق الكود)
         const otpInputs = Array.from(document.querySelectorAll('.otp-input'));
         if (otpInputs.length) {
           otpInputs.forEach((input, idx) => {
@@ -2200,6 +2215,7 @@
         if(errOtp)      errOtp.style.display      = 'none';
       }
 
+      // Load dynamic extras + payment methods
       loadAdditionalServices();
       loadPaymentMethods();
 
