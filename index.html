@@ -701,6 +701,24 @@
       couponCode:''
     };
 
+    /* 🔢 Phone helpers (relaxed validation) */
+    function getMobileDigits() {
+      // Prefer intl-tel-input (E.164 with country code)
+      if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
+        const e164 = itiPhone.getNumber() || ''; // e.g. +966564491003
+        const digits = e164.replace(/\D/g, '');
+        if (digits) return digits;
+      }
+      // Fallback: raw input
+      const el = document.getElementById('mobile');
+      return (el?.value || '').replace(/\D/g, '');
+    }
+
+    function isPhoneDigitsValid() {
+      const digits = getMobileDigits();
+      return digits.length >= 8 && digits.length <= 15;
+    }
+
     function isEnglishLocale(){
       const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
       return localeRaw.startsWith('en');
@@ -1001,7 +1019,7 @@
 
     function buildPayload(){
       const loc=$('#area').val(); const svcC=$('#serviceCat').val(); const svc=$('#service').val(); const cnt=$('#serviceCount').val()||'1';
-      const phoneDigits=itiPhone?.getNumber?.()?.replace(/^\+/, '') || '';
+      const phoneDigits = getMobileDigits();
       return {
         date:nForm.date, time:nForm.time,
         location:(loc!==null&&loc!=='')?String(loc):undefined,
@@ -1138,7 +1156,7 @@
         return;
       }
 
-      const customer = itiPhone && itiPhone.getNumber ? itiPhone.getNumber().replace(/^\+/, '') : '';
+      const customer = getMobileDigits();
 
       msgEl.textContent = 'جاري التحقق من الكوبون…';
       msgEl.className = 'small mt-2 text-muted';
@@ -1384,132 +1402,124 @@
       }, 1000);
     }
 
-async function requestOtpForMobile() {
-  const mobileInput = document.getElementById('mobile');
-  const btnSend     = document.getElementById('btnSendOtp');
-  const statusEl    = document.getElementById('otpStatus');
+    async function requestOtpForMobile() {
+      const mobileInput = document.getElementById('mobile');
+      const btnSend     = document.getElementById('btnSendOtp');
+      const statusEl    = document.getElementById('otpStatus');
 
-  try {
-    if (!mobileInput) {
-      showToast('error', 'حصل خطأ في حقل رقم الجوال');
-      return;
-    }
+      try {
+        if (!mobileInput) {
+          showToast('error', 'حصل خطأ في حقل رقم الجوال');
+          return;
+        }
 
-    // ✅ تحقّق مبسّط: بس نتأكد فيه أرقام كفاية (بدون تشدد)
-    const rawValue = mobileInput.value || '';
-    const digits   = rawValue.replace(/\D/g, ''); // نخليها أرقام فقط
+        // ✅ تحقّق مبسّط باستخدام الهيلبر
+        const digits = getMobileDigits();
 
-    if (!digits || digits.length < 8) {
-      showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
-      return;
-    }
+        if (!digits || digits.length < 8) {
+          showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
+          return;
+        }
 
-    // نحاول استخدام intlTelInput لو متوفر، وإلا نستخدم الأرقام كما هي
-    let mobilePlain;
-    if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
-      const mobileE164 = itiPhone.getNumber() || '';   // مثال: +9665XXXXXXX
-      mobilePlain = mobileE164.replace(/^\+/, '');     // مثال: 9665XXXXXXX
-    } else {
-      mobilePlain = digits;
-    }
+        const mobilePlain = digits;   // مثال: 9665XXXXXXX
 
-    console.log('OTP_REQUEST_URL =', OTP_REQUEST_URL, 'mobilePlain =', mobilePlain);
+        console.log('OTP_REQUEST_URL =', OTP_REQUEST_URL, 'mobilePlain =', mobilePlain);
 
-    // ⏳ تحديث حالة الزرّ والنص أثناء الإرسال
-    if (btnSend) {
-      btnSend.disabled = true;
-      btnSend.textContent = 'جارٍ الإرسال…';
-    }
-    if (statusEl) {
-      statusEl.className = 'small text-muted';
-      statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
-    }
+        // ⏳ تحديث حالة الزرّ والنص أثناء الإرسال
+        if (btnSend) {
+          btnSend.disabled = true;
+          btnSend.textContent = 'جارٍ الإرسال…';
+        }
+        if (statusEl) {
+          statusEl.className = 'small text-muted';
+          statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
+        }
 
-    const res = await fetch(OTP_REQUEST_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mobileNumber: mobilePlain,
-        appid: APP_ID   // نرسلها أيضاً في الـ body للاحتياط
-      })
-    });
+        const res = await fetch(OTP_REQUEST_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mobileNumber: mobilePlain,
+            appid: APP_ID   // نرسلها أيضاً في الـ body للاحتياط
+          })
+        });
 
-    let data = null;
-    try {
-      data = await res.json();
-    } catch (e) {
-      console.warn('OTP request: failed to parse JSON', e);
-    }
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (e) {
+          console.warn('OTP request: failed to parse JSON', e);
+        }
 
-    console.log('OTP request response:', res.status, data);
+        console.log('OTP request response:', res.status, data);
 
-    if (!res.ok || !data || data.success === false) {
-      const msg =
-        (data && (data.error || data.message)) ||
-        'تعذر إرسال رمز التحقق حالياً، حاول مرة أخرى لاحقاً.';
+        if (!res.ok || !data || data.success === false) {
+          const msg =
+            (data && (data.error || data.message)) ||
+            'تعذر إرسال رمز التحقق حالياً، حاول مرة أخرى لاحقاً.';
 
-      showToast('error', msg);
+          showToast('error', msg);
 
-      if (statusEl) {
-        statusEl.className = 'small text-danger';
-        statusEl.textContent = 'تعذر إرسال الكود، حاول مرة أخرى.';
+          if (statusEl) {
+            statusEl.className = 'small text-danger';
+            statusEl.textContent = 'تعذر إرسال الكود، حاول مرة أخرى.';
+          }
+          if (btnSend) {
+            btnSend.disabled = false;
+            btnSend.textContent = 'إرسال كود على واتساب';
+          }
+          return;
+        }
+
+        // ✅ نجاح الإرسال
+        showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
+
+        if (statusEl) {
+          statusEl.className = 'small text-success';
+          statusEl.textContent = 'تم إرسال الكود بنجاح، يرجى إدخال الكود المكون من ٤ أرقام في الخانة أدناه.';
+        }
+
+        // إظهار صف إدخال الكود
+        const verifyRow = document.getElementById('otpVerifyRow');
+        if (verifyRow) {
+          verifyRow.style.display = 'flex';
+        }
+
+        // بدء العدّ التنازلي لإعادة الإرسال
+        if (typeof startOtpCountdown === 'function') {
+          startOtpCountdown();
+        } else {
+          if (btnSend) {
+            btnSend.disabled = false;
+            btnSend.textContent = 'إعادة إرسال الكود';
+          }
+        }
+      } catch (err) {
+        console.error('requestOtpForMobile error:', err);
+        showToast('error', 'حدث خطأ أثناء طلب رمز التحقق');
+
+        const btnSend = document.getElementById('btnSendOtp');
+        const statusEl = document.getElementById('otpStatus');
+
+        if (statusEl) {
+          statusEl.className = 'small text-danger';
+          statusEl.textContent = 'حدث خطأ أثناء الإرسال، حاول مرة أخرى.';
+        }
+        if (btnSend) {
+          btnSend.disabled = false;
+          btnSend.textContent = 'إرسال كود على واتساب';
+        }
       }
-      if (btnSend) {
-        btnSend.disabled = false;
-        btnSend.textContent = 'إرسال كود على واتساب';
-      }
-      return;
     }
-
-    // ✅ نجاح الإرسال
-    showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
-
-    if (statusEl) {
-      statusEl.className = 'small text-success';
-      statusEl.textContent = 'تم إرسال الكود بنجاح، يرجى إدخال الكود المكون من ٤ أرقام في الخانة أدناه.';
-    }
-
-    // إظهار صف إدخال الكود
-    const verifyRow = document.getElementById('otpVerifyRow');
-    if (verifyRow) {
-      verifyRow.style.display = 'flex';
-    }
-
-    // بدء العدّ التنازلي لإعادة الإرسال (يعتمد على startOtpCountdown الموجودة عندك)
-    if (typeof startOtpCountdown === 'function') {
-      startOtpCountdown();
-    } else {
-      // لو ما كانت معرفة، نرجّع الزرّ للوضع الطبيعي بعد الإرسال
-      if (btnSend) {
-        btnSend.disabled = false;
-        btnSend.textContent = 'إعادة إرسال الكود';
-      }
-    }
-  } catch (err) {
-    console.error('requestOtpForMobile error:', err);
-    showToast('error', 'حدث خطأ أثناء طلب رمز التحقق');
-
-    if (statusEl) {
-      statusEl.className = 'small text-danger';
-      statusEl.textContent = 'حدث خطأ أثناء الإرسال، حاول مرة أخرى.';
-    }
-    if (btnSend) {
-      btnSend.disabled = false;
-      btnSend.textContent = 'إرسال كود على واتساب';
-    }
-  }
-}
 
 
     async function verifyOtpForMobile(otpCode) {
       try {
-        if (!window.itiPhone || !itiPhone.isValidNumber()) {
+        const mobilePlain = getMobileDigits();
+        if (!mobilePlain || mobilePlain.length < 8) {
           showToast('error', 'الرجاء التأكد من رقم الجوال');
           return;
         }
-
-        const mobileE164  = itiPhone.getNumber();
-        const mobilePlain = mobileE164.replace(/^\+/, '');
 
         console.log('OTP_VERIFY_URL =', OTP_VERIFY_URL);
 
@@ -1728,7 +1738,7 @@ async function requestOtpForMobile() {
       });
       $('#mobile').attr({placeholder:'رقم التواصل الخاص — مثال 5XXXXXXXX', inputmode:'tel', autocomplete:'tel'})
                   .on('blur', ()=> {
-                    const ok = itiPhone && itiPhone.isValidNumber();
+                    const ok = isPhoneDigitsValid();
                     document.getElementById('err-mobile').style.display = ok ? 'none':'block';
                   });
 
@@ -1862,7 +1872,7 @@ async function requestOtpForMobile() {
 
         if(id==='page4'){
           const nameOk=($('#name').val()||'').trim().length>0;
-          const phoneOk=itiPhone && itiPhone.isValidNumber();
+          const phoneOk=isPhoneDigitsValid();
           document.getElementById('err-name').style.display=nameOk?'none':'block';
           document.getElementById('err-mobile').style.display=phoneOk?'none':'block';
 
@@ -1885,7 +1895,7 @@ async function requestOtpForMobile() {
           if(errOtp) errOtp.style.display = 'none';
 
           nForm.customerN=$('#name').val().trim(); 
-          nForm.customerM=itiPhone.getNumber().replace(/^\+/,'');
+          nForm.customerM=getMobileDigits();
 
           nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
 
@@ -1999,7 +2009,7 @@ async function requestOtpForMobile() {
       }
       else if(i===3){ 
         const nameOk=($('#name').val()||'').trim().length>0; 
-        const phoneOk = (window.itiPhone ? itiPhone.isValidNumber() : true);
+        const phoneOk = isPhoneDigitsValid();
         const otpOk   = (!OTP_ENABLED) || otpVerified;
         enable = nameOk && phoneOk && otpOk;
       }
