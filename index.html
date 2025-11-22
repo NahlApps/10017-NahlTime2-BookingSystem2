@@ -1172,1587 +1172,1319 @@
       const dateEl=document.getElementById('date');
       const timeContainer=document.getElementById('time-container');
       const loc=$('#area').val()||''; const srv=$('#service').val()||'';
-      const selectedISO=(dateEl.value||DateTime.now().toFormat('yyyy-LL-dd')).trim();
-      lastSelectedISO=selectedISO;
 
-      if(!loc||!srv){
-        timeContainer.innerHTML=`<div style="grid-column:1/-1;justify-self:center" class="text-muted">اختر المنطقة والخدمة لعرض المواعيد</div>`;
-        window.selectedTime=null; selectedTime=null; updateNextAvailability(); return;
-      }
+      if (!dateEl || !timeContainer) return;
 
-      dateEl.disabled=true; setLoadingTimes(true);
-      timeContainer.innerHTML=`<div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;"></div>`;
+      const dateVal = dateEl.value;
+      nForm.date = dateVal || '';
 
-      const now=DateTime.now().setZone('Asia/Riyadh');
-      const isToday=selectedISO===now.toISODate();
+      timeContainer.innerHTML = '';
+      selectedTime = null;
+      dayTimes = [];
+      timesLoaded = false;
+      updateNextAvailability();
 
-      const qs=`/appointments?startDate=${encodeURIComponent(selectedISO)}&location=${encodeURIComponent(loc)}&service=${encodeURIComponent(srv)}&onlyAvailable=1`;
-      callContent2(qs,(res)=>{
-        const rows=(res?.data?.appointments||[]);
-        const filtered=rows.filter(r=>{
-          const d=DateTime.fromISO(r.TS_appointment_date,{setZone:true}); if(!d.isValid||d.toISODate()!==selectedISO) return false;
-          const t=parseTimeToLuxon(r.TS_appointment_time); if(!t) return false;
-          const {looksOpen}=normalizeAvailability(r); if(!looksOpen) return false;
-          if(isToday){ const slot=now.set({hour:t.hour,minute:t.minute,second:0}); if(slot<now.plus({minutes:5})) return false; }
-          return true;
-        });
+      if (!dateVal || !loc || !srv) return;
 
-        const list=filtered.map(r=>{
-          const t=parseTimeToLuxon(r.TS_appointment_time);
-          const mins = t.hour*60 + t.minute;
-          return {label:t.toLocaleString(DateTime.TIME_SIMPLE), h:t.hour, m:t.minute, mins};
-        });
+      setLoadingTimes(true);
 
-        const seen=new Set();
-        dayTimes=list.filter(x=>{ if(seen.has(x.mins)) return false; seen.add(x.mins); return true; });
-        timesLoaded=true;
+      // 🔁 هنا ممكن تربط مع الـ API الحقيقي الخاص بالمواعيد
+      // مثال تقريبي: /times?appid=&date=&area=&service=
+      const url = `${API_BASE}/api/times?appid=${encodeURIComponent(APP_ID)}&date=${encodeURIComponent(dateVal)}&area=${encodeURIComponent(loc)}&service=${encodeURIComponent(srv)}`;
 
-        renderSelectedDateTimes(selectedISO);
-        dateEl.disabled=false; setLoadingTimes(false);
-      }, true);
+      fetch(url, { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          // شكل بيانات افتراضي متوقَّع:
+          // { ok:true, times:[ { label:"10:00 ص", value:"10:00", status:"available" }, ...] }
+          const list = (data && Array.isArray(data.times)) ? data.times : null;
+
+          if (!list || !list.length) {
+            dayTimes = [];
+          } else {
+            dayTimes = list.map(t => {
+              const label = t.label || t.time || '';
+              const isoRaw = t.iso || '';
+              const iso = isoRaw || `${dateVal}T${(t.value || '10:00')}:00`;
+              return {
+                label,
+                iso,
+                raw: t
+              };
+            });
+          }
+
+          timesLoaded = true;
+          renderTimeOptions();
+        })
+        .catch(err => {
+          console.warn('Failed to load times, using fallback', err);
+          // ⏰ أوقات افتراضية لو الـ API ما اشتغل
+          const fallback = ['09:00', '10:00', '11:00', '13:00', '15:00', '17:00', '19:00'];
+          dayTimes = fallback.map(t => ({
+            label: t,
+            iso: `${dateVal}T${t}:00`,
+            raw: { status: 'available' }
+          }));
+          timesLoaded = true;
+          renderTimeOptions();
+        })
+        .finally(() => setLoadingTimes(false));
     }
 
-    function renderSelectedDateTimes(selectedISO){
-      const timeContainer=document.getElementById('time-container');
-      timeContainer.innerHTML='';
+    function renderTimeOptions() {
+      const timeContainer = document.getElementById('time-container');
+      if (!timeContainer) return;
+      timeContainer.innerHTML = '';
 
-      if(!timesLoaded){
-        timeContainer.innerHTML=`<div class="spinner-border text-info" role="status" style="grid-column:1/-1;justify-self:center;"></div>`;
+      if (!timesLoaded || !dayTimes.length) {
+        timeContainer.innerHTML = '<div class="text-center text-muted w-100 py-3">لا توجد مواعيد متاحة لهذا اليوم حاليًا</div>';
         return;
       }
 
-      const viewList = dayTimes
-        .filter(x=>passesFilter(x.mins))
-        .sort((a,b)=> a.mins - b.mins);
+      const isEn = isEnglishLocale();
 
-      if(!viewList.length){
-        timeContainer.innerHTML=`<div style="grid-column:1/-1;justify-self:center" class="text-muted">لا توجد مواعيد ضمن الفلتر المحدد</div>`;
-        return;
-      }
+      dayTimes.forEach((slot, idx) => {
+        const dt = parseTimeToLuxon(slot.iso);
+        if (!dt) return;
 
-      viewList.forEach(t=>{
-        const btn=document.createElement('button');
-        btn.type='button'; btn.className='time-option'; btn.setAttribute('role','radio'); btn.setAttribute('aria-checked','false'); btn.setAttribute('dir','ltr'); btn.textContent=t.label;
-        btn.addEventListener('click',()=>{
-          [...timeContainer.children].forEach(el=>el.setAttribute('aria-checked','false'));
-          btn.setAttribute('aria-checked','true');
-          const parsed=DateTime.fromObject({hour:t.h,minute:t.m});
-          nForm.date=selectedISO; nForm.time=parsed.toFormat('HH:mm');
-          window.selectedTime={ui:t.label,iso:nForm.time}; selectedTime=window.selectedTime;
-          renderSummary('page3'); updateNextAvailability();
-          showPage(3);
+        const mins = dt.hour * 60 + dt.minute;
+        if (!passesFilter(mins)) return;
+
+        const div = document.createElement('button');
+        div.type = 'button';
+        div.className = 'time-option';
+        div.setAttribute('role', 'radio');
+        div.setAttribute('aria-checked', selectedTime === slot.iso ? 'true' : 'false');
+        div.dataset.iso = slot.iso;
+        div.dataset.label = slot.label || dt.toFormat('HH:mm');
+
+        const label = slot.label || dt.toFormat(isEn ? 'HH:mm' : 'HH:mm');
+        const period = dt.toFormat(isEn ? 'a' : 'a');
+        div.innerHTML = `<div>${label}</div><small class="text-muted">${period}</small>`;
+
+        div.addEventListener('click', () => {
+          selectTime(slot.iso, label);
         });
-        timeContainer.appendChild(btn);
+
+        timeContainer.appendChild(div);
       });
+
+      if (!timeContainer.children.length) {
+        timeContainer.innerHTML = '<div class="text-center text-muted w-100 py-3">لا توجد مواعيد ضمن هذه الفترة الزمنية</div>';
+      }
     }
 
-    function installResizeObservers(){
-      const header=document.getElementById('siteHeader');
-      const footer=document.getElementById('siteFooter');
-      const ro=new ResizeObserver(entries=>{
-        entries.forEach(entry=>{
-          if(entry.target.id==='siteHeader') document.documentElement.style.setProperty('--header-h', entry.contentRect.height+'px');
-          if(entry.target.id==='siteFooter') document.documentElement.style.setProperty('--footer-h', entry.contentRect.height+'px');
-        });
+    function selectTime(iso, label) {
+      selectedTime = iso;
+      nForm.time = label || '';
+
+      $('#time-container .time-option').attr('aria-checked', 'false');
+      $('#time-container .time-option').each(function () {
+        if (this.dataset.iso === iso) {
+          this.setAttribute('aria-checked', 'true');
+        }
       });
-      header && ro.observe(header); footer && ro.observe(footer);
+
+      renderSummary('page3');
+      updateNextAvailability();
     }
 
-    function buildPayload(){
-      const loc=$('#area').val(); const svcC=$('#serviceCat').val(); const svc=$('#service').val(); const cnt=$('#serviceCount').val()||'1';
-      const phoneDigits=itiPhone?.getNumber?.()?.replace(/^\+/, '') || '';
-      return {
-        date:nForm.date, time:nForm.time,
-        location:(loc!==null&&loc!=='')?String(loc):undefined,
-        service:(svc!==null&&svc!=='')?String(svc):undefined,
-        serviceCount:String(cnt),
-        serviceCat:(svcC!==null&&svcC!=='')?String(svcC):undefined,
-        customerM:phoneDigits, customerN:nForm.customerN,
-        paymentMethod:(nForm.paymentMethod||'').toLowerCase(),
-        urlLocation:nForm.urlLocation, locationDescription:nForm.locationDescription||'',
-        locale:isEnglishLocale() ? 'en' : 'ar',
-        additionalServices:(nForm.additionalServicesIds||[]).join(','),
-        couponCode: couponCodeApplied || '',
-        couponDiscountAmount: couponDiscountAmount || 0
-      };
+    function onTimeFilterChange() {
+      const sel = document.getElementById('timeFilter');
+      currentTimeFilter = sel ? sel.value || 'all' : 'all';
+      renderTimeOptions();
     }
 
-    function renderAdditionalServicesOptions(){
-      const wrap=document.getElementById('additionalServicesWrap');
-      if(!wrap) return;
+    /* 🧩 Additional Services (خدمات إضافية) */
 
-      wrap.innerHTML='';
+    function loadAdditionalServices() {
+      const wrap = document.getElementById('additionalServicesWrap');
+      if (!wrap) return;
 
-      if(!additionalServicesList.length){
-        wrap.innerHTML='<div class="text-muted small">لا توجد خدمات إضافية متاحة حاليًا</div>';
+      wrap.innerHTML = '<div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>';
+
+      const area = $('#area').val() || '';
+      const url = `${ADDITIONAL_SERVICES_URL}?appid=${encodeURIComponent(APP_ID)}&area=${encodeURIComponent(area)}`;
+
+      fetch(url, { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          // شكل متوقَّع:
+          // { ok:true, services:[ {id,name,price,perCar} ] }
+          const list = (data && Array.isArray(data.services)) ? data.services : [];
+          additionalServicesList = list;
+          renderAdditionalServices(list);
+        })
+        .catch(err => {
+          console.warn('Additional services load error', err);
+          additionalServicesList = [];
+          wrap.innerHTML = '<div class="text-muted small">لا توجد خدمات إضافية متاحة حاليًا</div>';
+        });
+    }
+
+    function renderAdditionalServices(list) {
+      const wrap = document.getElementById('additionalServicesWrap');
+      if (!wrap) return;
+
+      if (!list || !list.length) {
+        wrap.innerHTML = '<div class="text-muted small">لا توجد خدمات إضافية متاحة حاليًا</div>';
         return;
       }
 
-      const container=document.createElement('div');
-      container.className='row g-2';
+      const isEn = isEnglishLocale();
+      wrap.innerHTML = '';
 
-      additionalServicesList.forEach(s=>{
-        const col=document.createElement('div');
-        col.className='col-12 col-md-6';
+      const grid = document.createElement('div');
+      grid.className = 'row g-2';
 
-        const pricePart = (s.price !== null && s.price !== undefined && s.price !== '')
-          ? `<div class="small text-primary">+ ${s.price} ر.س</div>`
-          : '';
+      list.forEach(item => {
+        const col = document.createElement('div');
+        col.className = 'col-12 col-md-6';
+
+        const id = String(item.id || item.code || item.name || Math.random()).replace(/\s+/g, '_');
+
+        const price = Number(item.price) || 0;
+        const perCar = !!item.perCar;
+
+        const priceText = isEn
+          ? `${price || 0} SAR${perCar ? ' / car' : ''}`
+          : `${price || 0} ر.س${perCar ? ' / سيارة' : ''}`;
 
         col.innerHTML = `
-          <label class="form-check d-flex align-items-start gap-2 p-2 bg-white rounded-3 shadow-sm">
-            <input type="checkbox" class="form-check-input mt-1" value="${String(s.id)}">
-            <div class="flex-grow-1">
-              <div class="fw-bold">${s.name || ''}</div>
-              ${s.description ? `<div class="small text-muted">${s.description}</div>` : ''}
-              ${pricePart}
-            </div>
+          <label class="d-flex align-items-center gap-2 bg-white border rounded-3 px-2 py-1" style="border-radius:14px;">
+            <input type="checkbox"
+                   class="form-check-input mt-0"
+                   data-id="${item.id}"
+                   data-name="${item.name || ''}"
+                   data-price="${price}"
+                   data-per-car="${perCar ? '1' : '0'}"
+                   style="width:18px;height:18px;">
+            <span class="flex-grow-1 small">
+              <div class="fw-bold mb-1">${item.name || ''}</div>
+              <div class="text-muted">${priceText}</div>
+            </span>
           </label>
         `;
-        container.appendChild(col);
+
+        grid.appendChild(col);
       });
 
-      wrap.appendChild(container);
+      wrap.appendChild(grid);
 
-      wrap.querySelectorAll('input[type="checkbox"]').forEach(chk=>{
-        chk.addEventListener('change', ()=>{
-          const ids=[]; const labels=[];
-          additionalServicesTotal = 0;
-
-          wrap.querySelectorAll('input[type="checkbox"]:checked').forEach(selected=>{
-            const chosenId = String(selected.value);
-            ids.push(chosenId);
-            const labelEl=selected.closest('label').querySelector('.fw-bold');
-            labels.push(labelEl ? labelEl.textContent.trim() : chosenId);
-
-            const svc = additionalServicesList.find(s => String(s.id) === chosenId);
-            if (svc && svc.price !== undefined && svc.price !== null && svc.price !== '') {
-              const num = Number(svc.price);
-              if (!isNaN(num)) additionalServicesTotal += num;
-            }
-          });
-
-          nForm.additionalServicesIds = ids;
-          nForm.additionalServicesLabels = labels;
+      // on change
+      wrap.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+        chk.addEventListener('change', () => {
+          updateAdditionalServicesTotal();
           renderSummary('page2');
-          updateFooterTotal();
         });
       });
     }
 
-    async function loadAdditionalServices(){
-      const wrap=document.getElementById('additionalServicesWrap');
-      if(!wrap) return;
-      try{
-        wrap.innerHTML='<div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>';
-        const url = `${ADDITIONAL_SERVICES_URL}?appId=${encodeURIComponent(APP_ID)}`;
-        const res = await fetch(url, { method:'GET', cache:'no-store' });
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const data = await res.json();
-        additionalServicesList = Array.isArray(data.services) ? data.services : [];
-        renderAdditionalServicesOptions();
-      }catch(err){
-        console.error('loadAdditionalServices error:', err);
-        if(wrap){
-          wrap.innerHTML='<div class="text-danger small">تعذر تحميل الخدمات الإضافية الآن</div>';
-        }
-      }
-    }
+    function updateAdditionalServicesTotal() {
+      const wrap = document.getElementById('additionalServicesWrap');
+      if (!wrap) return;
 
-    async function validateCouponOnServer(code, subtotal, customer){
-      const params = new URLSearchParams({
-        appId: APP_ID,
-        code: code || '',
-        subtotal: String(subtotal || 0),
-        customer: customer || ''
+      let totalPerCar = 0;
+      const ids = [];
+      const labels = [];
+
+      wrap.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+        if (!chk.checked) return;
+        const price = Number(chk.dataset.price || 0);
+        const perCar = chk.dataset.perCar === '1';
+        const name = chk.dataset.name || '';
+        ids.push(chk.dataset.id || '');
+        labels.push(name);
+
+        if (perCar) totalPerCar += price;
+        else totalPerCar += price; // حالياً نفس الحساب؛ يمكن تطويره لاحقًا
       });
-      const url = `${COUPONS_API_URL}?${params.toString()}`;
-      const res = await fetch(url, { method:'GET', cache:'no-store' });
-      if (!res.ok) {
-        throw new Error('HTTP ' + res.status);
+
+      additionalServicesTotal = totalPerCar;
+      nForm.additionalServicesIds = ids;
+      nForm.additionalServicesLabels = labels;
+
+      const servicePriceLabel = document.getElementById('servicePrice');
+      if (servicePriceLabel) {
+        const subtotal = getOrderSubtotal();
+        servicePriceLabel.textContent = formatTotalAmount(subtotal);
       }
-      return res.json();
+
+      updateFooterTotal();
     }
 
-    async function validateCouponAndApply(){
+    /* 💳 Payment Methods */
+
+    function loadPaymentMethods() {
+      const url = `${PAYMENT_METHODS_URL}?appid=${encodeURIComponent(APP_ID)}`;
+
+      fetch(url, { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          // شكل متوقَّع:
+          // { ok:true, methods:[ { id, label, logoUrl, active, priority } ] }
+          const list = (data && Array.isArray(data.methods)) ? data.methods : [];
+          renderPaymentMethods(list);
+        })
+        .catch(err => {
+          console.warn('Payment methods error', err);
+          // افتراضي بسيط
+          renderPaymentMethods([
+            { id: 'cash', label: 'الدفع كاش عند الوصول', logoUrl: '', active: true, priority: 2 },
+            { id: 'online', label: 'دفع أونلاين (رابط فاتورة)', logoUrl: '', active: true, priority: 1 }
+          ]);
+        });
+    }
+
+    function renderPaymentMethods(methods) {
+      const wrap = document.getElementById('payGroup');
+      if (!wrap) return;
+
+      const isEn = isEnglishLocale();
+      wrap.innerHTML = '';
+
+      const arr = (methods || []).filter(m => m.active !== false);
+      if (!arr.length) {
+        wrap.innerHTML = '<div class="text-center text-muted w-100 py-3">لا توجد طرق دفع مفعلة حاليًا</div>';
+        return;
+      }
+
+      arr.sort((a, b) => (a.priority || 10) - (b.priority || 10));
+
+      arr.forEach(m => {
+        const div = document.createElement('button');
+        div.type = 'button';
+        div.className = 'pay-card';
+        div.setAttribute('role', 'radio');
+        div.setAttribute('aria-checked', (nForm.paymentMethod === m.id) ? 'true' : 'false');
+        div.dataset.id = m.id;
+
+        const label = m.label || (isEn ? 'Payment method' : 'طريقة دفع');
+        let inner = `<strong>${label}</strong>`;
+        if (m.logoUrl) {
+          inner = `<img src="${m.logoUrl}" alt="${label}">`;
+        }
+        div.innerHTML = inner;
+
+        div.addEventListener('click', () => {
+          document.querySelectorAll('#payGroup .pay-card').forEach(x => x.setAttribute('aria-checked', 'false'));
+          div.setAttribute('aria-checked', 'true');
+          nForm.paymentMethod = m.id;
+          renderSummary('page5');
+          updateNextAvailability();
+        });
+
+        wrap.appendChild(div);
+      });
+    }
+
+    /* 🏷 Coupon (كوبون خصم) */
+
+    function resetCouponState() {
+      couponCodeApplied = '';
+      couponDiscountAmount = 0;
+      couponMeta = null;
+      const msg = document.getElementById('couponMessage');
+      if (msg) {
+        msg.classList.remove('text-success', 'text-danger');
+        msg.classList.add('text-muted');
+        msg.textContent = 'يمكنك إدخال كوبون خصم إن وجد، وسيتم تطبيقه على إجمالي الطلب.';
+      }
+      updateFooterTotal();
+    }
+
+    function validateCouponAndApply() {
       const input = document.getElementById('couponCode');
-      const msgEl = document.getElementById('couponMessage');
-      const btn = document.getElementById('applyCouponBtn');
+      const msg = document.getElementById('couponMessage');
+      if (!input || !msg) return;
 
-      if (!input || !msgEl || !btn) return;
-
-      const code = (input.value || '').trim();
-      if (!code){
-        showToast('error','رجاءً أدخل كود الكوبون أولاً');
-        msgEl.textContent = 'من فضلك أدخل كود خصم ثم اضغط "تطبيق الكوبون".';
-        msgEl.className = 'small mt-2 text-danger';
+      const codeRaw = (input.value || '').trim();
+      if (!codeRaw) {
+        resetCouponState();
         return;
       }
 
       const subtotal = getOrderSubtotal();
-      if (subtotal <= 0){
-        showToast('error','من فضلك اختر الخدمة قبل تطبيق الكوبون');
-        msgEl.textContent = 'يجب اختيار الخدمة (والخدمات الإضافية إن وجدت) قبل تطبيق الكوبون.';
-        msgEl.className = 'small mt-2 text-danger';
+      if (!subtotal || subtotal <= 0) {
+        msg.classList.remove('text-success', 'text-muted');
+        msg.classList.add('text-danger');
+        msg.textContent = 'يرجى اختيار الخدمة أولاً قبل تطبيق الكوبون.';
         return;
       }
 
-      const customer = itiPhone && itiPhone.getNumber ? itiPhone.getNumber().replace(/^\+/, '') : '';
+      const code = codeRaw.toUpperCase();
+      msg.classList.remove('text-success', 'text-danger', 'text-muted');
+      msg.textContent = 'جاري التحقق من الكوبون…';
 
-      msgEl.textContent = 'جاري التحقق من الكوبون…';
-      msgEl.className = 'small mt-2 text-muted';
+      const url = `${COUPONS_API_URL}?appid=${encodeURIComponent(APP_ID)}&code=${encodeURIComponent(code)}&amount=${encodeURIComponent(subtotal)}`;
 
-      btn.disabled = true;
-      const originalText = btn.dataset.originalText || btn.textContent;
-      btn.dataset.originalText = originalText;
-      btn.textContent = 'جاري التحقق…';
+      fetch(url, { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data || data.ok === false) {
+            couponCodeApplied = '';
+            couponDiscountAmount = 0;
+            couponMeta = null;
+            msg.classList.remove('text-success', 'text-muted');
+            msg.classList.add('text-danger');
+            msg.textContent = (data && data.message) ? data.message : 'كود الخصم غير صالح أو منتهي.';
+            updateFooterTotal();
+            return;
+          }
 
-      try {
-        const result = await validateCouponOnServer(code, subtotal, customer);
+          const discount = Number(data.discount || 0);
+          couponCodeApplied = code;
+          couponDiscountAmount = discount;
+          couponMeta = data.coupon || null;
 
-        if (!result || result.ok === false){
-          couponCodeApplied = '';
-          couponDiscountAmount = 0;
-          couponMeta = null;
-          nForm.couponCode = '';
+          msg.classList.remove('text-danger', 'text-muted');
+          msg.classList.add('text-success');
 
-          updateFooterTotal();
+          const finalAfter = Math.max(0, subtotal - discount);
+          msg.textContent = `تم تطبيق الكوبون بنجاح! خصم ${discount.toFixed(2)} ر.س، الإجمالي بعد الخصم ${finalAfter.toFixed(2)} ر.س.`;
 
-          const msg = result && result.message
-            ? result.message
-            : 'الكوبون غير صالح أو منتهي الصلاحية.';
-          msgEl.textContent = msg;
-          msgEl.className = 'small mt-2 text-danger';
-          showToast('error', msg);
+          nForm.couponCode = code;
           renderSummary('page5');
-          return;
-        }
-
-        couponCodeApplied = code;
-        couponDiscountAmount = Number(result.discountAmount || 0);
-        couponMeta = result;
-        nForm.couponCode = code;
-
-        updateFooterTotal();
-        renderSummary('page5');
-
-        const successMsg = result.message || 'تم تطبيق الكوبون بنجاح على إجمالي الطلب.';
-        msgEl.textContent = successMsg;
-        msgEl.className = 'small mt-2 text-success';
-        showToast('success', successMsg);
-
-      } catch (err){
-        console.error('validateCouponAndApply error:', err);
-        msgEl.textContent = 'تعذر التحقق من الكوبون الآن. حاول مرة أخرى لاحقًا.';
-        msgEl.className = 'small mt-2 text-danger';
-        showToast('error','تعذر التحقق من الكوبون الآن.');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = btn.dataset.originalText || 'تطبيق الكوبون';
-      }
-    }
-
-    // 🔹 Dynamic Payment Methods Loader
-    async function loadPaymentMethods() {
-      const wrap = document.getElementById('payGroup');
-      const errPay = document.getElementById('err-pay');
-      if (!wrap) return;
-
-      wrap.innerHTML = `
-        <div style="grid-column:1/-1;justify-self:center" class="text-muted">
-          جاري تحميل طرق الدفع…
-        </div>
-      `;
-
-      try {
-        const url = `${PAYMENT_METHODS_URL}?action=listPaymentMethods&appId=${encodeURIComponent(APP_ID)}`;
-        const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-
-        const data = await res.json();
-
-        const methods =
-          Array.isArray(data.methods) ? data.methods :
-          Array.isArray(data.items)   ? data.items   :
-          Array.isArray(data.paymentMethods) ? data.paymentMethods : [];
-
-        if (!methods.length) {
-          wrap.innerHTML = `
-            <div style="grid-column:1/-1;justify-self:center" class="text-muted">
-              لا توجد طرق دفع مفعلة حاليًا
-            </div>
-          `;
-          if (errPay) errPay.style.display = 'block';
-          console.warn('loadPaymentMethods: no methods from API');
-          return;
-        }
-
-        // ✅ Render payment cards
-        wrap.innerHTML = '';
-        methods.forEach((m, idx) => {
-          const methodId = m.methodId || m.id || '';
-          const nameAr  = m.nameAr || m.NameAr || '';
-          const nameEn  = m.nameEn || m.NameEn || '';
-          const logo    = m.logoUrl || m.LogoUrl || '';
-          const type    = (m.type || '').toLowerCase();
-
-          const label = isEnglishLocale() ? (nameEn || nameAr || methodId) : (nameAr || nameEn || methodId);
-
-          const card = document.createElement('label');
-          card.className = 'pay-card';
-          card.setAttribute('tabindex', idx === 0 ? '0' : '-1');
-          card.setAttribute('role', 'radio');
-          card.setAttribute('aria-checked', 'false');
-
-          const input = document.createElement('input');
-          input.type = 'radio';
-          input.name = 'payingMethod';
-          input.value = methodId;
-          input.className = 'visually-hidden';
-
-          const content = document.createElement('div');
-          content.style.display = 'flex';
-          content.style.alignItems = 'center';
-          content.style.gap = '12px';
-
-          if (logo) {
-            const img = document.createElement('img');
-            img.src = logo;
-            img.alt = label;
-            img.style.maxWidth = '120px';
-            img.style.height = 'auto';
-            content.appendChild(img);
-          } else {
-            const span = document.createElement('strong');
-            span.textContent = label;
-            content.appendChild(span);
-          }
-
-          card.appendChild(input);
-          card.appendChild(content);
-          wrap.appendChild(card);
-
-          const choose = () => {
-            wrap.querySelectorAll('.pay-card').forEach(c => {
-              c.setAttribute('aria-checked', 'false');
-              c.setAttribute('tabindex', '-1');
-              const r = c.querySelector('input[type="radio"]');
-              if (r) r.checked = false;
-            });
-
-            card.setAttribute('aria-checked', 'true');
-            card.setAttribute('tabindex', '0');
-            input.checked = true;
-
-            nForm.paymentMethod = methodId;
-            renderSummary('page5');
-            updateNextAvailability();
-            showPage(4);
-          };
-
-          card.addEventListener('click', choose);
-          card.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              choose();
-            }
-          });
+          updateFooterTotal();
+        })
+        .catch(err => {
+          console.warn('Coupon validate error', err);
+          msg.classList.remove('text-success', 'text-muted');
+          msg.classList.add('text-danger');
+          msg.textContent = 'تعذر التحقق من الكوبون حاليًا، حاول مرة أخرى لاحقًا.';
         });
+    }
 
-        if (errPay) errPay.style.display = 'none';
-      } catch (err) {
-        console.error('loadPaymentMethods error:', err);
-        wrap.innerHTML = `
-          <div style="grid-column:1/-1;justify-self:center" class="text-danger">
-            تعذر تحميل طرق الدفع الآن، حاول لاحقًا.
-          </div>
-        `;
-        if (errPay) errPay.style.display = 'block';
+    /* 🎁 Offers Modal (عروض) — Multi-App via App ID + Offers sheet */
+
+    let offersData = [];
+    const offersFilterState = {
+      image: true,
+      text: true,
+      coupon: true
+    };
+
+    function loadOffersForApp(contextPage = 'welcome') {
+      const url = `${OFFERS_API_URL}?appid=${encodeURIComponent(APP_ID)}&page=${encodeURIComponent(contextPage)}`;
+
+      const listEl = document.getElementById('offersList');
+      if (listEl) {
+        listEl.innerHTML = '<div class="offers-empty text-muted small">جاري تحميل العروض…</div>';
       }
+
+      fetch(url, { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          // شكل متوقَّع من الـ API (من Sheet Offers):
+          // headers:
+          // Offer ID, App ID, Title AR, Title EN, Body AR, Body EN, Type,
+          // Image URL, Coupon Code, Button Label AR, Button Label EN, Button URL,
+          // Show On Pages, Start Date, End Date, Active, Priority
+          // response:
+          // { ok:true, offers:[ { "Offer ID":"...", "App ID":"...", "Title AR":"...", ... } ] }
+          const arr = (data && Array.isArray(data.offers)) ? data.offers : [];
+          offersData = arr;
+          renderOffersList();
+        })
+        .catch(err => {
+          console.warn('Offers error', err);
+          if (listEl) {
+            listEl.innerHTML = '<div class="offers-empty text-muted small">تعذر تحميل العروض حاليًا.</div>';
+          }
+        });
     }
 
-    /* 🎁 Offers / Ads popup (from Code.gs API via /api/offers.js) */
-    let offersLoaded = false;
-    let offersCache  = [];
-    let offersFilterAll = true;
-    let offersFilterTypes = { image:true, text:true, coupon:true };
-
-    function normalizeOfferType(raw){
-      const t = String(raw || '').toLowerCase().trim();
-      if (['image','img','banner','photo','picture'].includes(t)) return 'image';
-      if (['coupon','code','promo','voucher'].includes(t)) return 'coupon';
-      if (!t) return 'text';
-      return t === 'text' ? 'text' : 'text';
+    function getOfferType(offer) {
+      const raw = String(offer['Type'] || offer.type || '').toLowerCase();
+      if (raw.includes('image')) return 'image';
+      if (raw.includes('coupon')) return 'coupon';
+      return 'text';
     }
 
-    function formatOfferDateRange(startRaw, endRaw){
+    function isOfferActiveNow(offer) {
+      const activeRaw = offer['Active'] ?? offer.active;
+      const active = (activeRaw === true) ||
+        String(activeRaw).toLowerCase() === 'true' ||
+        String(activeRaw).toLowerCase() === 'yes' ||
+        String(activeRaw).toLowerCase() === '1';
+
+      if (!active) return false;
+
+      const now = DateTime.now().startOf('day');
+      const sRaw = offer['Start Date'] || offer['StartDate'] || offer.startDate || '';
+      const eRaw = offer['End Date'] || offer['EndDate'] || offer.endDate || '';
+
+      if (sRaw) {
+        const s = DateTime.fromISO(String(sRaw), { zone: 'utc' }).startOf('day');
+        if (s.isValid && now < s) return false;
+      }
+      if (eRaw) {
+        const e = DateTime.fromISO(String(eRaw), { zone: 'utc' }).startOf('day');
+        if (e.isValid && now > e) return false;
+      }
+      return true;
+    }
+
+    function getOfferTitle(offer) {
       const isEn = isEnglishLocale();
-      if (!startRaw && !endRaw) return '';
-      const fmt = (iso) => {
-        const d = DateTime.fromISO(String(iso).slice(0,10));
-        if (!d.isValid) return String(iso);
-        return d.toFormat(isEn ? 'dd LLL yyyy' : 'd LLL yyyy');
-      };
-      const fromTxt = startRaw ? fmt(startRaw) : '';
-      const toTxt   = endRaw   ? fmt(endRaw)   : '';
-      if (fromTxt && toTxt){
-        return isEn ? `Valid ${fromTxt} → ${toTxt}` : `ساري من ${fromTxt} إلى ${toTxt}`;
+      const ar = offer['Title AR'] || offer.titleAr || '';
+      const en = offer['Title EN'] || offer.titleEn || '';
+      return (isEn ? (en || ar) : (ar || en)) || '';
+    }
+
+    function getOfferBody(offer) {
+      const isEn = isEnglishLocale();
+      const ar = offer['Body AR'] || offer.bodyAr || '';
+      const en = offer['Body EN'] || offer.bodyEn || '';
+      return (isEn ? (en || ar) : (ar || en)) || '';
+    }
+
+    function getOfferButtonLabel(offer) {
+      const isEn = isEnglishLocale();
+      const ar = offer['Button Label AR'] || offer.buttonLabelAr || '';
+      const en = offer['Button Label EN'] || offer.buttonLabelEn || '';
+      if (!ar && !en) return isEn ? 'View offer' : 'عرض التفاصيل';
+      return isEn ? (en || ar) : (ar || en);
+    }
+
+    function applyOfferCoupon(code) {
+      if (!code) return;
+      const input = document.getElementById('couponCode');
+      if (input) {
+        input.value = code;
       }
-      if (fromTxt){
-        return isEn ? `From ${fromTxt}` : `ساري من ${fromTxt}`;
+      validateCouponAndApply();
+      closeOffersModal();
+      // انتقل لصفحة الدفع لو حاب:
+      const idx = orderedPages.indexOf('page5');
+      if (idx > -1) {
+        showPage(idx);
       }
-      return isEn ? `Until ${toTxt}` : `ساري حتى ${toTxt}`;
     }
 
-    async function fetchOffersFromServer(){
-      const todayIso = DateTime.now().toISODate();
-      const params = new URLSearchParams({
-        appId: APP_ID,
-        action: 'listOffers',
-        today: todayIso
-      });
-      const url = `${OFFERS_API_URL}?${params.toString()}`;
-      const res = await fetch(url, { method:'GET', cache:'no-store' });
-      if (!res.ok) throw new Error('HTTP '+res.status);
-      const data = await res.json().catch(()=>({}));
-      const items = data.items || data.offers || data.rows || [];
-      offersCache = Array.isArray(items) ? items : [];
-      offersLoaded = true;
-    }
-
-    function getFilteredOffers(){
-      if (!offersCache || !offersCache.length) return [];
-      const today = DateTime.now().toISODate();
-      const todayDt = DateTime.fromISO(today);
-
-      return offersCache
-        .map(o => {
-          const type = normalizeOfferType(o.type || o.kind || o.category || o.offerType);
-          const startRaw = o.startDate || o.StartDate || o.start_date || o.validFrom || o.ValidFrom;
-          const endRaw   = o.endDate   || o.EndDate   || o.end_date   || o.validTo   || o.ValidTo;
-          const activeRaw = (o.active ?? o.Active ?? o.isActive ?? true);
-          const active = !(String(activeRaw).toLowerCase() === 'false' || activeRaw === false);
-
-          let fromOk = true, toOk = true;
-          if (startRaw){
-            const d = DateTime.fromISO(String(startRaw).slice(0,10));
-            if (d.isValid) fromOk = todayDt >= d;
-          }
-          if (endRaw){
-            const d = DateTime.fromISO(String(endRaw).slice(0,10));
-            if (d.isValid) toOk = todayDt <= d;
-          }
-
-          const showOnWelcomeRaw = (o.showOnWelcome ?? o.ShowOnWelcome ?? o.show_on_welcome);
-          const showOnWelcome = showOnWelcomeRaw === undefined || String(showOnWelcomeRaw).toLowerCase() === 'true';
-
-          return {
-            raw: o,
-            id: o.offerId || o.OfferId || o.id || o.ID,
-            type,
-            title: o.title || o.Title || o.headline || '',
-            body: o.description || o.Description || o.body || o.text || '',
-            imageUrl: o.imageUrl || o.ImageUrl || o.image || '',
-            couponCode: o.couponCode || o.CouponCode || o.coupon || o.code || '',
-            startRaw,
-            endRaw,
-            active,
-            fromOk,
-            toOk,
-            showOnWelcome,
-            priority: Number(o.priority ?? o.Priority ?? 0) || 0
-          };
-        })
-        .filter(o => {
-          if (!o.active || !o.fromOk || !o.toOk || !o.showOnWelcome) return false;
-          if (!o.type) return false;
-          if (!offersFilterAll && !offersFilterTypes[o.type]) return false;
-          return true;
-        })
-        .sort((a,b) => b.priority - a.priority);
-    }
-
-    function renderOffersList(){
+    function renderOffersList() {
       const listEl = document.getElementById('offersList');
       if (!listEl) return;
 
-      const filtered = getFilteredOffers();
       listEl.innerHTML = '';
 
-      if (!offersLoaded){
-        const div = document.createElement('div');
-        div.className = 'offers-empty text-muted small';
-        div.textContent = isEnglishLocale()
-          ? 'Loading offers…'
-          : 'جاري تحميل العروض…';
-        listEl.appendChild(div);
-        return;
-      }
+      const filtered = offersData
+        .filter(isOfferActiveNow)
+        .sort((a, b) => {
+          const pa = Number(a['Priority'] || a.priority || 999);
+          const pb = Number(b['Priority'] || b.priority || 999);
+          return pa - pb;
+        })
+        .filter(o => {
+          const t = getOfferType(o);
+          if (t === 'image' && !offersFilterState.image) return false;
+          if (t === 'text' && !offersFilterState.text) return false;
+          if (t === 'coupon' && !offersFilterState.coupon) return false;
+          return true;
+        });
 
-      if (!filtered.length){
-        const div = document.createElement('div');
-        div.className = 'offers-empty text-muted small';
-        div.textContent = isEnglishLocale()
-          ? 'No active offers at the moment.'
-          : 'لا توجد عروض فعّالة حاليًا.';
-        listEl.appendChild(div);
+      if (!filtered.length) {
+        listEl.innerHTML = '<div class="offers-empty text-muted small">لا توجد عروض متاحة حاليًا.</div>';
         return;
       }
 
       filtered.forEach(o => {
+        const type = getOfferType(o);
+        const title = getOfferTitle(o);
+        const body = getOfferBody(o);
+        const imgUrl = o['Image URL'] || o.imageUrl || '';
+        const coupon = o['Coupon Code'] || o.couponCode || '';
+        const btnUrl = o['Button URL'] || o.buttonUrl || '';
+        const btnLabel = getOfferButtonLabel(o);
+
         const card = document.createElement('div');
         card.className = 'offer-card';
 
-        const title = document.createElement('h3');
-        title.className = 'offer-title';
-        title.textContent = o.title || (isEnglishLocale() ? 'Special offer' : 'عرض خاص');
-        card.appendChild(title);
+        const titleHtml = title ? `<h3 class="offer-title">${title}</h3>` : '';
+        const bodyHtml = body ? `<p class="offer-body">${body}</p>` : '';
 
-        if (o.body){
-          const body = document.createElement('p');
-          body.className = 'offer-body';
-          body.textContent = o.body;
-          card.appendChild(body);
+        let extraTop = '';
+        if (coupon) {
+          extraTop = `
+            <span class="offer-coupon-chip">
+              <i class="fa-solid fa-ticket"></i>
+              <span>${coupon}</span>
+            </span>
+          `;
         }
 
-        if (o.imageUrl){
-          const img = document.createElement('img');
-          img.className = 'offer-image';
-          img.src = o.imageUrl;
-          img.alt = o.title || 'Offer';
-          card.appendChild(img);
+        let datesHtml = '';
+        const sRaw = o['Start Date'] || o.startDate || '';
+        const eRaw = o['End Date'] || o.endDate || '';
+        if (sRaw || eRaw) {
+          datesHtml = `<span class="offer-dates">${sRaw || ''} - ${eRaw || ''}</span>`;
         }
 
-        const metaRow = document.createElement('div');
-        metaRow.className = 'offer-tag-row';
+        card.innerHTML = `
+          ${titleHtml}
+          ${bodyHtml}
+          <div class="offer-tag-row">
+            <span class="offer-tag">${type === 'image' ? 'عرض بصورة' : type === 'coupon' ? 'عرض كوبون' : 'عرض نصي'}</span>
+            ${datesHtml || ''}
+          </div>
+          ${imgUrl ? `<img src="${imgUrl}" alt="${title || ''}" class="offer-image">` : ''}
+          ${extraTop}
+        `;
 
-        const tag = document.createElement('span');
-        tag.className = 'offer-tag';
-        if (o.type === 'image'){
-          tag.textContent = isEnglishLocale() ? 'Image Ad' : 'إعلان بالصورة';
-        } else if (o.type === 'coupon'){
-          tag.textContent = isEnglishLocale() ? 'Coupon' : 'كوبون خصم';
-        } else {
-          tag.textContent = isEnglishLocale() ? 'Text Offer' : 'عرض نصي';
+        const btnRow = document.createElement('div');
+        btnRow.className = 'd-flex justify-content-between align-items-center mt-1 flex-wrap gap-2';
+
+        if (coupon) {
+          const btnApply = document.createElement('button');
+          btnApply.type = 'button';
+          btnApply.className = 'offer-apply-btn';
+          btnApply.innerHTML = `<i class="fa-solid fa-ticket"></i><span>استخدام الكوبون</span>`;
+          btnApply.addEventListener('click', () => applyOfferCoupon(coupon));
+          btnRow.appendChild(btnApply);
         }
-        metaRow.appendChild(tag);
 
-        const datesTxt = formatOfferDateRange(o.startRaw, o.endRaw);
-        if (datesTxt){
-          const datesSpan = document.createElement('span');
-          datesSpan.className = 'offer-dates';
-          datesSpan.textContent = datesTxt;
-          metaRow.appendChild(datesSpan);
+        if (btnUrl) {
+          const btnLink = document.createElement('button');
+          btnLink.type = 'button';
+          btnLink.className = 'offer-apply-btn';
+          btnLink.innerHTML = `<i class="fa-solid fa-up-right-from-square"></i><span>${btnLabel}</span>`;
+          btnLink.addEventListener('click', () => {
+            window.open(btnUrl, '_blank', 'noopener');
+          });
+          btnRow.appendChild(btnLink);
         }
 
-        card.appendChild(metaRow);
-
-        if (o.couponCode){
-          const couponRow = document.createElement('div');
-          couponRow.style.display = 'flex';
-          couponRow.style.alignItems = 'center';
-          couponRow.style.justifyContent = 'space-between';
-          couponRow.style.gap = '8px';
-          couponRow.style.marginTop = '6px';
-
-          const chip = document.createElement('span');
-          chip.className = 'offer-coupon-chip';
-          chip.innerHTML = `<i class="fa-solid fa-ticket"></i><span>${o.couponCode}</span>`;
-          couponRow.appendChild(chip);
-
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'offer-apply-btn';
-          btn.innerHTML = `<i class="fa-solid fa-check"></i>${isEnglishLocale() ? 'Apply coupon' : 'تطبيق الكوبون'}`;
-          btn.addEventListener('click', () => applyOfferCouponFromOffer(o));
-          couponRow.appendChild(btn);
-
-          card.appendChild(couponRow);
+        if (btnRow.children.length) {
+          card.appendChild(btnRow);
         }
 
         listEl.appendChild(card);
       });
     }
 
-    async function ensureOffersLoaded(){
-      try{
-        if (!offersLoaded){
-          await fetchOffersFromServer();
-        }
-      }catch(err){
-        console.error('fetchOffersFromServer error:', err);
-        if (typeof showToast === 'function'){
-          showToast('error', isEnglishLocale() ? 'Could not load offers.' : 'تعذر تحميل العروض الآن.');
-        }
-      }finally{
-        renderOffersList();
-      }
-    }
-
-    function openOffersModal(){
+    function openOffersModal() {
       const modal = document.getElementById('offersModal');
       if (!modal) return;
       modal.classList.add('show');
-      modal.setAttribute('aria-hidden','false');
+      modal.setAttribute('aria-hidden', 'false');
       document.body.classList.add('offers-open');
-      ensureOffersLoaded();
+
+      if (!offersData || !offersData.length) {
+        loadOffersForApp('welcome');
+      }
     }
 
-    function closeOffersModal(){
+    function closeOffersModal() {
       const modal = document.getElementById('offersModal');
       if (!modal) return;
       modal.classList.remove('show');
-      modal.setAttribute('aria-hidden','true');
+      modal.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('offers-open');
     }
 
-    function applyOfferCouponFromOffer(o){
-      const code = o.couponCode;
-      if (!code){
+    /* 📍 Area bounds → مركز الخريطة */
+
+    function requestAreaBoundsForCurrentArea() {
+      if (!window.google || !window._map) return;
+      const areaName = $('#area').find(':selected').text() || '';
+      if (!areaName) return;
+
+      const url = `${AREA_BOUNDS_URL}?appid=${encodeURIComponent(APP_ID)}&area=${encodeURIComponent(areaName)}`;
+
+      fetch(url, { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          // شكل متوقَّع: { ok:true, center:{lat,lng}, zoom:13 }
+          if (!data || !data.center) return;
+          const center = new google.maps.LatLng(data.center.lat, data.center.lng);
+          window._map.setCenter(center);
+          window._map.setZoom(data.zoom || 13);
+          if (window._marker) {
+            window._marker.setPosition(center);
+          }
+        })
+        .catch(err => console.warn('Area bounds error', err));
+    }
+
+    /* 🔐 OTP Helpers (واتساب) */
+
+    function updateOtpUI() {
+      const controls = document.getElementById('otpControls');
+      const row = document.getElementById('otpVerifyRow');
+      const status = document.getElementById('otpStatus');
+
+      if (!OTP_ENABLED) {
+        if (controls) controls.style.display = 'none';
+        if (row) row.style.display = 'none';
         return;
       }
-      const input = document.getElementById('couponCode');
-      if (input){
-        input.value = code;
-      }
-      closeOffersModal();
-      if (typeof validateCouponAndApply === 'function'){
-        validateCouponAndApply();
-      }else if (typeof showToast === 'function'){
-        showToast('success', isEnglishLocale()
-          ? `Coupon ${code} copied, you can apply it from payment step.`
-          : `تم نسخ الكوبون ${code}، يمكنك تطبيقه من خطوة الدفع.`);
-      }
-    }
 
-    function initOffersFilters(){
-      const wrap = document.getElementById('offersFilters');
-      if (!wrap) return;
-      wrap.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-type]');
-        if (!btn) return;
-        const t = btn.dataset.type;
-        if (t === 'all'){
-          offersFilterAll = true;
-          offersFilterTypes = { image:true, text:true, coupon:true };
-          wrap.querySelectorAll('[data-type]').forEach(el => {
-            const type = el.dataset.type;
-            el.classList.toggle('active', type === 'all' || type === 'image' || type === 'text' || type === 'coupon');
-          });
-        } else {
-          offersFilterAll = false;
-          offersFilterTypes[t] = !offersFilterTypes[t];
-          const allChip = wrap.querySelector('[data-type="all"]');
-          if (allChip) allChip.classList.remove('active');
-          btn.classList.toggle('active', !!offersFilterTypes[t]);
+      const mobileVal = ($('#mobile').val() || '').trim();
+      if (!mobileVal) {
+        if (controls) controls.style.display = 'none';
+        if (row) row.style.display = 'none';
+        return;
+      }
+
+      if (otpVerified) {
+        if (controls) controls.style.display = 'flex';
+        if (row) row.style.display = 'none';
+        if (status) {
+          status.textContent = 'تم التحقق من رقم الجوال 🎉';
         }
-        renderOffersList();
-      });
+        return;
+      }
+
+      if (controls) controls.style.display = 'flex';
+      if (row) row.style.display = otpRequested ? 'flex' : 'none';
+      if (status) {
+        status.textContent = otpRequested
+          ? 'تم إرسال الكود على واتساب، يرجى إدخاله أدناه.'
+          : 'سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.';
+      }
     }
 
-    function wireOffersUI(){
-      const btn = document.getElementById('btnShowOffers');
-      const modal = document.getElementById('offersModal');
-      const closeBtn = modal ? modal.querySelector('.offers-close') : null;
-      const backdrop = modal ? modal.querySelector('.offers-backdrop') : null;
+    function startOtpCountdown() {
+      const btn = document.getElementById('btnSendOtp');
+      const status = document.getElementById('otpStatus');
+      if (!btn) return;
 
-      if (btn){
-        btn.addEventListener('click', () => {
-          openOffersModal();
-        });
-      }
-      if (closeBtn){
-        closeBtn.addEventListener('click', () => closeOffersModal());
-      }
-      if (backdrop){
-        backdrop.addEventListener('click', () => closeOffersModal());
-      }
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape'){
-          if (modal && modal.classList.contains('show')){
-            closeOffersModal();
+      if (otpCountdownTimer) clearInterval(otpCountdownTimer);
+
+      let remaining = OTP_RESEND_SECONDS;
+      btn.disabled = true;
+
+      const update = () => {
+        if (remaining <= 0) {
+          clearInterval(otpCountdownTimer);
+          btn.disabled = false;
+          btn.textContent = 'إعادة إرسال الكود';
+          if (status && !otpVerified) {
+            status.textContent = 'يمكنك إعادة إرسال الكود إذا لم يصلك.';
           }
+          return;
         }
-      });
-      initOffersFilters();
-    }
-
-    /* 🔐 OTP Helpers */
-
-    function resetOtpState(fullReset){
-      if(!OTP_ENABLED) return;
-      otpRequested = false;
-      otpVerified  = false;
-      otpLastSentAt = null;
-      if(otpCountdownTimer){
-        clearInterval(otpCountdownTimer);
-        otpCountdownTimer = null;
-      }
-      const statusEl = document.getElementById('otpStatus');
-      const errEl    = document.getElementById('err-otp');
-      const codeEl   = document.getElementById('otpCode');
-      const verifyRow= document.getElementById('otpVerifyRow');
-      const sendBtn  = document.getElementById('btnSendOtp');
-
-      if(statusEl){
-        statusEl.className = 'small text-muted';
-        statusEl.textContent = 'سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.';
-      }
-      if(errEl){
-        errEl.style.display = 'none';
-      }
-      if(codeEl){
-        codeEl.removeAttribute('readonly');
-        if(fullReset) codeEl.value = '';
-      }
-      if(verifyRow){
-        verifyRow.style.display = 'none';
-      }
-      if(sendBtn){
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'إرسال كود على واتساب';
-      }
-    }
-
-    function startOtpCountdown(){
-      const sendBtn  = document.getElementById('btnSendOtp');
-      const statusEl = document.getElementById('otpStatus');
-      if(!sendBtn || !statusEl) return;
-
-      otpRequested   = true;
-      otpVerified    = false;
-      otpLastSentAt  = Date.now();
-      let remaining  = OTP_RESEND_SECONDS;
-
-      statusEl.className = 'small text-muted';
-      statusEl.textContent = `تم إرسال الكود، يمكنك إعادة الإرسال بعد ${remaining} ثانية.`;
-      sendBtn.disabled = true;
-      sendBtn.textContent = `إعادة الإرسال (${remaining})`;
-
-      if(otpCountdownTimer){
-        clearInterval(otpCountdownTimer);
-      }
-      otpCountdownTimer = setInterval(()=>{
+        btn.textContent = `إرسال الكود (${remaining})`;
         remaining--;
-        if(remaining <= 0){
-          clearInterval(otpCountdownTimer);
-          otpCountdownTimer = null;
-          sendBtn.disabled = false;
-          sendBtn.textContent = 'إعادة إرسال الكود';
-          statusEl.textContent = 'إذا لم يصلك الكود خلال دقيقة، اضغط "إعادة إرسال الكود".';
-        }else{
-          sendBtn.textContent = `إعادة الإرسال (${remaining})`;
-          statusEl.textContent = `تم إرسال الكود، يمكنك إعادة الإرسال بعد ${remaining} ثانية.`;
-        }
-      }, 1000);
-    }
-
-    async function requestOtpForMobile(){
-      if(!OTP_ENABLED) return;
-      const sendBtn  = document.getElementById('btnSendOtp');
-      const statusEl = document.getElementById('otpStatus');
-      const errEl    = document.getElementById('err-otp');
-
-      if(errEl) errEl.style.display = 'none';
-
-      if(!itiPhone || !itiPhone.isValidNumber()){
-        document.getElementById('err-mobile').style.display = 'block';
-        showToast('error','من فضلك أدخل رقم جوال صحيح قبل طلب الكود');
-        return;
-      }
-
-      const mobile = itiPhone.getNumber().replace(/^\+/, '');
-
-      try{
-        if(sendBtn){
-          sendBtn.disabled = true;
-          sendBtn.textContent = 'جاري الإرسال…';
-        }
-        if(statusEl){
-          statusEl.className = 'small text-muted';
-          statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
-        }
-
-        const res = await fetch(OTP_REQUEST_URL, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ appId: APP_ID, mobileNumber: mobile })
-        });
-
-        const data = await res.json().catch(()=>null);
-
-        if(!res.ok || !data || data.success === false){
-          const msg = data && data.message ? data.message : 'تعذر إرسال كود التحقق الآن، حاول مرة أخرى.';
-          showToast('error', msg);
-          if(statusEl){
-            statusEl.className = 'small text-danger';
-            statusEl.textContent = msg;
-          }
-          if(sendBtn){
-            sendBtn.disabled = false;
-            sendBtn.textContent = 'إرسال كود على واتساب';
-          }
-          return;
-        }
-
-        const verifyRow = document.getElementById('otpVerifyRow');
-        if(verifyRow){
-          verifyRow.style.display = 'flex';
-        }
-        if(statusEl){
-          statusEl.className = 'small text-success';
-          statusEl.textContent = 'تم إرسال الكود إلى واتساب، من فضلك أدخل الكود المكون من 4 أرقام للتحقق من رقمك.';
-        }
-
-        showToast('success','تم إرسال كود التحقق إلى واتساب');
-        startOtpCountdown();
-      }catch(err){
-        console.error('requestOtpForMobile error:', err);
-        if(statusEl){
-          statusEl.className = 'small text-danger';
-          statusEl.textContent = 'حدث خطأ أثناء إرسال الكود، حاول مرة أخرى.';
-        }
-        if(sendBtn){
-          sendBtn.disabled = false;
-          sendBtn.textContent = 'إرسال كود على واتساب';
-        }
-        showToast('error','تعذر إرسال كود التحقق الآن');
-      }
-    }
-
-    async function verifyOtpCode(){
-      if(!OTP_ENABLED) return;
-      const codeInput = document.getElementById('otpCode');
-      const statusEl  = document.getElementById('otpStatus');
-      const errEl     = document.getElementById('err-otp');
-      const btn       = document.getElementById('btnVerifyOtp');
-      if(!codeInput || !btn) return;
-
-      const raw = (codeInput.value || '').trim();
-      if(!new RegExp(`^\\d{${OTP_CODE_LENGTH}}$`).test(raw)){
-        if(errEl){
-          errEl.textContent = `رجاءً أدخل كود مكون من ${OTP_CODE_LENGTH} أرقام`;
-          errEl.style.display = 'block';
-        }
-        showToast('error',`كود التحقق يجب أن يكون ${OTP_CODE_LENGTH} أرقام`);
-        return;
-      }
-
-      if(!itiPhone || !itiPhone.isValidNumber()){
-        document.getElementById('err-mobile').style.display='block';
-        showToast('error','من فضلك تأكد من صحة رقم الجوال أولاً');
-        return;
-      }
-
-      const mobile = itiPhone.getNumber().replace(/^\+/, '');
-
-      try{
-        btn.disabled = true;
-        btn.textContent = 'جاري التحقق…';
-        if(errEl) errEl.style.display = 'none';
-        if(statusEl){
-          statusEl.className = 'small text-muted';
-          statusEl.textContent = 'جاري التحقق من كود التحقق…';
-        }
-
-        const res = await fetch(OTP_VERIFY_URL, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ appId: APP_ID, mobileNumber: mobile, otp: raw })
-        });
-
-        const data = await res.json().catch(()=>null);
-
-        if(!res.ok || !data || data.success === false){
-          const msg = data && data.message ? data.message : 'كود التحقق غير صحيح أو منتهي.';
-          if(errEl){
-            errEl.textContent = msg;
-            errEl.style.display = 'block';
-          }
-          if(statusEl){
-            statusEl.className = 'small text-danger';
-            statusEl.textContent = msg;
-          }
-          showToast('error', msg);
-          otpVerified = false;
-          updateNextAvailability();
-          return;
-        }
-
-        otpVerified = true;
-        if(statusEl){
-          statusEl.className = 'small text-success';
-          statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅ يمكنك المتابعة لإكمال الحجز.';
-        }
-        if(errEl) errEl.style.display = 'none';
-        if(codeInput){
-          codeInput.setAttribute('readonly','readonly');
-        }
-        const sendBtn = document.getElementById('btnSendOtp');
-        if(sendBtn){
-          sendBtn.disabled = true;
-          sendBtn.textContent = 'تم التحقق';
-        }
-        if(otpCountdownTimer){
-          clearInterval(otpCountdownTimer);
-          otpCountdownTimer = null;
-        }
-        showToast('success','تم التحقق من رقم جوالك');
-        updateNextAvailability();
-      }catch(err){
-        console.error('verifyOtpCode error:', err);
-        if(statusEl){
-          statusEl.className = 'small text-danger';
-          statusEl.textContent = 'تعذر التحقق من الكود الآن، حاول مرة أخرى.';
-        }
-        showToast('error','حدث خطأ أثناء التحقق من الكود');
-      }finally{
-        if(btn && !otpVerified){
-          btn.disabled=false;
-          btn.textContent='تأكيد';
-        }
-      }
-    }
-
-    /* Map globals */
-    let map, marker, autocomplete, areaPolygon, pendingAreaForBounds=null, currentAreaBounds;
-    let lastValidLatLng = null;
-    const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
-
-    async function loadAreaBounds(areaId){
-      if(!areaId) return;
-
-      if(!window.google || !window.google.maps || !map){
-        pendingAreaForBounds = areaId;
-        return;
-      }
-
-      try{
-        const params = new URLSearchParams({
-          appId: APP_ID,
-          areaId: String(areaId)
-        });
-        const res = await fetch(`${AREA_BOUNDS_URL}?${params.toString()}`, {
-          method:'GET',
-          cache:'no-store'
-        });
-        if(!res.ok){
-          console.warn('loadAreaBounds HTTP error', res.status);
-          return;
-        }
-        const json = await res.json();
-        const payload = json && json.data ? json.data : json;
-
-        if(!payload){
-          console.warn('loadAreaBounds: no payload');
-          return;
-        }
-
-        const boundsObj = payload.bounds || {};
-        currentAreaBounds = boundsObj;
-
-        const centerObj = payload.center || {};
-        const centerLat = Number(centerObj.lat);
-        const centerLng = Number(centerObj.lng);
-
-        const north = Number(boundsObj.north);
-        const south = Number(boundsObj.south);
-        const east  = Number(boundsObj.east);
-        const west  = Number(boundsObj.west);
-
-        let center;
-        if(Number.isFinite(centerLat) && Number.isFinite(centerLng)){
-          center = new google.maps.LatLng(centerLat, centerLng);
-        }else{
-          center = map.getCenter();
-        }
-
-        if(center){
-          map.setCenter(center);
-          if(marker){
-            marker.setPosition(center);
-          }
-          lastValidLatLng = center;
-        }
-
-        if(Number.isFinite(north) && Number.isFinite(south) && Number.isFinite(east) && Number.isFinite(west)){
-          const areaLatLngBounds = new google.maps.LatLngBounds(
-            new google.maps.LatLng(south, west),
-            new google.maps.LatLng(north, east)
-          );
-          map.setOptions({
-            restriction:{
-              latLngBounds: areaLatLngBounds,
-              strictBounds:true
-            }
-          });
-          map.fitBounds(areaLatLngBounds);
-        }
-
-        const poly = payload.polygon;
-        if(poly && Array.isArray(poly) && poly.length){
-          const path = poly.map(pt=>{
-            const lat = Number(pt.lat ?? pt[0]);
-            const lng = Number(pt.lng ?? pt[1]);
-            return {lat, lng};
-          }).filter(p=>Number.isFinite(p.lat) && Number.isFinite(p.lng));
-          if(path.length){
-            if(areaPolygon){
-              areaPolygon.setMap(null);
-            }
-            areaPolygon = new google.maps.Polygon({
-              paths: path,
-              strokeColor: '#027A93',
-              strokeOpacity: 0.8,
-              strokeWeight: 2,
-              fillColor: '#027A93',
-              fillOpacity: 0.08
-            });
-            areaPolygon.setMap(map);
-          }
-        }
-      }catch(err){
-        console.error('loadAreaBounds error:', err);
-      }
-    }
-
-    function requestAreaBoundsForCurrentArea(){
-      const areaId = $('#area').val() || '';
-      if(!areaId) return;
-      loadAreaBounds(areaId);
-    }
-
-    $(function(){
-      installResizeObservers();
-
-      Object.values(PAGE_BACKGROUNDS).forEach(src=>{ const i=new Image(); i.src=src; });
-
-      $('#area').select2({width:'100%',placeholder:'اختر المنطقة لخدمة العناية الفاخرة', dir:'rtl'});
-      $('#serviceCat').select2({width:'100%',placeholder:'فئة الخدمة', dir:'rtl'});
-      $('#service').select2({width:'100%',placeholder:'باقتك المختارة', dir:'rtl'});
-      $('#carBrand').select2({width:'100%',placeholder:'اختر ماركة المركبة (الأسماء الفاخرة أولاً)', dir:'rtl'});
-      $('#area, #serviceCat, #service, #carBrand').on('select2:open', ()=>{$('.select2-search__field').attr('dir','rtl');});
-
-      itiPhone=window.intlTelInput(document.querySelector('#mobile'),{
-        initialCountry:'sa', onlyCountries:['sa','ae','bh','kw','om','qa'],
-        separateDialCode:true, placeholderNumberType:'MOBILE',
-        utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js'
-      });
-      $('#mobile').attr({placeholder:'رقم التواصل الخاص — مثال 5XXXXXXXX', inputmode:'tel', autocomplete:'tel'})
-                  .on('blur', ()=> {
-                    const ok = itiPhone && itiPhone.isValidNumber();
-                    document.getElementById('err-mobile').style.display = ok ? 'none':'block';
-                  });
-
-      $('#name').attr('placeholder','الاسم كما سيظهر في الفاتورة');
-      $('#carName').attr('placeholder','الموديل/الفئة — مثال: S-Class، LX 570');
-      $('#plateNumber').attr('placeholder','أرقام اللوحة — اختياري');
-
-      const today=DateTime.now().toFormat('yyyy-LL-dd');
-      $('#date').val(today).attr('min',today);
-
-      setLoadingServices(true);
-      callContent2(`/locations`, res=>{
-        const list=res?.data||[]; const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
-        $('#area').empty().select2({data:ds,width:'100%',placeholder:'اختر المنطقة لخدمة العناية الفاخرة', dir:'rtl'});
-        if(ds.length){
-          $('#area').val(ds[0].id).trigger('change');
-        } else {
-          setLoadingServices(false); showToast('error','لا توجد مناطق متاحة حالياً');
-        }
-        renderSummary('page2');
-      });
-
-      $('#area').on('change', function(){
-        nForm.location=this.value;
-        requestAreaBoundsForCurrentArea();
-
-        setLoadingServices(true);
-        callContent2(`/services?location=${encodeURIComponent(this.value)}`, res=>{
-          servicesCache=res?.data?.services||[]; categoriesCache=res?.data?.servicesCat||[];
-          const cats=categoriesCache.map(c=>({id:c.TS_category_id,text:c.TS_category_arabic_name}));
-          $('#serviceCat').empty().select2({data:cats,width:'100%',placeholder:'فئة الخدمة', dir:'rtl'});
-          if(cats.length) $('#serviceCat').val(cats[0].id).trigger('change');
-          setLoadingServices(false); renderSummary('page2'); updateNextAvailability();
-        }, true);
-      });
-
-      $('#serviceCat').on('change', function(){
-        nForm.serviceCat=this.value; const cid=Number(this.value);
-        const items=servicesCache?.filter(s=>Number(s.TS_category_id)===cid)?.sort((a,b)=>a.TS_service_id-b.TS_service_id)?.map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}))||[];
-        $('#service').empty().select2({data:items,width:'100%',placeholder:'باقتك المختارة', dir:'rtl'});
-        if(items.length) $('#service').val(items[0].id).trigger('change');
-        renderSummary('page2'); updateNextAvailability();
-      });
-
-      $('#service').on('change', function () {
-        nForm.service = this.value || '';
-
-        const selectedId = this.value ? String(this.value) : '';
-        let selectedService = null;
-        if (servicesCache && Array.isArray(servicesCache)) {
-          selectedService = servicesCache.find(
-            s => String(s.TS_service_id) === selectedId
-          );
-        }
-
-        const descBox = document.getElementById('serviceDetails');
-        if (descBox) {
-          const desc = selectedService ? getServiceDescription(selectedService) : '';
-          if (desc) {
-            descBox.textContent = desc;
-          } else {
-            const isEnglish = isEnglishLocale();
-            descBox.textContent = isEnglish
-              ? 'No details are available for this service yet.'
-              : 'لا توجد تفاصيل متاحة لهذه الخدمة حاليًا.';
-          }
-        }
-
-        const priceBox = document.getElementById('servicePrice');
-        if (priceBox) {
-          const priceRaw = selectedService ? selectedService.TS_service_final_price : '';
-          baseServicePrice = (!isNaN(Number(priceRaw))) ? Number(priceRaw) : 0;
-          const priceText = formatServicePrice(priceRaw);
-          priceBox.textContent = priceText || '—';
-        } else {
-          baseServicePrice = 0;
-        }
-
-        renderSummary('page2');
-        updateNextAvailability();
-        updateFooterTotal();
-      });
-
-      const luxuryFirstBrands = [
-        'Rolls-Royce','Bentley','Mercedes-Benz (Maybach)','Aston Martin','Ferrari','Lamborghini','McLaren','Maserati',
-        'Porsche','Land Rover (Range Rover)','Mercedes-Benz','BMW','Audi','Lexus','Genesis','Jaguar','Cadillac','Infiniti',
-        'GMC','Toyota','Nissan','Hyundai','Kia','Honda','Chevrolet','Ford','Mazda','Mitsubishi','Other'
-      ].map(b=>({id:b,text:b}));
-      $('#carBrand').empty().select2({data:luxuryFirstBrands,width:'100%',placeholder:'اختر ماركة المركبة (الأسماء الفاخرة أولاً)', dir:'rtl'});
-
-      $('#name').on('input', function(){ nForm.customerN=this.value.trim(); renderSummary('page4'); updateNextAvailability(); });
-      $('#mobile').on('input', function(){
-        renderSummary('page4');
-        if(OTP_ENABLED){
-          resetOtpState(false);
-        }
-        updateNextAvailability();
-      });
-      $('#carName').on('input', function(){ updateNextAvailability(); });
-
-      $('#serviceCount').on('change', function(){
-        nForm.serviceCount=this.value||'1';
-        renderSummary('page2');
-        updateNextAvailability();
-        updateFooterTotal();
-      });
-
-      $('#plateNumber').on('input', function(){ updatePlateHint(); renderSummary('page4'); updateNextAvailability(); });
-
-      $('#date').on('change', ()=>{ fetchTimesForSelectedDate(); renderSummary('page3'); });
-      $('#timeFilter').on('change', function(){ currentTimeFilter=this.value; renderSelectedDateTimes(lastSelectedISO); });
-
-      const $prev=document.getElementById('footer-prev');
-      const $next=document.getElementById('footer-next');
-      const $wait=document.getElementById('footer-wait');
-
-      async function gotoNext(){
-        const i=getActiveIndex(); const id=orderedPages[i];
-        if(id==='page1'){ stopWelcomeDeck(); showPage(1); return; }
-
-        if(id==='page2'){
-          const areaOk=!!$('#area').val(), catOk=!!$('#serviceCat').val(), svcOk=!!$('#service').val();
-          document.getElementById('err-area').style.display=areaOk?'none':'block';
-          document.getElementById('err-serviceCat').style.display=catOk?'none':'block';
-          document.getElementById('err-service').style.display=svcOk?'none':'block';
-          if(!areaOk||!catOk||!svcOk){ showToast('error','يرجى إكمال اختيار المنطقة/التصنيف/الخدمة'); return; }
-          showPage(2); document.getElementById('date').dispatchEvent(new Event('change')); return;
-        }
-
-        if(id==='page3'){ if(!selectedTime){ showToast('error','الرجاء اختيار وقت'); return; } showPage(3); return; }
-
-        if(id==='page4'){
-          const nameOk=($('#name').val()||'').trim().length>0;
-          const phoneOk=itiPhone && itiPhone.isValidNumber();
-          document.getElementById('err-name').style.display=nameOk?'none':'block';
-          document.getElementById('err-mobile').style.display=phoneOk?'none':'block';
-
-          if(!nameOk||!phoneOk){
-            showToast('error','يرجى التحقق من الاسم ورقم الجوال');
-            return;
-          }
-
-          if(OTP_ENABLED && !otpVerified){
-            const errOtp = document.getElementById('err-otp');
-            if(errOtp){
-              errOtp.textContent = 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة.';
-              errOtp.style.display = 'block';
-            }
-            showToast('error','يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة');
-            return;
-          }
-
-          const errOtp = document.getElementById('err-otp');
-          if(errOtp) errOtp.style.display = 'none';
-
-          nForm.customerN=$('#name').val().trim(); 
-          nForm.customerM=itiPhone.getNumber().replace(/^\+/,'');
-
-          nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
-
-          showPage(4); return;
-        }
-
-        if(id==='page5'){
-          if(!nForm.paymentMethod){ document.getElementById('err-pay').style.display='block'; showToast('error','اختر طريقة الدفع'); return; }
-          document.getElementById('err-pay').style.display='none'; showPage(5); return;
-        }
-
-        if(id==='page6'){
-          if(!positionUrl){ document.getElementById('err-map').style.display='block'; showToast('error','الرجاء تحديد الموقع'); return; }
-          document.getElementById('err-map').style.display='none'; nForm.urlLocation=positionUrl;
-
-          if(isSubmitting) return;
-          isSubmitting=true;
-          $next.style.display='none';
-          $prev.style.display='none';
-          $wait.classList.add('show');
-
-          const r=await postReservation(buildPayload());
-
-          if(r.ok && r.data?.success){
-            showToast('success','تم إنشاء الحجز');
-            document.getElementById('ts-area').textContent = $('#area').find(':selected').text()||'—';
-            document.getElementById('ts-service').textContent = $('#service').find(':selected').text()||'—';
-            document.getElementById('ts-dt').textContent = (nForm.date?DateTime.fromISO(nForm.date).toFormat('d LLL yyyy'):'') + (nForm.time?(' • '+nForm.time):'');
-            document.getElementById('ts-pay').textContent = (nForm.paymentMethod||'').toUpperCase()||'—';
-            const waMsg = encodeURIComponent(`تم إرسال طلب حجز: \nالخدمة: ${$('#service').find(':selected').text()}\nالتاريخ: ${nForm.date} ${nForm.time}\nالرابط: ${location.href}`);
-            document.getElementById('ts-whatsapp').href = `https://wa.me/?text=${waMsg}`;
-
-            $wait.classList.remove('show');
-            isSubmitting=false;
-            showPage(6);
-          } else {
-            const msg=r?.data?.msgAR || (r.status===404?'المسار غير موجود':'تعذر إنشاء الحجز');
-            showToast('error',msg);
-            isSubmitting=false;
-            $wait.classList.remove('show');
-            $next.style.display='';
-            $prev.style.display='';
-            return;
-          }
-          return;
-        }
-        showPage(Math.min(i+1, orderedPages.length-1));
-      }
-      document.getElementById('footer-next').addEventListener('click', gotoNext);
-      document.getElementById('footer-prev').addEventListener('click', ()=>{ const i=getActiveIndex(); showPage(Math.max(i-1,0)); });
-
-      // ✅ إصلاح حجز جديد: يرجع دائماً لنفس index.html بدل الروت /
-      $('#rebook').on('click', ()=>{
-        window.location.href = 'index.html';
-      });
-
-      const applyBtn = document.getElementById('applyCouponBtn');
-      if (applyBtn){
-        applyBtn.addEventListener('click', validateCouponAndApply);
-      }
-
-      // 🔐 Wire OTP controls (if enabled)
-      if(OTP_ENABLED){
-        const otpControls = document.getElementById('otpControls');
-        const verifyRow  = document.getElementById('otpVerifyRow');
-        if(otpControls) otpControls.style.display = 'flex';
-        if(verifyRow)   verifyRow.style.display   = 'none';
-
-        const btnSendOtp   = document.getElementById('btnSendOtp');
-        const btnVerifyOtp = document.getElementById('btnVerifyOtp');
-        if(btnSendOtp){   btnSendOtp.addEventListener('click', requestOtpForMobile); }
-        if(btnVerifyOtp){ btnVerifyOtp.addEventListener('click', verifyOtpCode); }
-
-        resetOtpState(true);
-      } else {
-        const otpControls = document.getElementById('otpControls');
-        const verifyRow   = document.getElementById('otpVerifyRow');
-        const errOtp      = document.getElementById('err-otp');
-        if(otpControls) otpControls.style.display = 'none';
-        if(verifyRow)   verifyRow.style.display   = 'none';
-        if(errOtp)      errOtp.style.display      = 'none';
-      }
-
-      // Load dynamic extras + payment methods + wire offers popup
-      loadAdditionalServices();
-      loadPaymentMethods();
-      wireOffersUI();
-
-      setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
-
-      const isEnglish = isEnglishLocale();
-      if (isEnglish) {
-        const lblDetails = document.getElementById('serviceDetailsLabel');
-        if (lblDetails) lblDetails.textContent = 'Service details';
-        const lblPrice = document.getElementById('servicePriceLabel');
-        if (lblPrice) lblPrice.textContent = 'Service price (incl. VAT)';
-        const footerTotalLabel = document.getElementById('footer-total-label');
-        if (footerTotalLabel) footerTotalLabel.textContent = 'Order total:';
-
-        const offersTitle = document.getElementById('offersTitle');
-        if (offersTitle) offersTitle.textContent = "Today's offers";
-        const offersBtn = document.getElementById('btnShowOffers');
-        if (offersBtn) offersBtn.innerHTML = '<i class="fa-solid fa-gift"></i><span>Today\'s offers</span>';
-        const filterWrap = document.getElementById('offersFilters');
-        if (filterWrap){
-          filterWrap.querySelectorAll('[data-type]').forEach(chip => {
-            const t = chip.dataset.type;
-            if (t === 'all') chip.textContent = 'All';
-            else if (t === 'image') chip.textContent = 'Images';
-            else if (t === 'text') chip.textContent = 'Text';
-            else if (t === 'coupon') chip.textContent = 'Coupons';
-          });
-        }
-      }
-
-      updateFooterTotal();
-    });
-
-    function updateNextAvailability(){
-      const i=getActiveIndex(); const nextBtn=document.getElementById('footer-next'); let enable=true;
-      if(i===0){ 
-        enable=true; 
-      }
-      else if(i===1){ 
-        enable=!!($('#area').val()&&$('#service').val()); 
-      }
-      else if(i===2){ 
-        enable=!!selectedTime; 
-      }
-      else if(i===3){ 
-        const nameOk=($('#name').val()||'').trim().length>0; 
-        const phoneOk = (window.itiPhone ? itiPhone.isValidNumber() : true);
-        const otpOk   = (!OTP_ENABLED) || otpVerified;
-        enable = nameOk && phoneOk && otpOk;
-      }
-      else if(i===4){ 
-        enable=!!(document.querySelector('#payGroup input:checked')); 
-      }
-      else if(i===5){ 
-        enable=!!positionUrl; 
-      }
-      nextBtn.disabled=!enable; nextBtn.classList.toggle('disabled',!enable);
-    }
-
-    function initMap(){
-      const def={lat:24.7136,lng:46.6753};
-      map=new google.maps.Map(document.getElementById('googleMap'),{
-        center:def, zoom:12, disableDoubleClickZoom:true, mapTypeControl:false, fullscreenControl:true,
-        restriction:{latLngBounds: SA_BOUNDS, strictBounds:false}
-      });
-      marker=new google.maps.Marker({
-        position:def,
-        map,
-        draggable:true,
-        title:'اسحب أو اضغط لتحديد الموقع'
-      });
-      lastValidLatLng = def;
-
-      const setPos = (latLng, pan = false) => {
-        if (!latLng) return;
-
-        if (areaPolygon && google.maps && google.maps.geometry && google.maps.geometry.poly && typeof google.maps.geometry.poly.containsLocation === 'function') {
-          const inside = google.maps.geometry.poly.containsLocation(latLng, areaPolygon);
-          if (!inside) {
-            if (lastValidLatLng) {
-              const last = (lastValidLatLng.lat && lastValidLatLng.lng)
-                ? new google.maps.LatLng(lastValidLatLng.lat, lastValidLatLng.lng)
-                : lastValidLatLng;
-              marker.setPosition(last);
-              map.panTo(last);
-            }
-            showToast('error','الخدمة متاحة فقط داخل المنطقة المحددة على الخريطة');
-            return;
-          }
-        }
-
-        marker.setPosition(latLng);
-        if (pan){ map.panTo(latLng); }
-        map.setZoom(17);
-
-        positionUrl=`https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
-        lastValidLatLng = latLng;
-
-        const hint=document.getElementById('mapHint');
-        if(hint) hint.innerHTML=`تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`;
-        renderSummary('page6'); updateNextAvailability();
       };
 
-      marker.addListener('dragend',({latLng})=>setPos(latLng));
-      map.addListener('click',({latLng})=>setPos(latLng,true));
+      update();
+      otpCountdownTimer = setInterval(update, 1000);
+    }
 
-      const input=document.getElementById('mapSearch');
-      const opts={ fields:['geometry','name'], componentRestrictions:{country:'sa'}, strictBounds:false };
-      autocomplete=new google.maps.places.Autocomplete(input, opts);
-      autocomplete.bindTo('bounds', map);
-      autocomplete.addListener('place_changed', ()=>{
-        const place=autocomplete.getPlace(); if(!place?.geometry) return;
-        const loc=place.geometry.location;
-        map.panTo(loc); map.setZoom(16); setPos(loc,true);
-      });
+    function sendOtp() {
+      const mobileVal = ($('#mobile').val() || '').trim();
+      const err = document.getElementById('err-otp');
 
-      const btn=document.getElementById('show-my-location');
-      btn?.addEventListener('click',()=>{
-        if(!navigator.geolocation){ showToast('error','المتصفح لا يدعم تحديد الموقع'); return; }
-        navigator.geolocation.getCurrentPosition(
-          pos=>setPos(new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude),true),
-          err=>{ showToast('error','تعذر تحديد موقعك'); },
-          { enableHighAccuracy:true, timeout:10000, maximumAge:30000 }
-        );
-      });
+      if (!mobileVal) {
+        if (err) {
+          err.style.display = 'block';
+          err.textContent = 'يرجى إدخال رقم الجوال أولاً';
+        }
+        return;
+      }
+      if (err) err.style.display = 'none';
 
-      if(pendingAreaForBounds){
-        loadAreaBounds(pendingAreaForBounds);
-        pendingAreaForBounds = null;
-      } else {
-        requestAreaBoundsForCurrentArea();
+      const payload = {
+        appId: APP_ID,
+        mobile: mobileVal
+      };
+
+      otpRequested = true;
+      otpVerified = false;
+      updateOtpUI();
+      startOtpCountdown();
+
+      fetch(OTP_REQUEST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data || data.ok === false) {
+            showToast('error', (data && data.message) || 'تعذر إرسال كود التحقق حالياً.');
+          } else {
+            showToast('success', 'تم إرسال كود التحقق على واتساب 📲');
+          }
+        })
+        .catch(err2 => {
+          console.warn('OTP request error', err2);
+          showToast('error', 'حدث خطأ أثناء إرسال كود التحقق.');
+        });
+    }
+
+    function verifyOtp() {
+      const code = ($('#otpCode').val() || '').trim();
+      const mobileVal = ($('#mobile').val() || '').trim();
+      const err = document.getElementById('err-otp');
+
+      if (!code || code.length !== OTP_CODE_LENGTH) {
+        if (err) {
+          err.style.display = 'block';
+          err.textContent = `يرجى إدخال كود من ${OTP_CODE_LENGTH} أرقام.`;
+        }
+        return;
+      }
+      if (err) err.style.display = 'none';
+
+      const payload = {
+        appId: APP_ID,
+        mobile: mobileVal,
+        code
+      };
+
+      fetch(OTP_VERIFY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data || data.ok === false) {
+            if (err) {
+              err.style.display = 'block';
+              err.textContent = (data && data.message) || 'كود التحقق غير صحيح أو منتهي.';
+            }
+            otpVerified = false;
+          } else {
+            otpVerified = true;
+            otpRequested = true;
+            updateOtpUI();
+            showToast('success', 'تم تأكيد رقم الجوال بنجاح 🎉');
+          }
+          updateNextAvailability();
+        })
+        .catch(err2 => {
+          console.warn('OTP verify error', err2);
+          if (err) {
+            err.style.display = 'block';
+            err.textContent = 'حدث خطأ أثناء التحقق من الكود.';
+          }
+        });
+    }
+
+    /* ✅ Validation per step */
+
+    function isStepValid(idx) {
+      const pageId = orderedPages[idx];
+
+      if (pageId === 'page1') return true;
+
+      if (pageId === 'page2') {
+        const area = $('#area').val() || '';
+        const cat = $('#serviceCat').val() || '';
+        const srv = $('#service').val() || '';
+
+        toggleFieldError('area', !area);
+        toggleFieldError('serviceCat', !cat);
+        toggleFieldError('service', !srv);
+
+        return !!(area && cat && srv);
+      }
+
+      if (pageId === 'page3') {
+        const dateVal = $('#date').val() || '';
+        toggleFieldError('date', !dateVal);
+        if (!dateVal || !selectedTime) return false;
+        return true;
+      }
+
+      if (pageId === 'page4') {
+        const name = ($('#name').val() || '').trim();
+        const mobile = ($('#mobile').val() || '').trim();
+
+        toggleFieldError('name', !name);
+        toggleFieldError('mobile', !mobile);
+
+        if (!name || !mobile) return false;
+
+        if (OTP_ENABLED && !otpVerified) {
+          const err = document.getElementById('err-otp');
+          if (err) {
+            err.style.display = 'block';
+            err.textContent = 'يرجى تأكيد رقم الجوال قبل المتابعة.';
+          }
+          return false;
+        }
+        return true;
+      }
+
+      if (pageId === 'page5') {
+        const pm = nForm.paymentMethod || '';
+        const el = document.getElementById('err-pay');
+        if (!pm) {
+          if (el) el.style.display = 'block';
+          return false;
+        } else {
+          if (el) el.style.display = 'none';
+        }
+        return true;
+      }
+
+      if (pageId === 'page6') {
+        const ok = !!positionUrl;
+        const el = document.getElementById('err-map');
+        if (!ok) { if (el) el.style.display = 'block'; }
+        else { if (el) el.style.display = 'none'; }
+        return ok;
+      }
+
+      return true;
+    }
+
+    function toggleFieldError(fieldBase, show) {
+      const group = document.getElementById(fieldBase)?.closest('.col') || document.getElementById(fieldBase)?.closest('.mb-3') || null;
+      if (group) {
+        group.classList.toggle('has-error', !!show);
+      }
+      const err = document.getElementById(`err-${fieldBase}`);
+      if (err) {
+        err.style.display = show ? 'block' : 'none';
       }
     }
-    window.initMap=initMap;
-  </script>
 
-  <!-- Google Maps (with geometry library) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async&libraries=places,geometry&language=ar&region=SA" async defer></script>
+    function updateNextAvailability() {
+      const btn = document.getElementById('footer-next');
+      if (!btn) return;
+      const idx = getActiveIndex();
 
-  <!-- Analytics or extra script -->
-  <script
-    src="https://rybbit.nahls.app/api/script.js"
-    data-site-id="6371ee910e9c"
-    defer
-  ></script>
-
-  <!-- PWA Service Worker + Install logic -->
-  <script>
-    // ✅ Register Service Worker (relative path for subfolder)
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker
-          .register('service-worker.js')
-          .then(function (reg) {
-            console.log('Service worker registered 👍', reg.scope);
-          })
-          .catch(function (err) {
-            console.error('Service worker registration failed:', err);
-          });
-      });
+      // لو آخر خطوة فعلًا (قبل صفحة الشكر)، يظل الزر مفعَّل إذا valid
+      const valid = isStepValid(idx);
+      btn.disabled = !valid;
+      btn.classList.toggle('disabled', !valid);
     }
 
-    // ====== PWA Install Logic (Android + iOS) ======
-    let deferredInstallPrompt = null;
+    /* 🚀 Navigation + Submit */
 
-    const floatingInstallBtn = document.getElementById('installPwaBtn');
-    const footerInstallBtn   = document.getElementById('footer-install-btn');
-
-    function isIos() {
-      return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
-    }
-
-    function isInStandaloneMode() {
-      return (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true
-      );
-    }
-
-    function showIosInstallInstructions() {
-      alert(
-        'لتثبيت NahlTime على جهازك:\n' +
-        '1️⃣ اضغط زر "المشاركة" في أسفل سفاري.\n' +
-        '2️⃣ اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).\n' +
-        '3️⃣ بعد التثبيت افتح التطبيق من الأيقونة الجديدة ✅'
-      );
-    }
-
-    async function handlePwaInstallClick() {
-      if (isInStandaloneMode()) {
-        console.log('App already running in standalone mode.');
+    function goNext() {
+      const idx = getActiveIndex();
+      if (!isStepValid(idx)) {
+        updateNextAvailability();
         return;
       }
 
-      if (deferredInstallPrompt) {
-        deferredInstallPrompt.prompt();
-        const choice = await deferredInstallPrompt.userChoice;
-        console.log('User choice:', choice.outcome);
-        deferredInstallPrompt = null;
-
-        if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
-        if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
+      if (orderedPages[idx] === 'page6') {
+        // الحفظ / إرسال الطلب
+        submitReservation();
         return;
       }
 
-      if (isIos()) {
-        showIosInstallInstructions();
-        return;
+      if (idx < orderedPages.length - 1) {
+        showPage(idx + 1);
       }
-
-      alert('يمكنك تثبيت التطبيق من إعدادات المتصفح أو "إضافة إلى الشاشة الرئيسية".');
     }
 
-    window.addEventListener('load', () => {
+    function goPrev() {
+      const idx = getActiveIndex();
+      if (idx > 0) {
+        showPage(idx - 1);
+      }
+    }
+
+    function buildReservationPayload() {
+      return {
+        appId: APP_ID,
+        date: nForm.date,
+        time: nForm.time,
+        area: $('#area').val() || '',
+        areaName: $('#area').find(':selected').text() || '',
+        serviceCat: $('#serviceCat').val() || '',
+        serviceCatName: $('#serviceCat').find(':selected').text() || '',
+        service: $('#service').val() || '',
+        serviceName: $('#service').find(':selected').text() || '',
+        serviceCount: getCarCount(),
+        customerName: ($('#name').val() || '').trim(),
+        customerMobile: ($('#mobile').val() || '').trim(),
+        carBrand: $('#carBrand').val() || '',
+        carBrandName: $('#carBrand').find(':selected').text() || '',
+        carName: ($('#carName').val() || '').trim(),
+        plateNumber: ($('#plateNumber').val() || '').trim(),
+        paymentMethod: nForm.paymentMethod || '',
+        urlLocation: positionUrl || '',
+        locationDescription: ($('#locationDescription').val() || '').trim(),
+        additionalServicesIds: nForm.additionalServicesIds || [],
+        additionalServicesLabels: nForm.additionalServicesLabels || [],
+        couponCode: nForm.couponCode || '',
+        totalBeforeDiscount: getOrderSubtotal(),
+        couponDiscountAmount,
+        totalAfterDiscount: Math.max(0, getOrderSubtotal() - couponDiscountAmount)
+      };
+    }
+
+    async function submitReservation() {
+      if (isSubmitting) return;
+      isSubmitting = true;
+
+      const footerWait = document.getElementById('footer-wait');
+      const nextBtn = document.getElementById('footer-next');
+      if (footerWait) footerWait.classList.add('show');
+      if (nextBtn) nextBtn.disabled = true;
+
+      const payload = buildReservationPayload();
+
+      try {
+        const res = await postReservation(payload);
+        if (!res.ok) {
+          console.warn('Reservation error', res);
+          showToast('error', 'تعذر إرسال الطلب، حاول مرة أخرى.');
+          return;
+        }
+
+        const tsArea = document.getElementById('ts-area');
+        const tsService = document.getElementById('ts-service');
+        const tsDt = document.getElementById('ts-dt');
+        const tsPay = document.getElementById('ts-pay');
+
+        if (tsArea) tsArea.textContent = payload.areaName || '—';
+        if (tsService) tsService.textContent = payload.serviceName || '—';
+
+        if (tsDt) {
+          const d = payload.date ? DateTime.fromISO(payload.date).toFormat('d LLL yyyy') : '';
+          tsDt.textContent = (d && payload.time) ? `${d} • ${payload.time}` : (d || payload.time || '—');
+        }
+        if (tsPay) tsPay.textContent = payload.paymentMethod || '—';
+
+        // رابط مشاركة واتساب
+        const shareEl = document.getElementById('ts-whatsapp');
+        if (shareEl) {
+          const txt = `طلب غسيل جديد:\nالمنطقة: ${payload.areaName}\nالخدمة: ${payload.serviceName}\nالوقت: ${payload.date} - ${payload.time}\n`;
+          const encoded = encodeURIComponent(txt);
+          shareEl.href = `https://wa.me/?text=${encoded}`;
+        }
+
+        // صفحة الشكر
+        const idxDone = orderedPages.indexOf('page7');
+        if (idxDone > -1) showPage(idxDone);
+      } catch (err) {
+        console.warn('Reservation error', err);
+        showToast('error', 'تعذر إرسال الطلب، حاول مرة أخرى.');
+      } finally {
+        isSubmitting = false;
+        if (footerWait) footerWait.classList.remove('show');
+        if (nextBtn) {
+          nextBtn.disabled = false;
+          updateNextAvailability();
+        }
+      }
+    }
+
+    /* 📍 Google Map */
+
+    let map, marker, searchBox;
+
+    function setMarkerPosition(latLng) {
+      if (!map || !marker) return;
+      marker.setPosition(latLng);
+      map.panTo(latLng);
+
+      const lat = latLng.lat();
+      const lng = latLng.lng();
+      positionUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+      nForm.urlLocation = positionUrl;
+
+      const err = document.getElementById('err-map');
+      if (err) err.style.display = 'none';
+
+      renderSummary('page6');
+      updateNextAvailability();
+    }
+
+    function initMap() {
+      const mapEl = document.getElementById('googleMap');
+      if (!mapEl) return;
+
+      const center = { lat: 24.7136, lng: 46.6753 }; // Riyadh default
+      map = new google.maps.Map(mapEl, {
+        center,
+        zoom: 12,
+        disableDefaultUI: false
+      });
+
+      marker = new google.maps.Marker({
+        map,
+        position: center,
+        draggable: true
+      });
+
+      google.maps.event.addListener(map, 'click', function (e) {
+        setMarkerPosition(e.latLng);
+      });
+
+      google.maps.event.addListener(marker, 'dragend', function (e) {
+        setMarkerPosition(e.latLng);
+      });
+
+      const input = document.getElementById('mapSearch');
+      if (input) {
+        searchBox = new google.maps.places.SearchBox(input);
+        map.addListener('bounds_changed', () => {
+          searchBox.setBounds(map.getBounds());
+        });
+        searchBox.addListener('places_changed', () => {
+          const places = searchBox.getPlaces();
+          if (!places || !places.length) return;
+          const place = places[0];
+          if (!place.geometry || !place.geometry.location) return;
+          setMarkerPosition(place.geometry.location);
+        });
+      }
+
+      const btnMyLoc = document.getElementById('show-my-location');
+      if (btnMyLoc && navigator.geolocation) {
+        btnMyLoc.addEventListener('click', () => {
+          navigator.geolocation.getCurrentPosition(
+            pos => {
+              const ll = new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+              setMarkerPosition(ll);
+              map.setZoom(15);
+            },
+            err => {
+              console.warn('geolocation error', err);
+              showToast('error', 'تعذر تحديد موقعك الحالي.');
+            }
+          );
+        });
+      }
+
+      window._map = map;
+      window._marker = marker;
+    }
+    window.initMap = initMap;
+
+    /* 📱 PWA install */
+
+    let deferredPrompt = null;
+
+    function setupPwaInstallButtons() {
+      const bubbleBtn = document.getElementById('installPwaBtn');
+      const footerBtn = document.getElementById('footer-install-btn');
+
+      function showButtons() {
+        if (bubbleBtn) bubbleBtn.style.display = 'block';
+        if (footerBtn) footerBtn.style.display = 'block';
+      }
+
+      function hideButtons() {
+        if (bubbleBtn) bubbleBtn.style.display = 'none';
+        if (footerBtn) footerBtn.style.display = 'none';
+      }
+
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
-        deferredInstallPrompt = e;
-
-        if (floatingInstallBtn) {
-          floatingInstallBtn.style.display = 'block';
-          floatingInstallBtn.textContent = '📲 تثبيت تطبيق NahlTime';
-        }
-        if (footerInstallBtn) {
-          footerInstallBtn.style.display = 'block';
-          footerInstallBtn.textContent = '📲 تحميل التطبيق';
-        }
+        deferredPrompt = e;
+        showButtons();
       });
 
-      if (floatingInstallBtn) {
-        floatingInstallBtn.addEventListener('click', handlePwaInstallClick);
-      }
-      if (footerInstallBtn) {
-        footerInstallBtn.addEventListener('click', handlePwaInstallClick);
+      async function handleInstallClick() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          hideButtons();
+          deferredPrompt = null;
+        }
       }
 
-      // iOS: إظهار زر التثبيت + توست بسيط لو التطبيق غير مثبت
-      if (isIos() && !isInStandaloneMode()) {
-        if (footerInstallBtn) {
-          footerInstallBtn.style.display   = 'block';
-          footerInstallBtn.textContent     = '📲 تحميل التطبيق';
-        }
-        if (floatingInstallBtn) {
-          floatingInstallBtn.style.display = 'block';
-          floatingInstallBtn.textContent   = '📲 تثبيت تطبيق NahlTime';
-        }
+      if (bubbleBtn) bubbleBtn.addEventListener('click', handleInstallClick);
+      if (footerBtn) footerBtn.addEventListener('click', handleInstallClick);
 
-        // 🔔 إشعار بسيط عند الفتح يشرح طريقة التثبيت
-        if (typeof showToast === 'function') {
-          setTimeout(() => {
-            showToast('info', '📲 تقدر تثبت NahlTime من زر "تحميل التطبيق" في الأسفل أو من مشاركة سفاري → إضافة إلى الشاشة الرئيسية');
-          }, 2500);
-        }
-      } else if (!isInStandaloneMode()) {
-        // لأغلب المتصفحات على أندرويد/ديسكتوب: توست توعوي بسيط
-        if (typeof showToast === 'function') {
-          setTimeout(() => {
-            showToast('info', '📲 عند ظهور زر "تحميل التطبيق" في الأسفل تقدر تثبت NahlTime كتطبيق على جهازك');
-          }, 2500);
+      window.addEventListener('appinstalled', () => {
+        hideButtons();
+        deferredPrompt = null;
+      });
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js').catch(err => {
+          console.warn('SW register error', err);
+        });
+      }
+    }
+
+    /* 🧷 Static demo data (يمكن استبدالها بتحميل حقيقي من Google Sheets / API) */
+
+    function initStaticAreasAndServices() {
+      const $area = $('#area');
+      const $cat = $('#serviceCat');
+      const $srv = $('#service');
+
+      if (!$area.children().length) {
+        $area.append('<option value="">اختر المنطقة</option>');
+        $area.append('<option value="riyadh">الرياض</option>');
+        $area.append('<option value="dam">الدمام</option>');
+      }
+
+      if (!$cat.children().length) {
+        $cat.append('<option value="">اختر التصنيف</option>');
+        $cat.append('<option value="basic">غسيل عادي</option>');
+        $cat.append('<option value="premium">غسيل فاخر</option>');
+      }
+
+      function refreshServices() {
+        const catVal = $cat.val() || '';
+        $srv.empty();
+        $srv.append('<option value="">اختر الخدمة</option>');
+        if (catVal === 'basic') {
+          $srv.append('<option value="basic-inout" data-price="80">غسيل عادي داخلي + خارجي</option>');
+          $srv.append('<option value="basic-out" data-price="50">غسيل خارجي فقط</option>');
+        } else if (catVal === 'premium') {
+          $srv.append('<option value="prem-full" data-price="150">غسيل فاخر كامل</option>');
+          $srv.append('<option value="prem-detail" data-price="220">تلميع وديتيلنج</option>');
         }
       }
-    });
 
-    window.addEventListener('appinstalled', () => {
-      console.log('NahlTime installed ✅');
-      if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
-      if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
-      if (typeof showToast === 'function') {
-        showToast('success', 'تم تثبيت تطبيق NahlTime على جهازك ✅');
+      refreshServices();
+
+      $cat.on('change', () => {
+        refreshServices();
+        baseServicePrice = 0;
+        $('#serviceDetails').text('سيتم عرض تفاصيل الخدمة المختارة هنا.');
+        $('#servicePrice').text('—');
+        updateFooterTotal();
+        renderSummary('page2');
+        loadAdditionalServices();
+      });
+
+      $srv.on('change', () => {
+        const opt = $srv.find(':selected');
+        const price = Number(opt.data('price') || 0);
+        baseServicePrice = price;
+
+        const desc = getServiceDescription({
+          TS_service_descriptionAR: opt.text(),
+          TS_service_descriptionEN: opt.text()
+        });
+        $('#serviceDetails').text(desc || opt.text() || '—');
+        $('#servicePrice').text(formatServicePrice(price));
+
+        updateFooterTotal();
+        renderSummary('page2');
+        loadAdditionalServices();
+      });
+
+      $area.on('change', () => {
+        renderSummary('page2');
+        loadAdditionalServices();
+      });
+    }
+
+    function initCarBrands() {
+      const $brand = $('#carBrand');
+      if (!$brand.length) return;
+      if ($brand.children().length) return;
+
+      $brand.append('<option value="">اختيار ماركة السيارة</option>');
+      const brands = ['تويوتا', 'لكزس', 'مرسيدس', 'بي إم دبليو', 'هيونداي', 'كيا', 'فورد', 'نيسان', 'شيفروليه', 'هوندا', 'أخرى'];
+      brands.forEach(b => {
+        $brand.append(`<option value="${b}">${b}</option>`);
+      });
+    }
+
+    /* 🧭 Init on ready */
+
+    $(function () {
+      // Select2
+      $('#area, #serviceCat, #service, #carBrand').select2({
+        width: '100%',
+        theme: 'bootstrap-5',
+        dir: $('html').attr('dir') || 'rtl'
+      });
+
+      // intlTelInput
+      const mobileInput = document.querySelector('#mobile');
+      if (mobileInput) {
+        itiPhone = window.intlTelInput(mobileInput, {
+          initialCountry: 'sa',
+          preferredCountries: ['sa', 'qa', 'ae', 'kw', 'bh', 'om'],
+          separateDialCode: true,
+          utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js'
+        });
+        mobileInput.addEventListener('blur', updateOtpUI);
+        mobileInput.addEventListener('input', updateOtpUI);
       }
+
+      // تاريخ اليوم + الغد افتراضيًا
+      const today = DateTime.now().toISODate();
+      $('#date').val(today);
+      fetchTimesForSelectedDate();
+
+      $('#date').on('change', () => {
+        fetchTimesForSelectedDate();
+        renderSummary('page3');
+      });
+
+      $('#timeFilter').on('change', onTimeFilterChange);
+
+      $('#serviceCount').on('change', () => {
+        updateAdditionalServicesTotal();
+        renderSummary('page2');
+      });
+
+      $('#plateNumber').on('input', updatePlateHint);
+
+      $('#name').on('input', () => {
+        renderSummary('page4');
+        updateNextAvailability();
+      });
+
+      $('#mobile').on('input', () => {
+        renderSummary('page4');
+        updateNextAvailability();
+      });
+
+      $('#btnSendOtp').on('click', sendOtp);
+      $('#btnVerifyOtp').on('click', verifyOtp);
+
+      $('#applyCouponBtn').on('click', validateCouponAndApply);
+      $('#couponCode').on('keyup', (e) => {
+        if (e.key === 'Enter') validateCouponAndApply();
+      });
+
+      $('#footer-next').on('click', goNext);
+      $('#footer-prev').on('click', goPrev);
+
+      $('#rebook').on('click', () => {
+        const idx = orderedPages.indexOf('page2');
+        if (idx > -1) showPage(idx);
+      });
+
+      $('#btnShowOffers').on('click', openOffersModal);
+      document.querySelectorAll('.offers-close, #offersModal .offers-backdrop').forEach(el => {
+        el.addEventListener('click', closeOffersModal);
+      });
+
+      document.querySelectorAll('#offersFilters .offers-filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const type = chip.dataset.type;
+          if (!type || type === 'all') {
+            chip.classList.toggle('active');
+            const on = chip.classList.contains('active');
+            offersFilterState.image = on;
+            offersFilterState.text = on;
+            offersFilterState.coupon = on;
+          } else {
+            chip.classList.toggle('active');
+            offersFilterState[type] = chip.classList.contains('active');
+          }
+          renderOffersList();
+        });
+      });
+
+      initStaticAreasAndServices();
+      initCarBrands();
+      loadPaymentMethods();
+      setupPwaInstallButtons();
+      updateFooterTotal();
+      renderSummary('page1');
+      updateNextAvailability();
+
+      // تشغيل deck الترحيب
+      startWelcomeDeck();
     });
   </script>
+
+  <!-- 🔑 Google Maps (ضع مفتاح الـ API هنا) -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=initMap"></script>
 </body>
 </html>
