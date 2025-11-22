@@ -1,12 +1,8 @@
-// pages/api/otp/request.ts
+// pages/api/otp/request.js
 // Proxy → Google Apps Script (action=requestOtp)
 
-import type { NextApiRequest, NextApiResponse } from 'next';
-
-const SCRIPT_URL = process.env.NAHLTIME_OTP_SCRIPT_URL || '';
-
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Allow only POST
+export default async function handler(req, res) {
+  // Only POST allowed
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({
@@ -15,48 +11,48 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
+  const SCRIPT_URL = process.env.NAHLTIME_OTP_SCRIPT_URL || '';
+
   try {
     if (!SCRIPT_URL) {
+      console.error('[OTP REQUEST] Missing NAHLTIME_OTP_SCRIPT_URL env var');
       return res.status(500).json({
         success: false,
-        error: 'Missing NAHLTIME_OTP_SCRIPT_URL env variable',
+        error: 'NAHLTIME_OTP_SCRIPT_URL is not configured on the server',
       });
     }
 
-    // appid from query or body
-    const queryAppId = (req.query.appid || req.query.appId || '') as string;
+    // 🔹 Read appid from query OR body
+    const queryAppId = req.query.appid || req.query.appId || '';
     const bodyAppId =
-      (req.body && (req.body.appid || req.body.appId || req.body.APP_ID)) || '';
+      req.body && (req.body.appid || req.body.appId || req.body.APP_ID);
 
     const appId = String(queryAppId || bodyAppId || '').trim();
 
     if (!appId) {
+      console.warn('[OTP REQUEST] Missing appId / appid');
       return res.status(400).json({
         success: false,
         error: 'Missing appId / appid',
       });
     }
 
-    // Body from client (mobileNumber, countryCode, etc.)
-    const clientBody = (req.body && typeof req.body === 'object')
-      ? req.body
-      : {};
+    // 🔹 Body from client (mobileNumber, countryCode, etc.)
+    const clientBody =
+      req.body && typeof req.body === 'object' ? req.body : {};
 
-    // Forward body with guaranteed appid included
+    // Ensure we always send appid to Apps Script
     const forwardBody = {
       ...clientBody,
       appid: appId,
     };
 
-    // Build target URL → Apps Script doPost?action=requestOtp&appid=...
+    // 🔹 Build Apps Script URL: ?action=requestOtp&appid=...
     const url =
       `${SCRIPT_URL}` +
       `?action=requestOtp&appid=${encodeURIComponent(appId)}`;
 
-    console.log('[OTP REQUEST] Forwarding to Apps Script:', {
-      url,
-      body: forwardBody,
-    });
+    console.log('[OTP REQUEST] → Apps Script', { url, forwardBody });
 
     const gsResp = await fetch(url, {
       method: 'POST',
@@ -65,29 +61,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
 
     const text = await gsResp.text();
-    let data: any;
-
+    let data;
     try {
       data = JSON.parse(text);
-    } catch {
+    } catch (e) {
       data = { raw: text };
     }
 
-    console.log('[OTP REQUEST] Apps Script response:', {
+    console.log('[OTP REQUEST] ← Apps Script', {
       status: gsResp.status,
       data,
     });
 
-    // Pass-through status & body from Apps Script
-    return res.status(gsResp.status).json(data);
-  } catch (err: any) {
+    // ✅ Pass-through status & JSON from Apps Script
+    return res.status(gsResp.status || 200).json(data);
+  } catch (err) {
     console.error('[OTP REQUEST] Proxy error:', err);
     return res.status(500).json({
       success: false,
       error: 'OTP request proxy error',
-      details: String(err?.message || err),
+      details: String(err && err.message ? err.message : err),
     });
   }
 }
-
-export default handler;
