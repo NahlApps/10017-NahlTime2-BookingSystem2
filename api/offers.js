@@ -1,66 +1,92 @@
 // pages/api/offers.js
 
-const GAS_OFFERS_URL =
+// 🔗 Backend Apps Script endpoint
+// يمكنك تغييرها من env: process.env.OFFERS_BACKEND_URL
+const BACKEND_OFFERS_URL =
+  process.env.OFFERS_BACKEND_URL ||
   'https://script.google.com/macros/s/AKfycbyyyVPuq0F49s3DEIZBQWTE54TdsEkdi3mxsY7ylZy7A0Vlt6389eEiSGaFrBrsYPtG/exec';
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET');
-    return res
-      .status(405)
-      .json({ ok: false, error: 'Method not allowed (GET only)' });
+/**
+ * Simple helper to build a target URL with all query params forwarded.
+ */
+function buildBackendUrl(query) {
+  const url = new URL(BACKEND_OFFERS_URL);
+
+  // Forward all query params from the frontend to the Apps Script
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((v) => url.searchParams.append(key, String(v)));
+    } else if (value !== undefined && value !== null) {
+      url.searchParams.append(key, String(value));
+    }
+  });
+
+  // If today is missing, add it (YYYY-MM-DD)
+  if (!url.searchParams.has('today')) {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    url.searchParams.set('today', todayIso);
   }
 
-  const { action = 'listOffers', appId, today } = req.query;
+  // If action is missing, default to listOffers
+  if (!url.searchParams.has('action')) {
+    url.searchParams.set('action', 'listOffers');
+  }
 
-  if (!appId) {
+  return url.toString();
+}
+
+export default async function handler(req, res) {
+  const { method, query } = req;
+
+  if (method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
     return res
-      .status(400)
-      .json({ ok: false, error: 'Missing required query param: appId' });
+      .status(405)
+      .json({ ok: false, error: `Method ${method} not allowed` });
+  }
+
+  if (!BACKEND_OFFERS_URL) {
+    return res.status(500).json({
+      ok: false,
+      error: 'OFFERS backend URL is not configured.',
+    });
   }
 
   try {
-    const params = new URLSearchParams({ action, appId });
-    if (today) params.append('today', today);
+    const targetUrl = buildBackendUrl(query);
+    // Debug (اختياري): يمكنك إزالة هذا في الإنتاج
+    console.log('[offers/api] →', targetUrl);
 
-    const url = `${GAS_OFFERS_URL}?${params.toString()}`;
-    const r = await fetch(url, { method: 'GET' });
+    const fetchRes = await fetch(targetUrl, {
+      method: 'GET',
+      cache: 'no-store',
+    });
 
-    const text = await r.text();
+    const text = await fetchRes.text();
+
     let data;
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.error('Failed to parse JSON from GAS:', text);
-      return res.status(500).json({
+      console.error('[offers/api] JSON parse error:', e, text);
+      return res.status(502).json({
         ok: false,
-        error: 'Invalid JSON from Apps Script',
+        error: 'Invalid JSON returned from offers backend.',
         raw: text,
       });
     }
 
-    if (!r.ok) {
-      return res.status(r.status).json({
-        ok: false,
-        error: 'Apps Script returned error',
-        details: data,
-      });
+    // إذا الـ backend ما يرجّع ok، نضيفها بناءً على status
+    if (typeof data.ok === 'undefined') {
+      data.ok = fetchRes.ok;
     }
 
-    // Normalize a bit for frontend (optional)
-    const items = data.items || data.offers || data.rows || [];
-    return res.status(200).json({
-      ok: true,
-      appId,
-      today: today || null,
-      count: items.length,
-      items, // keep same shape your frontend already expects
-    });
+    return res.status(fetchRes.status).json(data);
   } catch (err) {
-    console.error('api/offers error:', err);
+    console.error('[offers/api] fetch error:', err);
     return res.status(500).json({
       ok: false,
-      error: 'Internal server error',
+      error: 'Failed to fetch offers from backend.',
       details: String(err),
     });
   }
