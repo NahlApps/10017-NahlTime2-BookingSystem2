@@ -139,6 +139,27 @@
     .has-error .form-control, .has-error .select2-selection{ border-color:#dc2626 !important; }
     .has-error .field-error{display:block}
 
+    /* 🔢 OTP 4-digits UI */
+    .otp-input-group .otp-input{
+      max-width:56px;
+      min-height:52px;
+      text-align:center;
+      font-size:1.4rem;
+      font-weight:800;
+      letter-spacing:0.08em;
+      padding-inline:0;
+    }
+    @media (max-width:480px){
+      .otp-input-group .otp-input{
+        max-width:52px;
+        min-height:48px;
+      }
+    }
+    #btnVerifyOtp{
+      font-weight:800;
+      border-radius:999px;
+    }
+
     .select2-container .select2-selection--single .select2-selection__rendered{color:#0B2630!important; line-height:52px!important;}
     .select2-container .select2-selection--single{height:52px!important; display:flex; align-items:center}
     .select2-dropdown{background:#fff; color:#0B2630}
@@ -436,16 +457,25 @@
                   </span>
                 </div>
 
-                <!-- 🔢 OTP Input + Verify -->
+                <!-- 🔢 OTP Input (4 separate digits) + Verify -->
                 <div class="row g-2 mt-2" id="otpVerifyRow" style="display:none;">
-                  <div class="col-8 col-sm-6">
-                    <input id="otpCode" type="tel" inputmode="numeric" maxlength="4"
-                      class="form-control"
-                      placeholder="أدخل كود التحقق (4 أرقام)"/>
+                  <div class="col-12 col-sm-8">
+                    <div class="d-flex justify-content-center gap-2 otp-input-group">
+                      <input id="otpDigit1" type="tel" inputmode="numeric" maxlength="1"
+                             class="form-control otp-input" autocomplete="one-time-code">
+                      <input id="otpDigit2" type="tel" inputmode="numeric" maxlength="1"
+                             class="form-control otp-input">
+                      <input id="otpDigit3" type="tel" inputmode="numeric" maxlength="1"
+                             class="form-control otp-input">
+                      <input id="otpDigit4" type="tel" inputmode="numeric" maxlength="1"
+                             class="form-control otp-input">
+                    </div>
                   </div>
-                  <div class="col-4 col-sm-3 d-grid">
-                    <button id="btnVerifyOtp" type="button" class="btn btn-success btn-sm" style="min-height:40px;">
-                      تأكيد
+                  <div class="col-12 col-sm-4 d-grid mt-2 mt-sm-0">
+                    <button id="btnVerifyOtp" type="button"
+                            class="btn btn-success btn-sm"
+                            style="min-height:46px; border-radius:999px; font-weight:800;">
+                      ✅ تأكيد الكود
                     </button>
                   </div>
                 </div>
@@ -701,42 +731,38 @@
       couponCode:''
     };
 
-    /* 🔢 Phone helpers (relaxed validation) */
-/* 🔢 Phone helpers */
+    /* 🔢 Phone helpers */
 
-// Full digits with country code (E.164 → digits), used for booking/coupons, not OTP.
-function getMobileDigits() {
-  if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
-    const e164 = itiPhone.getNumber() || ''; // e.g. +966564491003
-    const digits = e164.replace(/\D/g, '');
-    if (digits) return digits;
-  }
-  const el = document.getElementById('mobile');
-  return (el?.value || '').replace(/\D/g, '');
-}
+    // Full digits with country code (E.164 → digits), used for booking/coupons, not OTP.
+    function getMobileDigits() {
+      if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
+        const e164 = itiPhone.getNumber() || ''; // e.g. +966564491003
+        const digits = e164.replace(/\D/g, '');
+        if (digits) return digits;
+      }
+      const el = document.getElementById('mobile');
+      return (el?.value || '').replace(/\D/g, '');
+    }
 
-// Local part only (what user typed in the input, without dial code),
-// used for OTP; country code will be sent separately.
-function getMobileLocalDigits() {
-  const el = document.getElementById('mobile');
-  if (!el) return '';
-  const raw = el.value || '';
-  let digits = raw.replace(/\D/g, '');
-  // strip one leading 0 if exists (e.g. 05XXXXXXXX → 5XXXXXXXX)
-  if (digits.startsWith('0')) {
-    digits = digits.slice(1);
-  }
-  return digits;
-}
+    // Local part only (what user typed in the input, without dial code),
+    // used for OTP; country code will be sent separately.
+    function getMobileLocalDigits() {
+      const el = document.getElementById('mobile');
+      if (!el) return '';
+      const raw = el.value || '';
+      let digits = raw.replace(/\D/g, '');
+      // strip one leading 0 if exists (e.g. 05XXXXXXXX → 5XXXXXXXX)
+      if (digits.startsWith('0')) {
+        digits = digits.slice(1);
+      }
+      return digits;
+    }
 
-function isPhoneDigitsValid() {
-  const local = getMobileLocalDigits();
-  // 8–12 digits for local Saudi/GCC numbers is safe
-  return local.length >= 8 && local.length <= 12;
-}
-
-
-
+    function isPhoneDigitsValid() {
+      const local = getMobileLocalDigits();
+      // 8–12 digits for local Saudi/GCC numbers is safe
+      return local.length >= 8 && local.length <= 12;
+    }
 
     function isEnglishLocale(){
       const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
@@ -1350,39 +1376,84 @@ function isPhoneDigitsValid() {
       }
     }
 
-    /* 🔐 OTP Helpers */
+    /* 🔐 OTP Helpers & 4-digit UI */
+
+    function getOtpCodeFromInputs() {
+      const ids = ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'];
+      let code = '';
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          code += (el.value || '').replace(/\D/g, '');
+        }
+      });
+      return code;
+    }
+
+    function clearOtpInputs() {
+      ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    }
+
+    function setOtpInputsReadonly(readonly) {
+      ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (readonly) el.setAttribute('readonly', 'readonly');
+        else el.removeAttribute('readonly');
+      });
+    }
+
+    function focusFirstEmptyOtpInput() {
+      const ids = ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'];
+      for (let i = 0; i < ids.length; i++) {
+        const el = document.getElementById(ids[i]);
+        if (el && !el.value) {
+          el.focus();
+          el.select();
+          return;
+        }
+      }
+      const last = document.getElementById('otpDigit4');
+      if (last) {
+        last.focus();
+        last.select();
+      }
+    }
 
     function resetOtpState(fullReset){
       if(!OTP_ENABLED) return;
-      otpRequested = false;
-      otpVerified  = false;
-      otpLastSentAt = null;
+      otpRequested   = false;
+      otpVerified    = false;
+      otpLastSentAt  = null;
       if(otpCountdownTimer){
         clearInterval(otpCountdownTimer);
         otpCountdownTimer = null;
       }
-      const statusEl = document.getElementById('otpStatus');
-      const errEl    = document.getElementById('err-otp');
-      const codeEl   = document.getElementById('otpCode');
-      const verifyRow= document.getElementById('otpVerifyRow');
-      const sendBtn  = document.getElementById('btnSendOtp');
 
-      if(statusEl){
-        statusEl.className = 'small text-muted';
+      const statusEl  = document.getElementById('otpStatus');
+      const errEl     = document.getElementById('err-otp');
+      const verifyRow = document.getElementById('otpVerifyRow');
+      const sendBtn   = document.getElementById('btnSendOtp');
+
+      if (statusEl) {
+        statusEl.className   = 'small text-muted';
         statusEl.textContent = 'سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.';
       }
-      if(errEl){
+      if (errEl) {
         errEl.style.display = 'none';
       }
-      if(codeEl){
-        codeEl.removeAttribute('readonly');
-        if(fullReset) codeEl.value = '';
+
+      setOtpInputsReadonly(false);
+      if (fullReset) {
+        clearOtpInputs();
+        if (verifyRow) verifyRow.style.display = 'none';
       }
-      if(verifyRow){
-        verifyRow.style.display = 'none';
-      }
-      if(sendBtn){
-        sendBtn.disabled = false;
+
+      if (sendBtn) {
+        sendBtn.disabled   = false;
         sendBtn.textContent = 'إرسال كود على واتساب';
       }
 
@@ -1423,130 +1494,131 @@ function isPhoneDigitsValid() {
     }
 
     /* ✅ Request OTP – uses selected country code from intl-tel-input */
-async function requestOtpForMobile() {
-  const mobileInput = document.getElementById('mobile');
-  const btnSend     = document.getElementById('btnSendOtp');
-  const statusEl    = document.getElementById('otpStatus');
+    async function requestOtpForMobile() {
+      const mobileInput = document.getElementById('mobile');
+      const btnSend     = document.getElementById('btnSendOtp');
+      const statusEl    = document.getElementById('otpStatus');
 
-  try {
-    if (!mobileInput) {
-      showToast('error', 'حصل خطأ في حقل رقم الجوال');
-      return;
-    }
+      try {
+        if (!mobileInput) {
+          showToast('error', 'حصل خطأ في حقل رقم الجوال');
+          return;
+        }
 
-    // ✅ أرقام الجوال المحلية (بدون كود الدولة)
-    const localDigits = getMobileLocalDigits(); // مثال: 564491003
+        // ✅ أرقام الجوال المحلية (بدون كود الدولة)
+        const localDigits = getMobileLocalDigits(); // مثال: 564491003
 
-    if (!localDigits || localDigits.length < 8) {
-      showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
-      return;
-    }
+        if (!localDigits || localDigits.length < 8) {
+          showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
+          return;
+        }
 
-    // ✅ كود الدولة المختار من القائمة (من intl-tel-input)
-    let dialCode = '966';
-    if (window.itiPhone && typeof itiPhone.getSelectedCountryData === 'function') {
-      const cData = itiPhone.getSelectedCountryData() || {};
-      if (cData.dialCode) {
-        dialCode = String(cData.dialCode).replace(/\D/g, '') || '966';
+        // ✅ كود الدولة المختار من القائمة (من intl-tel-input)
+        let dialCode = '966';
+        if (window.itiPhone && typeof itiPhone.getSelectedCountryData === 'function') {
+          const cData = itiPhone.getSelectedCountryData() || {};
+          if (cData.dialCode) {
+            dialCode = String(cData.dialCode).replace(/\D/g, '') || '966';
+          }
+        }
+
+        console.log('OTP_REQUEST_URL =', OTP_REQUEST_URL,
+                    'localDigits =', localDigits,
+                    'dialCode =', dialCode);
+
+        // ⏳ تحديث حالة الزرّ والنص أثناء الإرسال
+        if (btnSend) {
+          btnSend.disabled = true;
+          btnSend.textContent = 'جارٍ الإرسال…';
+        }
+        if (statusEl) {
+          statusEl.className = 'small text-muted';
+          statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
+        }
+
+        const res = await fetch(OTP_REQUEST_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mobileNumber: localDigits, // ✅ الرقم المحلي فقط
+            countryCode: dialCode,     // ✅ كود الدولة من القائمة
+            appid: APP_ID
+          })
+        });
+
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (e) {
+          console.warn('OTP request: failed to parse JSON', e);
+        }
+
+        console.log('OTP request response:', res.status, data);
+
+        if (!res.ok || !data || data.success === false) {
+          const msg =
+            (data && (data.error || data.message)) ||
+            'تعذر إرسال رمز التحقق حالياً، حاول مرة أخرى لاحقاً.';
+
+          showToast('error', msg);
+
+          if (statusEl) {
+            statusEl.className = 'small text-danger';
+            statusEl.textContent = 'تعذر إرسال الكود، حاول مرة أخرى.';
+          }
+          if (btnSend) {
+            btnSend.disabled = false;
+            btnSend.textContent = 'إرسال كود على واتساب';
+          }
+          return;
+        }
+
+        // ✅ نجاح الإرسال
+        showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
+
+        if (statusEl) {
+          statusEl.className = 'small text-success';
+          statusEl.textContent = 'تم إرسال الكود بنجاح، يرجى إدخال الكود المكون من ٤ أرقام في الخانة أدناه.';
+        }
+
+        const verifyRow = document.getElementById('otpVerifyRow');
+        if (verifyRow) {
+          verifyRow.style.display = 'flex';
+        }
+
+        if (typeof startOtpCountdown === 'function') {
+          startOtpCountdown();
+        } else {
+          if (btnSend) {
+            btnSend.disabled = false;
+            btnSend.textContent = 'إعادة إرسال الكود';
+          }
+        }
+
+        focusFirstEmptyOtpInput();
+      } catch (err) {
+        console.error('requestOtpForMobile error:', err);
+        showToast('error', 'حدث خطأ أثناء طلب رمز التحقق');
+
+        if (statusEl) {
+          statusEl.className = 'small text-danger';
+          statusEl.textContent = 'حدث خطأ أثناء الإرسال، حاول مرة أخرى.';
+        }
+        if (btnSend) {
+          btnSend.disabled = false;
+          btnSend.textContent = 'إرسال كود على واتساب';
+        }
       }
     }
 
-    console.log('OTP_REQUEST_URL =', OTP_REQUEST_URL,
-                'localDigits =', localDigits,
-                'dialCode =', dialCode);
-
-    // ⏳ تحديث حالة الزرّ والنص أثناء الإرسال
-    if (btnSend) {
-      btnSend.disabled = true;
-      btnSend.textContent = 'جارٍ الإرسال…';
-    }
-    if (statusEl) {
-      statusEl.className = 'small text-muted';
-      statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
-    }
-
-    const res = await fetch(OTP_REQUEST_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mobileNumber: localDigits, // ✅ الرقم المحلي فقط
-        countryCode: dialCode,     // ✅ كود الدولة من القائمة
-        appid: APP_ID
-      })
-    });
-
-    let data = null;
-    try {
-      data = await res.json();
-    } catch (e) {
-      console.warn('OTP request: failed to parse JSON', e);
-    }
-
-    console.log('OTP request response:', res.status, data);
-
-    if (!res.ok || !data || data.success === false) {
-      const msg =
-        (data && (data.error || data.message)) ||
-        'تعذر إرسال رمز التحقق حالياً، حاول مرة أخرى لاحقاً.';
-
-      showToast('error', msg);
-
-      if (statusEl) {
-        statusEl.className = 'small text-danger';
-        statusEl.textContent = 'تعذر إرسال الكود، حاول مرة أخرى.';
-      }
-      if (btnSend) {
-        btnSend.disabled = false;
-        btnSend.textContent = 'إرسال كود على واتساب';
-      }
-      return;
-    }
-
-    // ✅ نجاح الإرسال
-    showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
-
-    if (statusEl) {
-      statusEl.className = 'small text-success';
-      statusEl.textContent = 'تم إرسال الكود بنجاح، يرجى إدخال الكود المكون من ٤ أرقام في الخانة أدناه.';
-    }
-
-    const verifyRow = document.getElementById('otpVerifyRow');
-    if (verifyRow) {
-      verifyRow.style.display = 'flex';
-    }
-
-    if (typeof startOtpCountdown === 'function') {
-      startOtpCountdown();
-    } else {
-      if (btnSend) {
-        btnSend.disabled = false;
-        btnSend.textContent = 'إعادة إرسال الكود';
-      }
-    }
-  } catch (err) {
-    console.error('requestOtpForMobile error:', err);
-    showToast('error', 'حدث خطأ أثناء طلب رمز التحقق');
-
-    if (statusEl) {
-      statusEl.className = 'small text-danger';
-      statusEl.textContent = 'حدث خطأ أثناء الإرسال، حاول مرة أخرى.';
-    }
-    if (btnSend) {
-      btnSend.disabled = false;
-      btnSend.textContent = 'إرسال كود على واتساب';
-    }
-  }
-}
-
-
-    /* ✅ Updated relaxed OTP verification – also sends countryCode */
+    /* ✅ Updated OTP verification using 4 inputs – also sends countryCode */
     async function verifyOtpForMobile(otpCode) {
-      const errEl      = document.getElementById('err-otp');
-      const statusEl   = document.getElementById('otpStatus');
-      const codeEl     = document.getElementById('otpCode');
-      const otpControls= document.getElementById('otpControls');
-      const verifyRow  = document.getElementById('otpVerifyRow');
-      const mobileEl   = document.getElementById('mobile');
+      const errEl       = document.getElementById('err-otp');
+      const statusEl    = document.getElementById('otpStatus');
+      const otpControls = document.getElementById('otpControls');
+      const verifyRow   = document.getElementById('otpVerifyRow');
+      const mobileEl    = document.getElementById('mobile');
+      const verifyBtn   = document.getElementById('btnVerifyOtp');
 
       try {
         const raw    = mobileEl ? (mobileEl.value || '') : '';
@@ -1560,6 +1632,13 @@ async function requestOtpForMobile() {
             errEl.style.display = 'block';
           }
           return;
+        }
+
+        // حالة زر التأكيد أثناء الطلب
+        if (verifyBtn) {
+          verifyBtn.disabled = true;
+          verifyBtn.dataset.originalText = verifyBtn.dataset.originalText || verifyBtn.textContent;
+          verifyBtn.textContent = 'جاري التحقق…';
         }
 
         let mobilePlain;
@@ -1603,6 +1682,10 @@ async function requestOtpForMobile() {
             errEl.textContent = 'رمز التحقق غير صحيح أو منتهي، حاول مرة أخرى.';
             errEl.style.display = 'block';
           }
+          if (verifyBtn) {
+            verifyBtn.disabled   = false;
+            verifyBtn.textContent = verifyBtn.dataset.originalText || '✅ تأكيد الكود';
+          }
           updateNextAvailability();
           return;
         }
@@ -1621,38 +1704,46 @@ async function requestOtpForMobile() {
         if (errEl) {
           errEl.style.display = 'none';
         }
-        if (codeEl) {
-          codeEl.setAttribute('readonly', 'readonly');
-        }
+
+        setOtpInputsReadonly(true);
 
         if (otpControls) otpControls.style.display = 'none';
         if (verifyRow)   verifyRow.style.display   = 'none';
 
+        if (verifyBtn) {
+          verifyBtn.disabled   = true;
+          verifyBtn.textContent = 'تم التحقق ✅';
+        }
+
         showToast('success', 'تم التحقق من رقم الجوال بنجاح ✅');
+
         updateNextAvailability();
       } catch (err) {
         console.error('verifyOtpForMobile error:', err);
         showToast('error', 'حدث خطأ أثناء التحقق من رمز OTP');
+        if (statusEl) {
+          statusEl.className   = 'small text-danger';
+          statusEl.textContent = 'حدث خطأ أثناء التحقق، حاول مرة أخرى.';
+        }
+        if (verifyBtn) {
+          verifyBtn.disabled   = false;
+          verifyBtn.textContent = verifyBtn.dataset.originalText || '✅ تأكيد الكود';
+        }
       }
     }
 
     function verifyOtpCode() {
-      const input = document.getElementById('otpCode');
       const errEl = document.getElementById('err-otp');
 
-      if (!input) {
-        console.error('OTP input field not found (otpCode)');
-        showToast('error', 'لم يتم العثور على حقل إدخال الكود');
-        return;
-      }
+      const code = getOtpCodeFromInputs();
 
-      const code = (input.value || '').trim();
       if (!code) {
         if (errEl) {
           errEl.textContent = 'الرجاء إدخال كود التحقق أولاً';
           errEl.style.display = 'block';
         }
         showToast('error', 'الرجاء إدخال كود التحقق أولاً');
+        focusFirstEmptyOtpInput();
         return;
       }
 
@@ -1662,6 +1753,7 @@ async function requestOtpForMobile() {
           errEl.style.display = 'block';
         }
         showToast('error', `الرجاء إدخال كود مكوّن من ${OTP_CODE_LENGTH} أرقام`);
+        focusFirstEmptyOtpInput();
         return;
       }
 
@@ -2020,6 +2112,56 @@ async function requestOtpForMobile() {
         const btnVerifyOtp = document.getElementById('btnVerifyOtp');
         if(btnSendOtp){   btnSendOtp.addEventListener('click', requestOtpForMobile); }
         if(btnVerifyOtp){ btnVerifyOtp.addEventListener('click', verifyOtpCode); }
+
+        // 🔢 تحسين تجربة إدخال OTP (الانتقال بين الخانات + لصق الكود)
+        const otpInputs = Array.from(document.querySelectorAll('.otp-input'));
+        if (otpInputs.length) {
+          otpInputs.forEach((input, idx) => {
+            input.addEventListener('input', (e) => {
+              let v = (e.target.value || '').replace(/\D/g, '');
+              if (v.length > 1) {
+                v = v.slice(0, 1);
+              }
+              e.target.value = v;
+
+              if (v && idx < otpInputs.length - 1) {
+                otpInputs[idx + 1].focus();
+                otpInputs[idx + 1].select();
+              }
+            });
+
+            input.addEventListener('keydown', (e) => {
+              if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                otpInputs[idx - 1].focus();
+                otpInputs[idx - 1].value = '';
+              }
+              if (e.key === 'ArrowLeft' && idx > 0) {
+                e.preventDefault();
+                otpInputs[idx - 1].focus();
+              }
+              if (e.key === 'ArrowRight' && idx < otpInputs.length - 1) {
+                e.preventDefault();
+                otpInputs[idx + 1].focus();
+              }
+            });
+
+            input.addEventListener('paste', (e) => {
+              const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+              const digits = text.replace(/\D/g, '').slice(0, OTP_CODE_LENGTH);
+              if (!digits) return;
+              e.preventDefault();
+              clearOtpInputs();
+              digits.split('').forEach((d, i) => {
+                if (otpInputs[i]) otpInputs[i].value = d;
+              });
+              if (digits.length === OTP_CODE_LENGTH) {
+                verifyOtpCode();
+              } else {
+                focusFirstEmptyOtpInput();
+              }
+            });
+          });
+        }
 
         resetOtpState(true);
       } else {
