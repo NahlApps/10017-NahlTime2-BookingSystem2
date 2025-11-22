@@ -36,6 +36,25 @@
   <link rel="apple-touch-icon"
         href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png">
 
+  <!-- ✅ Define handleLogoError early so onerror never fails -->
+  <script>
+    function handleLogoError(img){
+      const fallbacks = [
+        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/spong&Soap%20-%20logo.png",
+        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/spong%26Soap%20-%20logo.png",
+        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/logo.png",
+        "https://dummyimage.com/180x54/027A93/ffffff.png&text=Sponge+%26+Soap"
+      ];
+      const i = Number(img.dataset.fidx || 0);
+      if (i < fallbacks.length){
+        img.dataset.fidx = String(i + 1);
+        img.src = fallbacks[i];
+      } else {
+        img.style.display = 'none';
+      }
+    }
+  </script>
+
   <style>
     :root{
       --brand-700:#01657A; --brand-600:#027A93; --brand-200:#BFE6F0; --brand-050:#F0FAFC;
@@ -813,18 +832,6 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    function handleLogoError(img){
-      const fallbacks = [
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/spong&Soap%20-%20logo.png",
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/spong%26Soap%20-%20logo.png",
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/logo.png",
-        "https://dummyimage.com/180x54/027A93/ffffff.png&text=Sponge+%26+Soap"
-      ];
-      const i = Number(img.dataset.fidx||0);
-      if (i < fallbacks.length){ img.dataset.fidx = String(i+1); img.src = fallbacks[i]; }
-      else { img.style.display = 'none'; }
-    }
-
     const APP_ID = '21eddbf5-efe5-4a5d-9134-b581717b17ff';
 
     const defaultLink2 = `https://b0sk44sswgc4kcswoo8sk0og.nahls.app/api/app/AM/general/${APP_ID}/form`;
