@@ -139,49 +139,6 @@
     .has-error .form-control, .has-error .select2-selection{ border-color:#dc2626 !important; }
     .has-error .field-error{display:block}
 
-    /* 🔢 OTP 4-digits UI */
-    .otp-input-group .otp-input{
-      max-width:56px;
-      min-height:52px;
-      text-align:center;
-      font-size:1.4rem;
-      font-weight:800;
-      letter-spacing:0.08em;
-      padding-inline:0;
-    }
-    @media (max-width:480px){
-      .otp-input-group .otp-input{
-        max-width:52px;
-        min-height:48px;
-      }
-    }
-    #btnVerifyOtp{
-      font-weight:800;
-      border-radius:999px;
-    }
-    .otp-input-group{
-      direction: ltr;
-      justify-content: center;
-    }
-
-    .otp-input-group .otp-input{
-      max-width:56px;
-      min-height:52px;
-      text-align:center;
-      font-size:1.4rem;
-      font-weight:800;
-      letter-spacing:0.08em;
-      padding-inline:0;
-      direction: ltr;
-    }
-
-    @media (max-width:480px){
-      .otp-input-group .otp-input{
-        max-width:52px;
-        min-height:48px;
-      }
-    }
-
     .select2-container .select2-selection--single .select2-selection__rendered{color:#0B2630!important; line-height:52px!important;}
     .select2-container .select2-selection--single{height:52px!important; display:flex; align-items:center}
     .select2-dropdown{background:#fff; color:#0B2630}
@@ -479,25 +436,16 @@
                   </span>
                 </div>
 
-                <!-- 🔢 OTP Input (4 separate digits) + Verify -->
+                <!-- 🔢 OTP Input + Verify -->
                 <div class="row g-2 mt-2" id="otpVerifyRow" style="display:none;">
-                  <div class="col-12 col-sm-8">
-                    <div class="d-flex justify-content-center gap-2 otp-input-group" dir="ltr">
-                      <input id="otpDigit1" type="tel" inputmode="numeric" maxlength="1"
-                             class="form-control otp-input" autocomplete="one-time-code">
-                      <input id="otpDigit2" type="tel" inputmode="numeric" maxlength="1"
-                             class="form-control otp-input">
-                      <input id="otpDigit3" type="tel" inputmode="numeric" maxlength="1"
-                             class="form-control otp-input">
-                      <input id="otpDigit4" type="tel" inputmode="numeric" maxlength="1"
-                             class="form-control otp-input">
-                    </div>
+                  <div class="col-8 col-sm-6">
+                    <input id="otpCode" type="tel" inputmode="numeric" maxlength="4"
+                      class="form-control"
+                      placeholder="أدخل كود التحقق (4 أرقام)"/>
                   </div>
-                  <div class="col-12 col-sm-4 d-grid mt-2 mt-sm-0">
-                    <button id="btnVerifyOtp" type="button"
-                            class="btn btn-success btn-sm"
-                            style="min-height:46px; border-radius:999px; font-weight:800;">
-                      ✅ تأكيد الكود
+                  <div class="col-4 col-sm-3 d-grid">
+                    <button id="btnVerifyOtp" type="button" class="btn btn-success btn-sm" style="min-height:40px;">
+                      تأكيد
                     </button>
                   </div>
                 </div>
@@ -653,15 +601,9 @@
 
     const APP_ID = '21eddbf5-efe5-4a5d-9134-b581717b17ff';
 
-    // ✅ Use local origin for GET (locations/services/appointments)
-    const FORM_BASE_LOCAL = `/api/app/AM/general/${APP_ID}/form`;
-    const defaultLink2 = window.location.origin.replace(/\/$/, '') + FORM_BASE_LOCAL;
-
-    // ✅ Use nahl-platform for POST (reservation), as per original method
-    const RESERVE_URL_PRIMARY  =
-      `https://nahl-platform.vercel.app/api/app/AM/general/${APP_ID}/form?action=reserveAppointment&appid=${encodeURIComponent(APP_ID)}`;
-    const RESERVE_URL_FALLBACK =
-      `https://nahl-platform.vercel.app/api/app/AM/general/${APP_ID}?action=reserveAppointment&appid=${encodeURIComponent(APP_ID)}`;
+    const defaultLink2 = `https://b0sk44sswgc4kcswoo8sk0og.nahls.app/api/app/AM/general/${APP_ID}/form`;
+    const RESERVE_URL_PRIMARY  = `${defaultLink2}/reserveAppointment`;
+    const RESERVE_URL_FALLBACK = `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
 
     const API_BASE = window.location.origin.replace(/\/$/, '');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
@@ -670,13 +612,13 @@
     const PAYMENT_METHODS_URL     = `${API_BASE}/api/payment-methods`;
 
     /* 🔐 OTP API endpoints (via proxy → Code.gs → Green API) */
-    const OTP_REQUEST_URL = `${API_BASE}/api/otp/request?appid=${encodeURIComponent(APP_ID)}`;
-    const OTP_VERIFY_URL  = `${API_BASE}/api/otp/verify?appid=${encodeURIComponent(APP_ID)}`;
+    const OTP_REQUEST_URL         = `${API_BASE}/api/otp/request`;
+    const OTP_VERIFY_URL          = `${API_BASE}/api/otp/verify`;
 
-    /* 🔄 Toggle OTP feature ON/OFF */
-    const OTP_ENABLED        = true;
-    const OTP_CODE_LENGTH    = 4;
-    const OTP_RESEND_SECONDS = 60;
+    /* 🔄 Toggle OTP feature ON/OFF from here (no backend change required) */
+    const OTP_ENABLED             = true;   // 🟢 true = require OTP verify, 🔴 false = skip OTP
+    const OTP_CODE_LENGTH         = 4;
+    const OTP_RESEND_SECONDS      = 60;
 
     let controllers = [];
     async function callContent2(path, cb, abortable=false, retries=3){
@@ -696,31 +638,15 @@
     }
     async function postReservationTry(url, payload, contentType='text/plain;charset=UTF-8'){
       try{
-        const res=await fetch(url,{
-          method:'POST',
-          mode:'cors',
-          cache:'no-store',
-          credentials:'omit',
-          referrerPolicy:'no-referrer',
-          headers:{
-            'Content-Type':contentType,
-            'Accept':'application/json'
-          },
-          body:JSON.stringify(payload)
-        });
+        const res=await fetch(url,{method:'POST',mode:'cors',cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',headers:{'Content-Type':contentType,'Accept':'application/json'},body:JSON.stringify(payload)});
         const raw=await res.text(); let data=null; try{ data=JSON.parse(raw);}catch(_){}
         return {ok:res.ok,status:res.status,data,raw};
       }catch(err){ return {ok:false,status:0,error:String(err)} }
     }
     async function postReservation(payload){
-      // حاول بالطريقة الأساسية أولاً
       let r=await postReservationTry(RESERVE_URL_PRIMARY,payload,'text/plain;charset=UTF-8');
-      // جرّب JSON لو 415/406/0
-      if(!r.ok && (r.status===415||r.status===406||r.status===0))
-        r=await postReservationTry(RESERVE_URL_PRIMARY,payload,'application/json;charset=UTF-8');
-      // جرّب رابط بديل بدون /form لو 404
-      if(!r.ok && r.status===404)
-        r=await postReservationTry(RESERVE_URL_FALLBACK,payload,'text/plain;charset=UTF-8');
+      if(!r.ok && (r.status===415||r.status===406||r.status===0)) r=await postReservationTry(RESERVE_URL_PRIMARY,payload,'application/json;charset=UTF-8');
+      if(!r.ok && r.status===404) r=await postReservationTry(RESERVE_URL_FALLBACK,payload,'text/plain;charset=UTF-8');
       return r;
     }
 
@@ -737,6 +663,7 @@
     const DateTime=luxon.DateTime;
     const orderedPages=["page1","page2","page3","page4","page5","page6","page7"];
     const STEPS_LABELS=["الترحيب","الخدمة","الوقت","البيانات","الدفع","الموقع","تم"];
+    const STEPS_LABELS_EN=["Welcome","Service","Time","Details","Payment","Location","Done"];
     const PAGE_BACKGROUNDS={
       page1:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg",
       page2:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG2.jpg",
@@ -769,36 +696,30 @@
 
     const nForm={
       date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',
-      customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar'
+      customerM:'',customerN:'',paymentMethod:'',urlLocation:'',locationDescription:'', locale:'ar',
+      additionalServicesIds:[],
+      additionalServicesLabels:[],
+      couponCode:''
     };
 
-    /* 🔢 Phone helpers */
-
-    // Full digits with country code (E.164 → digits), used for booking/coupons, not OTP.
-    function getMobileDigits() {
-      if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
-        const e164 = itiPhone.getNumber() || ''; // e.g. +966564491003
-        const digits = e164.replace(/\D/g, '');
-        if (digits) return digits;
+    // 🌐 ضبط اللغة من بارامتر ?lang=en أو افتراضي عربي
+    (function initLocale() {
+      try {
+        const params = new URLSearchParams(window.location.search || '');
+        const langParam = (params.get('lang') || '').toLowerCase();
+        if (langParam === 'en') {
+          nForm.locale = 'en';
+          document.documentElement.lang = 'en';
+          document.documentElement.dir  = 'ltr';
+        } else {
+          nForm.locale = 'ar';
+          document.documentElement.lang = 'ar';
+          document.documentElement.dir  = 'rtl';
+        }
+      } catch(e) {
+        console.warn('Locale init failed', e);
       }
-      const el = document.getElementById('mobile');
-      return (el?.value || '').replace(/\D/g, '');
-    }
-
-    // Local part only, used for OTP
-    function getMobileLocalDigits() {
-      const el = document.getElementById('mobile');
-      if (!el) return '';
-      const raw = el.value || '';
-      let digits = raw.replace(/\D/g, '');
-      if (digits.startsWith('0')) digits = digits.slice(1);
-      return digits;
-    }
-
-    function isPhoneDigitsValid() {
-      const local = getMobileLocalDigits();
-      return local.length >= 8 && local.length <= 12;
-    }
+    })();
 
     function isEnglishLocale(){
       const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
@@ -891,7 +812,11 @@
     function syncProgress(i){
       const pct=((i+1)/orderedPages.length)*100;
       document.getElementById('miniBarFill').style.width=pct+'%';
-      document.getElementById('miniStepTitle').textContent=STEPS_LABELS[Math.min(i,STEPS_LABELS.length-1)];
+
+      const isEn = isEnglishLocale();
+      const labels = isEn ? STEPS_LABELS_EN : STEPS_LABELS;
+      document.getElementById('miniStepTitle').textContent=labels[Math.min(i,labels.length-1)];
+
       const prev=document.getElementById('footer-prev');
       const next=document.getElementById('footer-next');
       const wait=document.getElementById('footer-wait');
@@ -900,7 +825,11 @@
       next.classList.toggle('hidden', onThanks);
       wait.classList.remove('show');
 
-      next.textContent = (i===0) ? 'تخطي العرض' : 'التالي';
+      if (isEn){
+        next.textContent = (i===0) ? 'Skip intro' : 'Next';
+      } else {
+        next.textContent = (i===0) ? 'تخطي العرض' : 'التالي';
+      }
     }
 
     function setLoadingTimes(on){ document.getElementById('timeLoading').classList.toggle('show', !!on); }
@@ -918,8 +847,12 @@
     function updatePlateHint(){
       const raw = ($('#plateNumber').val()||'');
       const v   = raw.replace(/\D/g,'');
+
       $('#plateNumber').val(v);
-      const txt = v ? (isSpecialPlate(v) ? 'رقم مميز 👌 — ممتاز للتوثيق السريع.' : 'اختياري — يساعد فريقنا على التعرف على مركبتك.') : 'اختياري — يساعد فريقنا على التعرف على مركبتك';
+      const txt = v
+        ? (isSpecialPlate(v) ? 'رقم مميز 👌 — ممتاز للتوثيق السريع.' : 'اختياري — يساعد فريقنا على التعرف على مركبتك.')
+        : 'اختياري — يساعد فريقنا على التعرف على مركبتك';
+
       $('#plateHelp').text(txt);
       const pe=document.getElementById('err-plate'); if(pe) pe.style.display='none';
     }
@@ -1028,7 +961,6 @@
 
       const qs=`/appointments?startDate=${encodeURIComponent(selectedISO)}&location=${encodeURIComponent(loc)}&service=${encodeURIComponent(srv)}&onlyAvailable=1`;
       callContent2(qs,(res)=>{
-
         const rows=(res?.data?.appointments||[]);
         const filtered=rows.filter(r=>{
           const d=DateTime.fromISO(r.TS_appointment_date,{setZone:true}); if(!d.isValid||d.toISODate()!==selectedISO) return false;
@@ -1099,26 +1031,22 @@
       header && ro.observe(header); footer && ro.observe(footer);
     }
 
-    // ✅ Build payload exactly with requested fields only
     function buildPayload(){
-      const loc  = $('#area').val() || '';
-      const svcC = $('#serviceCat').val() || '';
-      const svc  = $('#service').val() || '';
-      const cnt  = $('#serviceCount').val() || '1';
-      const phoneDigits = getMobileDigits();
-
+      const loc=$('#area').val(); const svcC=$('#serviceCat').val(); const svc=$('#service').val(); const cnt=$('#serviceCount').val()||'1';
+      const phoneDigits=itiPhone?.getNumber?.()?.replace(/^\+/, '') || '';
       return {
-        date: nForm.date,
-        time: nForm.time,
-        location: loc,
-        service: svc,
-        serviceCount: String(cnt),
-        serviceCat: svcC,
-        customerM: phoneDigits,
-        customerN: nForm.customerN,
-        paymentMethod: (nForm.paymentMethod || '').toLowerCase(),
-        urlLocation: nForm.urlLocation,
-        locationDescription: nForm.locationDescription || ''
+        date:nForm.date, time:nForm.time,
+        location:(loc!==null&&loc!=='')?String(loc):undefined,
+        service:(svc!==null&&svc!=='')?String(svc):undefined,
+        serviceCount:String(cnt),
+        serviceCat:(svcC!==null&&svcC!=='')?String(svcC):undefined,
+        customerM:phoneDigits, customerN:nForm.customerN,
+        paymentMethod:(nForm.paymentMethod||'').toLowerCase(),
+        urlLocation:nForm.urlLocation, locationDescription:nForm.locationDescription||'',
+        locale:isEnglishLocale() ? 'en' : 'ar',
+        additionalServices:(nForm.additionalServicesIds||[]).join(','),
+        couponCode: couponCodeApplied || '',
+        couponDiscountAmount: couponDiscountAmount || 0
       };
     }
 
@@ -1242,7 +1170,7 @@
         return;
       }
 
-      const customer = getMobileDigits();
+      const customer = itiPhone && itiPhone.getNumber ? itiPhone.getNumber().replace(/^\+/, '') : '';
 
       msgEl.textContent = 'جاري التحقق من الكوبون…';
       msgEl.className = 'small mt-2 text-muted';
@@ -1392,7 +1320,7 @@
             nForm.paymentMethod = methodId;
             renderSummary('page5');
             updateNextAvailability();
-            showPage(4);
+            showPage(5);
           };
 
           card.addEventListener('click', choose);
@@ -1416,88 +1344,41 @@
       }
     }
 
-    /* 🔐 OTP Helpers & 4-digit UI */
-
-    function getOtpCodeFromInputs() {
-      const ids = ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'];
-      let code = '';
-      ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          code += (el.value || '').replace(/\D/g, '');
-        }
-      });
-      return code;
-    }
-
-    function clearOtpInputs() {
-      ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-    }
-
-    function setOtpInputsReadonly(readonly) {
-      ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'].forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (readonly) el.setAttribute('readonly', 'readonly');
-        else el.removeAttribute('readonly');
-      });
-    }
-
-    function focusFirstEmptyOtpInput() {
-      const ids = ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'];
-      for (let i = 0; i < ids.length; i++) {
-        const el = document.getElementById(ids[i]);
-        if (el && !el.value) {
-          el.focus();
-          el.select();
-          return;
-        }
-      }
-      const last = document.getElementById('otpDigit4');
-      if (last) {
-        last.focus();
-        last.select();
-      }
-    }
+    /* 🔐 OTP Helpers */
 
     function resetOtpState(fullReset){
       if(!OTP_ENABLED) return;
-      otpRequested   = false;
-      otpVerified    = false;
-      otpLastSentAt  = null;
+      otpRequested = false;
+      otpVerified  = false;
+      otpLastSentAt = null;
       if(otpCountdownTimer){
         clearInterval(otpCountdownTimer);
         otpCountdownTimer = null;
       }
+      const statusEl = document.getElementById('otpStatus');
+      const errEl    = document.getElementById('err-otp');
+      const codeEl   = document.getElementById('otpCode');
+      const verifyRow= document.getElementById('otpVerifyRow');
+      const sendBtn  = document.getElementById('btnSendOtp');
 
-      const statusEl  = document.getElementById('otpStatus');
-      const errEl     = document.getElementById('err-otp');
-      const verifyRow = document.getElementById('otpVerifyRow');
-      const sendBtn   = document.getElementById('btnSendOtp');
-
-      if (statusEl) {
-        statusEl.className   = 'small text-muted';
+      if(statusEl){
+        statusEl.className = 'small text-muted';
         statusEl.textContent = 'سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.';
       }
-      if (errEl) {
+      if(errEl){
         errEl.style.display = 'none';
       }
-
-      setOtpInputsReadonly(false);
-      if (fullReset) {
-        clearOtpInputs();
-        if (verifyRow) verifyRow.style.display = 'none';
+      if(codeEl){
+        codeEl.removeAttribute('readonly');
+        if(fullReset) codeEl.value = '';
       }
-
-      if (sendBtn) {
-        sendBtn.disabled   = false;
+      if(verifyRow){
+        verifyRow.style.display = 'none';
+      }
+      if(sendBtn){
+        sendBtn.disabled = false;
         sendBtn.textContent = 'إرسال كود على واتساب';
       }
-
-      updateNextAvailability();
     }
 
     function startOtpCountdown(){
@@ -1533,256 +1414,171 @@
       }, 1000);
     }
 
-    async function requestOtpForMobile() {
-      const mobileInput = document.getElementById('mobile');
-      const btnSend     = document.getElementById('btnSendOtp');
-      const statusEl    = document.getElementById('otpStatus');
+    async function requestOtpForMobile(){
+      if(!OTP_ENABLED) return;
+      const sendBtn  = document.getElementById('btnSendOtp');
+      const statusEl = document.getElementById('otpStatus');
+      const errEl    = document.getElementById('err-otp');
 
-      try {
-        if (!mobileInput) {
-          showToast('error', 'حصل خطأ في حقل رقم الجوال');
-          return;
+      if(errEl) errEl.style.display = 'none';
+
+      if(!itiPhone || !itiPhone.isValidNumber()){
+        document.getElementById('err-mobile').style.display = 'block';
+        showToast('error','من فضلك أدخل رقم جوال صحيح قبل طلب الكود');
+        return;
+      }
+
+      const mobile = itiPhone.getNumber().replace(/^\+/, '');
+
+      try{
+        if(sendBtn){
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'جاري الإرسال…';
         }
-
-        const localDigits = getMobileLocalDigits();
-
-        if (!localDigits || localDigits.length < 8) {
-          showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
-          return;
-        }
-
-        // country code from intl-tel-input
-        let dialCode = '966';
-        if (window.itiPhone && typeof itiPhone.getSelectedCountryData === 'function') {
-          const cData = itiPhone.getSelectedCountryData() || {};
-          if (cData.dialCode) {
-            dialCode = String(cData.dialCode).replace(/\D/g, '') || '966';
-          }
-        }
-
-        console.log('OTP_REQUEST_URL =', OTP_REQUEST_URL,
-                    'localDigits =', localDigits,
-                    'dialCode =', dialCode);
-
-        if (btnSend) {
-          btnSend.disabled = true;
-          btnSend.textContent = 'جارٍ الإرسال…';
-        }
-        if (statusEl) {
+        if(statusEl){
           statusEl.className = 'small text-muted';
           statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
         }
 
         const res = await fetch(OTP_REQUEST_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mobileNumber: localDigits,
-            countryCode: dialCode,
-            appid: APP_ID
-          })
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ appId: APP_ID, mobileNumber: mobile })
         });
 
-        let data = null;
-        try {
-          data = await res.json();
-        } catch (e) {
-          console.warn('OTP request: failed to parse JSON', e);
-        }
+        const data = await res.json().catch(()=>null);
 
-        console.log('OTP request response:', res.status, data);
-
-        if (!res.ok || !data || data.success === false) {
-          const msg =
-            (data && (data.error || data.message)) ||
-            'تعذر إرسال رمز التحقق حالياً، حاول مرة أخرى لاحقاً.';
-
+        if(!res.ok || !data || data.success === false){
+          const msg = data && data.message ? data.message : 'تعذر إرسال كود التحقق الآن، حاول مرة أخرى.';
           showToast('error', msg);
-
-          if (statusEl) {
+          if(statusEl){
             statusEl.className = 'small text-danger';
-            statusEl.textContent = 'تعذر إرسال الكود، حاول مرة أخرى.';
+            statusEl.textContent = msg;
           }
-          if (btnSend) {
-            btnSend.disabled = false;
-            btnSend.textContent = 'إرسال كود على واتساب';
+          if(sendBtn){
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'إرسال كود على واتساب';
           }
           return;
-        }
-
-        showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
-
-        if (statusEl) {
-          statusEl.className = 'small text-success';
-          statusEl.textContent = 'تم إرسال الكود بنجاح، يرجى إدخال الكود المكون من ٤ أرقام في الخانة أدناه.';
         }
 
         const verifyRow = document.getElementById('otpVerifyRow');
-        if (verifyRow) {
+        if(verifyRow){
           verifyRow.style.display = 'flex';
         }
+        if(statusEl){
+          statusEl.className = 'small text-success';
+          statusEl.textContent = 'تم إرسال الكود إلى واتساب، من فضلك أدخل الكود المكون من 4 أرقام للتحقق من رقمك.';
+        }
 
+        showToast('success','تم إرسال كود التحقق إلى واتساب');
         startOtpCountdown();
-        focusFirstEmptyOtpInput();
-      } catch (err) {
+      }catch(err){
         console.error('requestOtpForMobile error:', err);
-        showToast('error', 'حدث خطأ أثناء طلب رمز التحقق');
-
-        if (statusEl) {
+        if(statusEl){
           statusEl.className = 'small text-danger';
-          statusEl.textContent = 'حدث خطأ أثناء الإرسال، حاول مرة أخرى.';
+          statusEl.textContent = 'حدث خطأ أثناء إرسال الكود، حاول مرة أخرى.';
         }
-        if (btnSend) {
-          btnSend.disabled = false;
-          btnSend.textContent = 'إرسال كود على واتساب';
+        if(sendBtn){
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'إرسال كود على واتساب';
         }
+        showToast('error','تعذر إرسال كود التحقق الآن');
       }
     }
 
-    async function verifyOtpForMobile(otpCode) {
-      const errEl       = document.getElementById('err-otp');
-      const statusEl    = document.getElementById('otpStatus');
-      const otpControls = document.getElementById('otpControls');
-      const verifyRow   = document.getElementById('otpVerifyRow');
-      const mobileEl    = document.getElementById('mobile');
-      const verifyBtn   = document.getElementById('btnVerifyOtp');
+    async function verifyOtpCode(){
+      if(!OTP_ENABLED) return;
+      const codeInput = document.getElementById('otpCode');
+      const statusEl  = document.getElementById('otpStatus');
+      const errEl     = document.getElementById('err-otp');
+      const btn       = document.getElementById('btnVerifyOtp');
+      if(!codeInput || !btn) return;
 
-      try {
-        const raw    = mobileEl ? (mobileEl.value || '') : '';
-        const digitsInput = raw.replace(/\D/g, '');
+      const raw = (codeInput.value || '').trim();
+      if(!new RegExp(`^\\d{${OTP_CODE_LENGTH}}$`).test(raw)){
+        if(errEl){
+          errEl.textContent = `رجاءً أدخل كود مكون من ${OTP_CODE_LENGTH} أرقام`;
+          errEl.style.display = 'block';
+        }
+        showToast('error',`كود التحقق يجب أن يكون ${OTP_CODE_LENGTH} أرقام`);
+        return;
+      }
 
-        if (!digitsInput || digitsInput.length < 8) {
-          const msg = 'الرجاء إدخال رقم جوال صحيح قبل التحقق من الكود';
-          showToast('error', msg);
-          if (errEl) {
+      if(!itiPhone || !itiPhone.isValidNumber()){
+        document.getElementById('err-mobile').style.display='block';
+        showToast('error','من فضلك تأكد من صحة رقم الجوال أولاً');
+        return;
+      }
+
+      const mobile = itiPhone.getNumber().replace(/^\+/, '');
+
+      try{
+        btn.disabled = true;
+        btn.textContent = 'جاري التحقق…';
+        if(errEl) errEl.style.display = 'none';
+        if(statusEl){
+          statusEl.className = 'small text-muted';
+          statusEl.textContent = 'جاري التحقق من كود التحقق…';
+        }
+
+        const res = await fetch(OTP_VERIFY_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ appId: APP_ID, mobileNumber: mobile, otp: raw })
+        });
+
+        const data = await res.json().catch(()=>null);
+
+        if(!res.ok || !data || data.success === false){
+          const msg = data && data.message ? data.message : 'كود التحقق غير صحيح أو منتهي.';
+          if(errEl){
             errEl.textContent = msg;
             errEl.style.display = 'block';
           }
-          return;
-        }
-
-        if (verifyBtn) {
-          verifyBtn.disabled = true;
-          verifyBtn.dataset.originalText = verifyBtn.dataset.originalText || verifyBtn.textContent;
-          verifyBtn.textContent = 'جاري التحقق…';
-        }
-
-        let mobilePlain;
-        if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
-          const mobileE164 = itiPhone.getNumber() || '';
-          mobilePlain = mobileE164.replace(/^\+/, '');
-        } else {
-          mobilePlain = digitsInput;
-        }
-
-        let dialCode = '966';
-        if (window.itiPhone && typeof itiPhone.getSelectedCountryData === 'function') {
-          const cData = itiPhone.getSelectedCountryData() || {};
-          if (cData.dialCode) {
-            dialCode = String(cData.dialCode).replace(/\D/g, '') || '966';
+          if(statusEl){
+            statusEl.className = 'small text-danger';
+            statusEl.textContent = msg;
           }
-        }
-
-        console.log('OTP_VERIFY_URL =', OTP_VERIFY_URL, 'mobilePlain =', mobilePlain, 'dialCode =', dialCode);
-
-        const res = await fetch(OTP_VERIFY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mobileNumber: mobilePlain,
-            countryCode: dialCode,
-            otp: String(otpCode || '').trim(),
-            appid: APP_ID
-          })
-        });
-
-        const data = await res.json().catch(() => null);
-        console.log('OTP verify response:', res.status, data);
-
-        if (!res.ok || !data || data.success === false || data.verified === false) {
-          const msg = (data && (data.error || data.message)) ||
-                      'رمز التحقق غير صحيح أو منتهي';
           showToast('error', msg);
-          if (errEl) {
-            errEl.textContent = 'رمز التحقق غير صحيح أو منتهي، حاول مرة أخرى.';
-            errEl.style.display = 'block';
-          }
-          if (verifyBtn) {
-            verifyBtn.disabled   = false;
-            verifyBtn.textContent = verifyBtn.dataset.originalText || '✅ تأكيد الكود';
-          }
+          otpVerified = false;
           updateNextAvailability();
           return;
         }
 
         otpVerified = true;
-        if (otpCountdownTimer) {
+        if(statusEl){
+          statusEl.className = 'small text-success';
+          statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅ يمكنك المتابعة لإكمال الحجز.';
+        }
+        if(errEl) errEl.style.display = 'none';
+        if(codeInput){
+          codeInput.setAttribute('readonly','readonly');
+        }
+        const sendBtn = document.getElementById('btnSendOtp');
+        if(sendBtn){
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'تم التحقق';
+        }
+        if(otpCountdownTimer){
           clearInterval(otpCountdownTimer);
           otpCountdownTimer = null;
         }
-
-        if (statusEl) {
-          statusEl.className = 'small text-success';
-          statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅';
-        }
-        if (errEl) {
-          errEl.style.display = 'none';
-        }
-
-        setOtpInputsReadonly(true);
-
-        if (otpControls) otpControls.style.display = 'none';
-        if (verifyRow)   verifyRow.style.display   = 'none';
-
-        if (verifyBtn) {
-          verifyBtn.disabled   = true;
-          verifyBtn.textContent = 'تم التحقق ✅';
-        }
-
-        showToast('success', 'تم التحقق من رقم الجوال بنجاح ✅');
-
+        showToast('success','تم التحقق من رقم جوالك');
         updateNextAvailability();
-      } catch (err) {
-        console.error('verifyOtpForMobile error:', err);
-        showToast('error', 'حدث خطأ أثناء التحقق من رمز OTP');
-        if (statusEl) {
-          statusEl.className   = 'small text-danger';
-          statusEl.textContent = 'حدث خطأ أثناء التحقق، حاول مرة أخرى.';
+      }catch(err){
+        console.error('verifyOtpCode error:', err);
+        if(statusEl){
+          statusEl.className = 'small text-danger';
+          statusEl.textContent = 'تعذر التحقق من الكود الآن، حاول مرة أخرى.';
         }
-        if (verifyBtn) {
-          verifyBtn.disabled   = false;
-          verifyBtn.textContent = verifyBtn.dataset.originalText || '✅ تأكيد الكود';
+        showToast('error','حدث خطأ أثناء التحقق من الكود');
+      }finally{
+        if(btn && !otpVerified){
+          btn.disabled=false;
+          btn.textContent='تأكيد';
         }
       }
-    }
-
-    function verifyOtpCode() {
-      const errEl = document.getElementById('err-otp');
-
-      const code = getOtpCodeFromInputs();
-
-      if (!code) {
-        if (errEl) {
-          errEl.textContent = 'الرجاء إدخال كود التحقق أولاً';
-          errEl.style.display = 'block';
-        }
-        showToast('error', 'الرجاء إدخال كود التحقق أولاً');
-        focusFirstEmptyOtpInput();
-        return;
-      }
-
-      if (code.length !== OTP_CODE_LENGTH) {
-        if (errEl) {
-          errEl.textContent = `الرجاء إدخال كود مكوّن من ${OTP_CODE_LENGTH} أرقام`;
-          errEl.style.display = 'block';
-        }
-        showToast('error', `الرجاء إدخال كود مكوّن من ${OTP_CODE_LENGTH} أرقام`);
-        focusFirstEmptyOtpInput();
-        return;
-      }
-
-      if (errEl) errEl.style.display = 'none';
-      verifyOtpForMobile(code);
     }
 
     /* Map globals */
@@ -1911,7 +1707,7 @@
       });
       $('#mobile').attr({placeholder:'رقم التواصل الخاص — مثال 5XXXXXXXX', inputmode:'tel', autocomplete:'tel'})
                   .on('blur', ()=> {
-                    const ok = isPhoneDigitsValid();
+                    const ok = itiPhone && itiPhone.isValidNumber();
                     document.getElementById('err-mobile').style.display = ok ? 'none':'block';
                   });
 
@@ -1940,7 +1736,7 @@
 
         setLoadingServices(true);
         callContent2(`/services?location=${encodeURIComponent(this.value)}`, res=>{
-          servicesCache=res?.data?.services||[]; categoriesCache=res?.data?.servicesCat||[];          
+          servicesCache=res?.data?.services||[]; categoriesCache=res?.data?.servicesCat||[];
           const cats=categoriesCache.map(c=>({id:c.TS_category_id,text:c.TS_category_arabic_name}));
           $('#serviceCat').empty().select2({data:cats,width:'100%',placeholder:'فئة الخدمة', dir:'rtl'});
           if(cats.length) $('#serviceCat').val(cats[0].id).trigger('change');
@@ -1950,9 +1746,7 @@
 
       $('#serviceCat').on('change', function(){
         nForm.serviceCat=this.value; const cid=Number(this.value);
-        const items=servicesCache?.filter(s=>Number(s.TS_category_id)===cid)
-          ?.sort((a,b)=>a.TS_service_id-b.TS_service_id)
-          ?.map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}))||[];
+        const items=servicesCache?.filter(s=>Number(s.TS_category_id)===cid)?.sort((a,b)=>a.TS_service_id-b.TS_service_id)?.map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}))||[];
         $('#service').empty().select2({data:items,width:'100%',placeholder:'باقتك المختارة', dir:'rtl'});
         if(items.length) $('#service').val(items[0].id).trigger('change');
         renderSummary('page2'); updateNextAvailability();
@@ -2047,7 +1841,7 @@
 
         if(id==='page4'){
           const nameOk=($('#name').val()||'').trim().length>0;
-          const phoneOk=isPhoneDigitsValid();
+          const phoneOk=itiPhone && itiPhone.isValidNumber();
           document.getElementById('err-name').style.display=nameOk?'none':'block';
           document.getElementById('err-mobile').style.display=phoneOk?'none':'block';
 
@@ -2070,7 +1864,7 @@
           if(errOtp) errOtp.style.display = 'none';
 
           nForm.customerN=$('#name').val().trim(); 
-          nForm.customerM=getMobileDigits();
+          nForm.customerM=itiPhone.getNumber().replace(/^\+/,'');
 
           nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
 
@@ -2103,6 +1897,8 @@
             const waMsg = encodeURIComponent(`تم إرسال طلب حجز: \nالخدمة: ${$('#service').find(':selected').text()}\nالتاريخ: ${nForm.date} ${nForm.time}\nالرابط: ${location.href}`);
             document.getElementById('ts-whatsapp').href = `https://wa.me/?text=${waMsg}`;
 
+            $wait.classList.remove('show');
+            isSubmitting=false;
             showPage(6);
           } else {
             const msg=r?.data?.msgAR || (r.status===404?'المسار غير موجود':'تعذر إنشاء الحجز');
@@ -2120,14 +1916,17 @@
       document.getElementById('footer-next').addEventListener('click', gotoNext);
       document.getElementById('footer-prev').addEventListener('click', ()=>{ const i=getActiveIndex(); showPage(Math.max(i-1,0)); });
 
-      $('#rebook').on('click', ()=>{ window.location.href = 'index.html'; });
+      // ✅ إصلاح حجز جديد: يرجع دائماً لنفس index.html بدل الروت /
+      $('#rebook').on('click', ()=>{
+        window.location.href = 'index.html';
+      });
 
       const applyBtn = document.getElementById('applyCouponBtn');
       if (applyBtn){
         applyBtn.addEventListener('click', validateCouponAndApply);
       }
 
-      // 🔐 Wire OTP controls
+      // 🔐 Wire OTP controls (if enabled)
       if(OTP_ENABLED){
         const otpControls = document.getElementById('otpControls');
         const verifyRow  = document.getElementById('otpVerifyRow');
@@ -2138,53 +1937,6 @@
         const btnVerifyOtp = document.getElementById('btnVerifyOtp');
         if(btnSendOtp){   btnSendOtp.addEventListener('click', requestOtpForMobile); }
         if(btnVerifyOtp){ btnVerifyOtp.addEventListener('click', verifyOtpCode); }
-
-        const otpInputs = Array.from(document.querySelectorAll('.otp-input'));
-        if (otpInputs.length) {
-          otpInputs.forEach((input, idx) => {
-            input.addEventListener('input', (e) => {
-              let v = (e.target.value || '').replace(/\D/g, '');
-              if (v.length > 1) v = v.slice(0, 1);
-              e.target.value = v;
-
-              if (v && idx < otpInputs.length - 1) {
-                otpInputs[idx + 1].focus();
-                otpInputs[idx + 1].select();
-              }
-            });
-
-            input.addEventListener('keydown', (e) => {
-              if (e.key === 'Backspace' && !e.target.value && idx > 0) {
-                otpInputs[idx - 1].focus();
-                otpInputs[idx - 1].value = '';
-              }
-              if (e.key === 'ArrowLeft' && idx > 0) {
-                e.preventDefault();
-                otpInputs[idx - 1].focus();
-              }
-              if (e.key === 'ArrowRight' && idx < otpInputs.length - 1) {
-                e.preventDefault();
-                otpInputs[idx + 1].focus();
-              }
-            });
-
-            input.addEventListener('paste', (e) => {
-              const text = (e.clipboardData || window.clipboardData).getData('text') || '';
-              const digits = text.replace(/\D/g, '').slice(0, OTP_CODE_LENGTH);
-              if (!digits) return;
-              e.preventDefault();
-              clearOtpInputs();
-              digits.split('').forEach((d, i) => {
-                if (otpInputs[i]) otpInputs[i].value = d;
-              });
-              if (digits.length === OTP_CODE_LENGTH) {
-                verifyOtpCode();
-              } else {
-                focusFirstEmptyOtpInput();
-              }
-            });
-          });
-        }
 
         resetOtpState(true);
       } else {
@@ -2228,7 +1980,7 @@
       }
       else if(i===3){ 
         const nameOk=($('#name').val()||'').trim().length>0; 
-        const phoneOk = isPhoneDigitsValid();
+        const phoneOk = (window.itiPhone ? itiPhone.isValidNumber() : true);
         const otpOk   = (!OTP_ENABLED) || otpVerified;
         enable = nameOk && phoneOk && otpOk;
       }
@@ -2417,6 +2169,7 @@
         footerInstallBtn.addEventListener('click', handlePwaInstallClick);
       }
 
+      // iOS: إظهار زر التثبيت + توست بسيط لو التطبيق غير مثبت
       if (isIos() && !isInStandaloneMode()) {
         if (footerInstallBtn) {
           footerInstallBtn.style.display   = 'block';
@@ -2427,12 +2180,14 @@
           floatingInstallBtn.textContent   = '📲 تثبيت تطبيق NahlTime';
         }
 
+        // 🔔 إشعار بسيط عند الفتح يشرح طريقة التثبيت
         if (typeof showToast === 'function') {
           setTimeout(() => {
             showToast('info', '📲 تقدر تثبت NahlTime من زر "تحميل التطبيق" في الأسفل أو من مشاركة سفاري → إضافة إلى الشاشة الرئيسية');
           }, 2500);
         }
       } else if (!isInStandaloneMode()) {
+        // لأغلب المتصفحات على أندرويد/ديسكتوب: توست توعوي بسيط
         if (typeof showToast === 'function') {
           setTimeout(() => {
             showToast('info', '📲 عند ظهور زر "تحميل التطبيق" في الأسفل تقدر تثبت NahlTime كتطبيق على جهازك');
