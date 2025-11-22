@@ -655,8 +655,9 @@
     const APP_ID = '21eddbf5-efe5-4a5d-9134-b581717b17ff';
 
     const defaultLink2 = `https://nahl-platform.vercel.app/api/app/AM/general/${APP_ID}/form`;
-    const RESERVE_URL_PRIMARY  = `${defaultLink2}?action=reserveAppointment&appid=${encodeURIComponent(APP_ID)}`;
-    const RESERVE_URL_FALLBACK = `${defaultLink2.replace(/\/form\/?$/,'')}?action=reserveAppointment&appid=${encodeURIComponent(APP_ID)}`;
+
+    /* 🔵 New booking endpoint: send minimal payload directly here */
+    const RESERVE_URL = 'https://nahl-platform.vercel.app';
 
     const API_BASE = window.location.origin.replace(/\/$/, '');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
@@ -689,18 +690,29 @@
         if(!String(e).includes('AbortError') && retries>0) setTimeout(()=>callContent2(path,cb,abortable,retries-1),600);
       }
     }
-    async function postReservationTry(url, payload, contentType='text/plain;charset=UTF-8'){
-      try{
-        const res=await fetch(url,{method:'POST',mode:'cors',cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',headers:{'Content-Type':contentType,'Accept':'application/json'},body:JSON.stringify(payload)});
-        const raw=await res.text(); let data=null; try{ data=JSON.parse(raw);}catch(_){}
-        return {ok:res.ok,status:res.status,data,raw};
-      }catch(err){ return {ok:false,status:0,error:String(err)} }
-    }
+
+    /* 🔵 Minimal JSON POST to https://nahl-platform.vercel.app */
     async function postReservation(payload){
-      let r=await postReservationTry(RESERVE_URL_PRIMARY,payload,'text/plain;charset=UTF-8');
-      if(!r.ok && (r.status===415||r.status===406||r.status===0)) r=await postReservationTry(RESERVE_URL_PRIMARY,payload,'application/json;charset=UTF-8');
-      if(!r.ok && r.status===404) r=await postReservationTry(RESERVE_URL_FALLBACK,payload,'text/plain;charset=UTF-8');
-      return r;
+      try{
+        const res = await fetch(RESERVE_URL, {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-store',
+          credentials: 'omit',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        const raw = await res.text();
+        let data = null;
+        try { data = JSON.parse(raw); } catch (_){}
+        return { ok: res.ok, status: res.status, data, raw };
+      }catch(err){
+        console.error('postReservation error:', err);
+        return { ok:false, status:0, data:null, raw:'', error:String(err) };
+      }
     }
 
     function showToast(type='info', msg=''){
@@ -1083,22 +1095,25 @@
       header && ro.observe(header); footer && ro.observe(footer);
     }
 
+    /* ✅ Build minimal payload exactly as requested */
     function buildPayload(){
-      const loc=$('#area').val(); const svcC=$('#serviceCat').val(); const svc=$('#service').val(); const cnt=$('#serviceCount').val()||'1';
-      const phoneDigits = getMobileDigits();
+      const loc   = $('#area').val() || '';
+      const svcC  = $('#serviceCat').val() || '';
+      const svc   = $('#service').val() || '';
+      const count = $('#serviceCount').val() || '1';
+
       return {
-        date:nForm.date, time:nForm.time,
-        location:(loc!==null&&loc!=='')?String(loc):undefined,
-        service:(svc!==null&&svc!=='')?String(svc):undefined,
-        serviceCount:String(cnt),
-        serviceCat:(svcC!==null&&svcC!=='')?String(svcC):undefined,
-        customerM:phoneDigits, customerN:nForm.customerN,
-        paymentMethod:(nForm.paymentMethod||'').toLowerCase(),
-        urlLocation:nForm.urlLocation, locationDescription:nForm.locationDescription||'',
-        locale:'ar',
-        additionalServices:(nForm.additionalServicesIds||[]).join(','),
-        couponCode: couponCodeApplied || '',
-        couponDiscountAmount: couponDiscountAmount || 0
+        date: nForm.date || '',
+        time: nForm.time || '',
+        location: String(loc),
+        service: String(svc),
+        serviceCount: String(count),
+        serviceCat: String(svcC),
+        customerM: getMobileDigits() || '',
+        customerN: ($('#name').val() || '').trim(),
+        paymentMethod: (nForm.paymentMethod || '').toLowerCase(),
+        urlLocation: nForm.urlLocation || positionUrl || '',
+        locationDescription: nForm.locationDescription || ''
       };
     }
 
@@ -2088,7 +2103,7 @@
 
           const r=await postReservation(buildPayload());
 
-          if(r.ok && r.data?.success){
+          if(r.ok){
             showToast('success','تم إنشاء الحجز');
             document.getElementById('ts-area').textContent = $('#area').find(':selected').text()||'—';
             document.getElementById('ts-service').textContent = $('#service').find(':selected').text()||'—';
@@ -2099,8 +2114,12 @@
 
             showPage(6);
           } else {
-            const msg=r?.data?.msgAR || (r.status===404?'المسار غير موجود':'تعذر إنشاء الحجز');
-            showToast('error',msg);
+            const msg =
+              (r.data && (r.data.msgAR || r.data.messageAR)) ||
+              r.raw ||
+              'تعذر إنشاء الحجز، حاول مرة أخرى.';
+
+            showToast('error', msg);
             isSubmitting=false;
             $wait.classList.remove('show');
             $next.style.display='';
