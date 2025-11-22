@@ -1513,13 +1513,15 @@
     }
 
 
-  async function verifyOtpForMobile(otpCode) {
+async function verifyOtpForMobile(otpCode) {
   try {
-    const mobilePlain = getMobileDigits();
-    if (!mobilePlain || mobilePlain.length < 8) {
+    if (!window.itiPhone || !itiPhone.isValidNumber()) {
       showToast('error', 'الرجاء التأكد من رقم الجوال');
       return;
     }
+
+    const mobileE164  = itiPhone.getNumber();
+    const mobilePlain = mobileE164.replace(/^\+/, '');
 
     console.log('OTP_VERIFY_URL =', OTP_VERIFY_URL);
 
@@ -1536,9 +1538,11 @@
     const data = await res.json().catch(() => null);
     console.log('OTP verify response:', res.status, data);
 
-    const errEl   = document.getElementById('err-otp');
-    const statusEl= document.getElementById('otpStatus');
-    const codeEl  = document.getElementById('otpCode');
+    const errEl      = document.getElementById('err-otp');
+    const statusEl   = document.getElementById('otpStatus');
+    const codeEl     = document.getElementById('otpCode');
+    const otpControls = document.getElementById('otpControls');
+    const verifyRow   = document.getElementById('otpVerifyRow');
 
     if (!res.ok || !data || data.success === false || data.verified === false) {
       const msg = (data && (data.error || data.message)) ||
@@ -1552,42 +1556,33 @@
       return;
     }
 
-    // ✅ هنا حالة النجاح
+    // ✅ Verified
     otpVerified = true;
     if (otpCountdownTimer) {
       clearInterval(otpCountdownTimer);
       otpCountdownTimer = null;
     }
 
+    // رسالة نجاح سريعة (توست فقط)
+    showToast('success', 'تم التحقق من رقم الجوال بنجاح ✅');
+
+    // إخفاء كل واجهة OTP بعد النجاح
+    if (otpControls) otpControls.style.display = 'none';
+    if (verifyRow)   verifyRow.style.display   = 'none';
+    if (errEl)       errEl.style.display       = 'none';
+    if (codeEl)      codeEl.setAttribute('readonly', 'readonly');
     if (statusEl) {
-      statusEl.className = 'small text-success';
-      statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅';
-    }
-    if (errEl) {
-      errEl.style.display = 'none';
-    }
-    if (codeEl) {
-      codeEl.setAttribute('readonly', 'readonly');
+      statusEl.textContent = '';
     }
 
-    showToast('success', 'تم التحقق من رقم الجوال بنجاح');
-
-    // ⬅️⬅️ الإضافة المهمة: تأكيد تفعيل زر "التالي" في صفحة البيانات
+    // السماح بالانتقال للخطوة التالية
     updateNextAvailability();
-    const idx = getActiveIndex();
-    if (idx === 3) { // صفحة معلومات الاتصال
-      const nextBtn = document.getElementById('footer-next');
-      if (nextBtn) {
-        nextBtn.disabled = false;
-        nextBtn.classList.remove('disabled');
-      }
-    }
-
   } catch (err) {
     console.error('verifyOtpForMobile error:', err);
     showToast('error', 'حدث خطأ أثناء التحقق من رمز OTP');
   }
 }
+
 
 
 
