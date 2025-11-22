@@ -1513,70 +1513,83 @@
     }
 
 
-    async function verifyOtpForMobile(otpCode) {
-      try {
-        const mobilePlain = getMobileDigits();
-        if (!mobilePlain || mobilePlain.length < 8) {
-          showToast('error', 'الرجاء التأكد من رقم الجوال');
-          return;
-        }
+  async function verifyOtpForMobile(otpCode) {
+  try {
+    const mobilePlain = getMobileDigits();
+    if (!mobilePlain || mobilePlain.length < 8) {
+      showToast('error', 'الرجاء التأكد من رقم الجوال');
+      return;
+    }
 
-        console.log('OTP_VERIFY_URL =', OTP_VERIFY_URL);
+    console.log('OTP_VERIFY_URL =', OTP_VERIFY_URL);
 
-        const res = await fetch(OTP_VERIFY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mobileNumber: mobilePlain,
-            otp: String(otpCode || '').trim(),
-            appid: APP_ID
-          })
-        });
+    const res = await fetch(OTP_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mobileNumber: mobilePlain,
+        otp: String(otpCode || '').trim(),
+        appid: APP_ID
+      })
+    });
 
-        const data = await res.json().catch(() => null);
-        console.log('OTP verify response:', res.status, data);
+    const data = await res.json().catch(() => null);
+    console.log('OTP verify response:', res.status, data);
 
-        const errEl   = document.getElementById('err-otp');
-        const statusEl= document.getElementById('otpStatus');
-        const codeEl  = document.getElementById('otpCode');
+    const errEl   = document.getElementById('err-otp');
+    const statusEl= document.getElementById('otpStatus');
+    const codeEl  = document.getElementById('otpCode');
 
-        if (!res.ok || !data || data.success === false || data.verified === false) {
-          const msg = (data && (data.error || data.message)) ||
-                      'رمز التحقق غير صحيح أو منتهي';
-          showToast('error', msg);
-          if (errEl) {
-            errEl.textContent = 'رمز التحقق غير صحيح أو منتهي، حاول مرة أخرى.';
-            errEl.style.display = 'block';
-          }
-          updateNextAvailability();
-          return;
-        }
+    if (!res.ok || !data || data.success === false || data.verified === false) {
+      const msg = (data && (data.error || data.message)) ||
+                  'رمز التحقق غير صحيح أو منتهي';
+      showToast('error', msg);
+      if (errEl) {
+        errEl.textContent = 'رمز التحقق غير صحيح أو منتهي، حاول مرة أخرى.';
+        errEl.style.display = 'block';
+      }
+      updateNextAvailability();
+      return;
+    }
 
-        // ✅ Verified
-        otpVerified = true;
-        if (otpCountdownTimer) {
-          clearInterval(otpCountdownTimer);
-          otpCountdownTimer = null;
-        }
+    // ✅ هنا حالة النجاح
+    otpVerified = true;
+    if (otpCountdownTimer) {
+      clearInterval(otpCountdownTimer);
+      otpCountdownTimer = null;
+    }
 
-        if (statusEl) {
-          statusEl.className = 'small text-success';
-          statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅';
-        }
-        if (errEl) {
-          errEl.style.display = 'none';
-        }
-        if (codeEl) {
-          codeEl.setAttribute('readonly', 'readonly');
-        }
+    if (statusEl) {
+      statusEl.className = 'small text-success';
+      statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅';
+    }
+    if (errEl) {
+      errEl.style.display = 'none';
+    }
+    if (codeEl) {
+      codeEl.setAttribute('readonly', 'readonly');
+    }
 
-        showToast('success', 'تم التحقق من رقم الجوال بنجاح');
-        updateNextAvailability();
-      } catch (err) {
-        console.error('verifyOtpForMobile error:', err);
-        showToast('error', 'حدث خطأ أثناء التحقق من رمز OTP');
+    showToast('success', 'تم التحقق من رقم الجوال بنجاح');
+
+    // ⬅️⬅️ الإضافة المهمة: تأكيد تفعيل زر "التالي" في صفحة البيانات
+    updateNextAvailability();
+    const idx = getActiveIndex();
+    if (idx === 3) { // صفحة معلومات الاتصال
+      const nextBtn = document.getElementById('footer-next');
+      if (nextBtn) {
+        nextBtn.disabled = false;
+        nextBtn.classList.remove('disabled');
       }
     }
+
+  } catch (err) {
+    console.error('verifyOtpForMobile error:', err);
+    showToast('error', 'حدث خطأ أثناء التحقق من رمز OTP');
+  }
+}
+
+
 
     // 🔁 Wrapper used by button + handles reading input field
     function verifyOtpCode() {
