@@ -702,20 +702,41 @@
     };
 
     /* 🔢 Phone helpers (relaxed validation) */
-    function getMobileDigits() {
-      if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
-        const e164 = itiPhone.getNumber() || ''; // +9665XXXXXXX
-        const digits = e164.replace(/\D/g, '');
-        if (digits) return digits;
-      }
-      const el = document.getElementById('mobile');
-      return (el?.value || '').replace(/\D/g, '');
-    }
+/* 🔢 Phone helpers */
 
-    function isPhoneDigitsValid() {
-      const digits = getMobileDigits();
-      return digits.length >= 8 && digits.length <= 15;
-    }
+// Full digits with country code (E.164 → digits), used for booking/coupons, not OTP.
+function getMobileDigits() {
+  if (window.itiPhone && typeof itiPhone.getNumber === 'function') {
+    const e164 = itiPhone.getNumber() || ''; // e.g. +966564491003
+    const digits = e164.replace(/\D/g, '');
+    if (digits) return digits;
+  }
+  const el = document.getElementById('mobile');
+  return (el?.value || '').replace(/\D/g, '');
+}
+
+// Local part only (what user typed in the input, without dial code),
+// used for OTP; country code will be sent separately.
+function getMobileLocalDigits() {
+  const el = document.getElementById('mobile');
+  if (!el) return '';
+  const raw = el.value || '';
+  let digits = raw.replace(/\D/g, '');
+  // strip one leading 0 if exists (e.g. 05XXXXXXXX → 5XXXXXXXX)
+  if (digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+  return digits;
+}
+
+function isPhoneDigitsValid() {
+  const local = getMobileLocalDigits();
+  // 8–12 digits for local Saudi/GCC numbers is safe
+  return local.length >= 8 && local.length <= 12;
+}
+
+
+
 
     function isEnglishLocale(){
       const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
@@ -1402,117 +1423,121 @@
     }
 
     /* ✅ Request OTP – uses selected country code from intl-tel-input */
-    async function requestOtpForMobile() {
-      const mobileInput = document.getElementById('mobile');
-      const btnSend     = document.getElementById('btnSendOtp');
-      const statusEl    = document.getElementById('otpStatus');
+async function requestOtpForMobile() {
+  const mobileInput = document.getElementById('mobile');
+  const btnSend     = document.getElementById('btnSendOtp');
+  const statusEl    = document.getElementById('otpStatus');
 
-      try {
-        if (!mobileInput) {
-          showToast('error', 'حصل خطأ في حقل رقم الجوال');
-          return;
-        }
+  try {
+    if (!mobileInput) {
+      showToast('error', 'حصل خطأ في حقل رقم الجوال');
+      return;
+    }
 
-        // أرقام الجوال (تحاول استخدام intl-tel-input أولاً)
-        const digits = getMobileDigits(); // مثال: 966564491003 أو 564491003
-        if (!digits || digits.length < 8) {
-          showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
-          return;
-        }
+    // ✅ أرقام الجوال المحلية (بدون كود الدولة)
+    const localDigits = getMobileLocalDigits(); // مثال: 564491003
 
-        // كود الدولة المختار من القائمة
-        let dialCode = '966';
-        if (window.itiPhone && typeof itiPhone.getSelectedCountryData === 'function') {
-          const cData = itiPhone.getSelectedCountryData() || {};
-          if (cData.dialCode) {
-            dialCode = String(cData.dialCode).replace(/\D/g, '') || '966';
-          }
-        }
+    if (!localDigits || localDigits.length < 8) {
+      showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
+      return;
+    }
 
-        const mobilePlain = digits;   // نرسل الأرقام كما هي
-        console.log('OTP_REQUEST_URL =', OTP_REQUEST_URL, 'mobilePlain =', mobilePlain, 'dialCode =', dialCode);
-
-        if (btnSend) {
-          btnSend.disabled = true;
-          btnSend.textContent = 'جارٍ الإرسال…';
-        }
-        if (statusEl) {
-          statusEl.className = 'small text-muted';
-          statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
-        }
-
-        const res = await fetch(OTP_REQUEST_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mobileNumber: mobilePlain,
-            countryCode: dialCode,     // ✅ كود الدولة المختار
-            appid: APP_ID
-          })
-        });
-
-        let data = null;
-        try {
-          data = await res.json();
-        } catch (e) {
-          console.warn('OTP request: failed to parse JSON', e);
-        }
-
-        console.log('OTP request response:', res.status, data);
-
-        if (!res.ok || !data || data.success === false) {
-          const msg =
-            (data && (data.error || data.message)) ||
-            'تعذر إرسال رمز التحقق حالياً، حاول مرة أخرى لاحقاً.';
-
-          showToast('error', msg);
-
-          if (statusEl) {
-            statusEl.className = 'small text-danger';
-            statusEl.textContent = 'تعذر إرسال الكود، حاول مرة أخرى.';
-          }
-          if (btnSend) {
-            btnSend.disabled = false;
-            btnSend.textContent = 'إرسال كود على واتساب';
-          }
-          return;
-        }
-
-        // ✅ نجاح الإرسال
-        showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
-
-        if (statusEl) {
-          statusEl.className = 'small text-success';
-          statusEl.textContent = 'تم إرسال الكود بنجاح، يرجى إدخال الكود المكون من ٤ أرقام في الخانة أدناه.';
-        }
-
-        const verifyRow = document.getElementById('otpVerifyRow');
-        if (verifyRow) {
-          verifyRow.style.display = 'flex';
-        }
-
-        if (typeof startOtpCountdown === 'function') {
-          startOtpCountdown();
-        } else {
-          if (btnSend) {
-            btnSend.disabled = false;
-            btnSend.textContent = 'إعادة إرسال الكود';
-          }
-        }
-      } catch (err) {
-        console.error('requestOtpForMobile error:', err);
-        showToast('error', 'حدث خطأ أثناء طلب رمز التحقق');
-
-        if (statusEl) {
-          statusEl.className = 'small text-danger';
-          statusEl.textContent = 'حدث خطأ أثناء الإرسال، حاول مرة أخرى.';
-        }
-        if (btnSend) {
-          btnSend.disabled = false;
-          btnSend.textContent = 'إرسال كود على واتساب';
-        }
+    // ✅ كود الدولة المختار من القائمة (من intl-tel-input)
+    let dialCode = '966';
+    if (window.itiPhone && typeof itiPhone.getSelectedCountryData === 'function') {
+      const cData = itiPhone.getSelectedCountryData() || {};
+      if (cData.dialCode) {
+        dialCode = String(cData.dialCode).replace(/\D/g, '') || '966';
       }
     }
+
+    console.log('OTP_REQUEST_URL =', OTP_REQUEST_URL,
+                'localDigits =', localDigits,
+                'dialCode =', dialCode);
+
+    // ⏳ تحديث حالة الزرّ والنص أثناء الإرسال
+    if (btnSend) {
+      btnSend.disabled = true;
+      btnSend.textContent = 'جارٍ الإرسال…';
+    }
+    if (statusEl) {
+      statusEl.className = 'small text-muted';
+      statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
+    }
+
+    const res = await fetch(OTP_REQUEST_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mobileNumber: localDigits, // ✅ الرقم المحلي فقط
+        countryCode: dialCode,     // ✅ كود الدولة من القائمة
+        appid: APP_ID
+      })
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (e) {
+      console.warn('OTP request: failed to parse JSON', e);
+    }
+
+    console.log('OTP request response:', res.status, data);
+
+    if (!res.ok || !data || data.success === false) {
+      const msg =
+        (data && (data.error || data.message)) ||
+        'تعذر إرسال رمز التحقق حالياً، حاول مرة أخرى لاحقاً.';
+
+      showToast('error', msg);
+
+      if (statusEl) {
+        statusEl.className = 'small text-danger';
+        statusEl.textContent = 'تعذر إرسال الكود، حاول مرة أخرى.';
+      }
+      if (btnSend) {
+        btnSend.disabled = false;
+        btnSend.textContent = 'إرسال كود على واتساب';
+      }
+      return;
+    }
+
+    // ✅ نجاح الإرسال
+    showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
+
+    if (statusEl) {
+      statusEl.className = 'small text-success';
+      statusEl.textContent = 'تم إرسال الكود بنجاح، يرجى إدخال الكود المكون من ٤ أرقام في الخانة أدناه.';
+    }
+
+    const verifyRow = document.getElementById('otpVerifyRow');
+    if (verifyRow) {
+      verifyRow.style.display = 'flex';
+    }
+
+    if (typeof startOtpCountdown === 'function') {
+      startOtpCountdown();
+    } else {
+      if (btnSend) {
+        btnSend.disabled = false;
+        btnSend.textContent = 'إعادة إرسال الكود';
+      }
+    }
+  } catch (err) {
+    console.error('requestOtpForMobile error:', err);
+    showToast('error', 'حدث خطأ أثناء طلب رمز التحقق');
+
+    if (statusEl) {
+      statusEl.className = 'small text-danger';
+      statusEl.textContent = 'حدث خطأ أثناء الإرسال، حاول مرة أخرى.';
+    }
+    if (btnSend) {
+      btnSend.disabled = false;
+      btnSend.textContent = 'إرسال كود على واتساب';
+    }
+  }
+}
+
 
     /* ✅ Updated relaxed OTP verification – also sends countryCode */
     async function verifyOtpForMobile(otpCode) {
