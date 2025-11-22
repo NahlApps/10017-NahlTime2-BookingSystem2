@@ -1,101 +1,100 @@
 // pages/api/offers.js
 
-// 🔁 Proxy لعروض الحجز (Offers) من Google Apps Script
-// يعتمد على متغير بيئة: NAHL_OFFERS_APPSCRIPT_URL
-
-const APPSCRIPT_OFFERS_URL = process.env.NAHL_OFFERS_APPSCRIPT_URL;
-
 /**
- * Helper: يبني رابط Google Apps Script مع نفس البارامترات
+ * NahlHub – Offers Proxy API (Next.js / Vercel)
+ *
+ * Example:
+ *   GET /api/offers?appid=APP_ID&page=welcome
+ *
+ * It forwards the request to your Apps Script web app:
+ *   https://script.google.com/macros/s/XXXX/exec?mode=offers&appid=...&page=...
+ *
+ * Configure the upstream URL in env:
+ *   GAS_OFFERS_URL="https://script.google.com/macros/s/XXXX/exec"
  */
-function buildUpstreamUrl({ appId, action, today }) {
-  if (!APPSCRIPT_OFFERS_URL) {
-    throw new Error('NAHL_OFFERS_APPSCRIPT_URL is not configured');
-  }
 
-  // نتأكد ما فيه query قديم في الرابط
-  const base = APPSCRIPT_OFFERS_URL.replace(/\?.*$/, '');
-  const url = new URL(base);
-
-  if (appId)  url.searchParams.set('appId', appId);
-  if (action) url.searchParams.set('action', action);
-  if (today)  url.searchParams.set('today', today);
-
-  return url.toString();
-}
+const GAS_OFFERS_URL =
+  process.env.GAS_OFFERS_URL ||
+  'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
 
 export default async function handler(req, res) {
-  // 🌍 CORS بسيط (اختياري)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return res
+      .status(405)
+      .json({ ok: false, message: 'Method Not Allowed. Use GET.' });
   }
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      ok: false,
-      message: 'Method Not Allowed. Use GET.'
-    });
+  const { appid, page, includeInactive } = req.query || {};
+
+  if (!appid) {
+    return res
+      .status(400)
+      .json({ ok: false, message: 'Missing required query parameter: appid' });
   }
 
   try {
-    const { appId, action = 'listOffers', today } = req.query || {};
+    // Build Apps Script URL with query params
+    const url = new URL(GAS_OFFERS_URL);
+    url.searchParams.set('mode', 'offers');
+    url.searchParams.set('appid', String(appid));
 
-    // ❗ لازم appId يجي من الفرونت (ما فيه NAHL_DEFAULT_APP_ID)
-    if (!appId) {
-      return res.status(400).json({
-        ok: false,
-        message: 'Missing required parameter: appId'
-      });
+    if (page) {
+      url.searchParams.set('page', String(page));
+    }
+    if (includeInactive !== undefined) {
+      url.searchParams.set('includeInactive', String(includeInactive));
     }
 
-    if (!APPSCRIPT_OFFERS_URL) {
-      return res.status(500).json({
-        ok: false,
-        message: 'Server is not configured: NAHL_OFFERS_APPSCRIPT_URL is missing'
-      });
-    }
-
-    const upstreamUrl = buildUpstreamUrl({ appId, action, today });
-
-    const upstreamRes = await fetch(upstreamUrl, {
+    const upstreamRes = await fetch(url.toString(), {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json,text/plain,*/*'
-      }
+      // No CORS problem because this is server-side
     });
 
     const text = await upstreamRes.text();
-    let data;
-
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      // لو الرجوع مو JSON صافي، نرجّعه كـ raw
-      data = { ok: false, raw: text };
-    }
 
     if (!upstreamRes.ok) {
-      // نمرّر كود الخطأ من Apps Script قدر الإمكان
-      return res.status(upstreamRes.status).json({
+      // Apps Script error → bubble up
+      return res.status(502).json({
         ok: false,
-        status: upstreamRes.status,
-        message: 'Upstream Apps Script error',
-        upstream: data
+        message: 'Upstream (Apps Script) error',
+        upstreamStatus: upstreamRes.status,
+        upstreamBody: text.slice(0, 2000)
       });
     }
 
-    // ✅ نرجّع الـ JSON كما هو (index.html متوقع items/offers/rows...)
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      return res.status(502).json({
+        ok: false,
+        message: 'Invalid JSON returned from Apps Script',
+        upstreamBody: text.slice(0, 500)
+      });
+    }
+
+    // Optional: extra safety filter by appid again (in case)
+    if (data && Array.isArray(data.offers)) {
+      data.offers = data.offers.filter((o) => {
+        const appFromRow = String(
+          o['App ID'] || o['AppID'] || o.appId || ''
+        ).trim();
+        return !appFromRow || appFromRow.toLowerCase() === String(appid).toLowerCase();
+      });
+      data.count = data.offers.length;
+    }
+
+    // Cache on edge for 60s
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=60');
+
     return res.status(200).json(data);
   } catch (err) {
-    console.error('offers proxy error:', err);
-    return res.status(502).json({
+    console.error('Offers API error:', err);
+    return res.status(500).json({
       ok: false,
-      message: 'Offers proxy failed',
-      error: String(err)
+      message: 'Internal server error in /api/offers',
+      error: err && err.message ? err.message : String(err)
     });
   }
 }
