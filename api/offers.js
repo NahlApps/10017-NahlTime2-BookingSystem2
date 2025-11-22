@@ -1,80 +1,37 @@
 // pages/api/offers.js
-//
-// Proxy between your frontend (PWA) and Apps Script Web App.
-//
-// REQUIRED ENV:
-//   OFFERS_WEBAPP_URL = full published Apps Script Web App URL
-//     e.g. "https://script.google.com/macros/s/XXXX/exec"
-//
-// Frontend calls:
-//   GET /api/offers?action=listOffers&appId=...&today=YYYY-MM-DD
-//
-// This handler forwards all query params to Apps Script and passes JSON back.
+
+const GAS_OFFERS_URL =
+  'https://script.google.com/macros/s/AKfycbyyyVPuq0F49s3DEIZBQWTE54TdsEkdi3mxsY7ylZy7A0Vlt6389eEiSGaFrBrsYPtG/exec';
 
 export default async function handler(req, res) {
-  // Basic CORS (optional, safe default)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader(
-    'Access-Control-Allow-Methods',
-    'GET,OPTIONS'
-  );
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Requested-With'
-  );
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
   if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
     return res
       .status(405)
-      .json({ ok: false, error: 'Method not allowed' });
+      .json({ ok: false, error: 'Method not allowed (GET only)' });
   }
 
-  const webappBase = process.env.OFFERS_WEBAPP_URL;
-  if (!webappBase) {
-    return res.status(500).json({
-      ok: false,
-      error: 'OFFERS_WEBAPP_URL env is not configured',
-    });
+  const { action = 'listOffers', appId, today } = req.query;
+
+  if (!appId) {
+    return res
+      .status(400)
+      .json({ ok: false, error: 'Missing required query param: appId' });
   }
 
   try {
-    // Build Apps Script URL with all query params forwarded
-    const url = new URL(webappBase);
+    const params = new URLSearchParams({ action, appId });
+    if (today) params.append('today', today);
 
-    // Forward all query parameters (action, appId, today, etc.)
-    const query = req.query || {};
-    Object.keys(query).forEach((key) => {
-      const val = query[key];
-      if (Array.isArray(val)) {
-        val.forEach((v) => url.searchParams.append(key, v));
-      } else if (val !== undefined && val !== null) {
-        url.searchParams.set(key, String(val));
-      }
-    });
+    const url = `${GAS_OFFERS_URL}?${params.toString()}`;
+    const r = await fetch(url, { method: 'GET' });
 
-    // Default action if not provided
-    if (!url.searchParams.get('action')) {
-      url.searchParams.set('action', 'listOffers');
-    }
-
-    const fetchOptions = {
-      method: 'GET',
-      // No cache to always get fresh offers
-      cache: 'no-store',
-    };
-
-    const resp = await fetch(url.toString(), fetchOptions);
-    const text = await resp.text();
-
+    const text = await r.text();
     let data;
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.error('Invalid JSON from Apps Script', e, text);
+      console.error('Failed to parse JSON from GAS:', text);
       return res.status(500).json({
         ok: false,
         error: 'Invalid JSON from Apps Script',
@@ -82,16 +39,28 @@ export default async function handler(req, res) {
       });
     }
 
-    const statusCode = resp.ok ? 200 : resp.status || 500;
-    // Make sure we set cache headers for dynamic content
-    res.setHeader('Cache-Control', 'no-store');
+    if (!r.ok) {
+      return res.status(r.status).json({
+        ok: false,
+        error: 'Apps Script returned error',
+        details: data,
+      });
+    }
 
-    return res.status(statusCode).json(data);
+    // Normalize a bit for frontend (optional)
+    const items = data.items || data.offers || data.rows || [];
+    return res.status(200).json({
+      ok: true,
+      appId,
+      today: today || null,
+      count: items.length,
+      items, // keep same shape your frontend already expects
+    });
   } catch (err) {
-    console.error('Error in /api/offers:', err);
+    console.error('api/offers error:', err);
     return res.status(500).json({
       ok: false,
-      error: 'Unexpected error in offers proxy',
+      error: 'Internal server error',
       details: String(err),
     });
   }
