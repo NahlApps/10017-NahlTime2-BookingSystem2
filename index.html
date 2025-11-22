@@ -253,6 +253,202 @@
       padding-right: 12px;
       text-align: left; direction: ltr;
     }
+
+    /* 🎁 Offers button (Page 1) */
+    .btn-offers-pill{
+      border:none;
+      border-radius:999px;
+      padding:10px 18px;
+      font-weight:800;
+      font-size:.95rem;
+      background:rgba(255,255,255,.9);
+      color:var(--brand-700);
+      box-shadow:var(--shadow-sm);
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      cursor:pointer;
+      transition:transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease), background var(--dur-xs) var(--ease);
+    }
+    .btn-offers-pill:hover{
+      transform:translateY(-1px);
+      box-shadow:var(--shadow-md);
+      background:#fff;
+    }
+    .btn-offers-pill i{
+      font-size:1rem;
+    }
+
+    /* 🎁 Offers modal */
+    .offers-modal{
+      position:fixed; inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:1200;
+    }
+    .offers-modal.show{
+      display:flex;
+      animation:fadeIn var(--dur-sm) var(--ease) both;
+    }
+    .offers-backdrop{
+      position:absolute; inset:0;
+      background:rgba(11,38,48,.55);
+      backdrop-filter:blur(6px);
+    }
+    .offers-dialog{
+      position:relative; z-index:1;
+      background:rgba(255,255,255,.98);
+      color:#0B2630;
+      border-radius:18px;
+      box-shadow:var(--shadow-md);
+      width:100%;
+      max-width:420px;
+      max-height:min(70vh,520px);
+      padding:18px 18px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .offers-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .offers-title{
+      margin:0;
+      font-size:1.05rem;
+      font-weight:800;
+    }
+    .offers-close{
+      border:none;
+      background:transparent;
+      color:#4b5563;
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:background var(--dur-xs) var(--ease), transform var(--dur-xs) var(--ease);
+    }
+    .offers-close:hover{
+      background:rgba(15,23,42,.06);
+      transform:translateY(-1px);
+    }
+    .offers-filters{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:4px;
+    }
+    .offers-filter-chip{
+      border-radius:999px;
+      border:1px solid #E5E7EB;
+      background:#F9FAFB;
+      padding:4px 10px;
+      font-size:.78rem;
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      cursor:pointer;
+      transition:background var(--dur-xs) var(--ease), border-color var(--dur-xs) var(--ease), color var(--dur-xs) var(--ease);
+    }
+    .offers-filter-chip.active{
+      background:rgba(2,122,147,.08);
+      border-color:#027A93;
+      color:#027A93;
+    }
+    .offers-list{
+      margin-top:4px;
+      flex:1 1 auto;
+      overflow:auto;
+      padding-right:2px;
+    }
+    .offer-card{
+      background:#F9FAFB;
+      border-radius:12px;
+      border:1px solid #E5E7EB;
+      padding:10px 12px;
+      margin-bottom:8px;
+    }
+    .offer-title{
+      font-size:.95rem;
+      font-weight:800;
+      margin:0 0 4px;
+    }
+    .offer-body{
+      font-size:.85rem;
+      color:#4b5563;
+      margin:0 0 6px;
+    }
+    .offer-tag-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .offer-tag{
+      font-size:.75rem;
+      padding:2px 8px;
+      border-radius:999px;
+      background:#EEF2FF;
+      color:#3730A3;
+    }
+    .offer-dates{
+      font-size:.75rem;
+      color:#6b7280;
+    }
+    .offer-image{
+      width:100%;
+      max-height:160px;
+      border-radius:10px;
+      object-fit:cover;
+      margin-top:6px;
+    }
+    .offer-coupon-chip{
+      font-size:.8rem;
+      padding:3px 8px;
+      border-radius:999px;
+      background:#ECFDF3;
+      color:#15803D;
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+    }
+    .offer-apply-btn{
+      margin-top:6px;
+      border-radius:999px;
+      border:none;
+      background:#027A93;
+      color:#fff;
+      font-size:.85rem;
+      padding:6px 10px;
+      font-weight:700;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      cursor:pointer;
+      transition:background var(--dur-xs) var(--ease), transform var(--dur-xs) var(--ease), box-shadow var(--dur-xs) var(--ease);
+    }
+    .offer-apply-btn:hover{
+      background:#01657A;
+      transform:translateY(-1px);
+      box-shadow:0 4px 10px rgba(2,122,147,.3);
+    }
+    @media (max-width:480px){
+      .offers-dialog{
+        max-width:92%;
+        max-height:70vh;
+        padding:14px 14px 12px;
+      }
+    }
+    body.offers-open{
+      overflow:hidden;
+    }
   </style>
 </head>
 <body>
@@ -305,6 +501,14 @@
             </div>
           </div>
           <div id="pptDots" class="ppt-dots" aria-hidden="true"></div>
+
+          <!-- 🎁 عروض اليوم (زر يفتح البوب أب) -->
+          <div class="mt-3" style="display:flex;justify-content:center;">
+            <button id="btnShowOffers" type="button" class="btn-offers-pill">
+              <i class="fa-solid fa-gift"></i>
+              <span>عروض اليوم</span>
+            </button>
+          </div>
 
           <div class="card text-center" style="max-width:860px">
             <p class="mb-0" style="color:#224652">انطلق — الخطوة التالية لاختيار المنطقة والخدمة</p>
@@ -537,6 +741,28 @@
     </div>
   </main>
 
+  <!-- 🎁 Offers Modal Markup -->
+  <div id="offersModal" class="offers-modal" aria-hidden="true">
+    <div class="offers-backdrop"></div>
+    <div class="offers-dialog" role="dialog" aria-modal="true" aria-labelledby="offersTitle">
+      <div class="offers-header">
+        <h2 id="offersTitle" class="offers-title">عروض اليوم</h2>
+        <button type="button" class="offers-close" aria-label="إغلاق العروض">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="offersFilters" class="offers-filters">
+        <button type="button" class="offers-filter-chip active" data-type="all">الكل</button>
+        <button type="button" class="offers-filter-chip active" data-type="image">صور</button>
+        <button type="button" class="offers-filter-chip active" data-type="text">نصوص</button>
+        <button type="button" class="offers-filter-chip active" data-type="coupon">كوبونات</button>
+      </div>
+      <div id="offersList" class="offers-list">
+        <div class="offers-empty text-muted small">جاري تحميل العروض…</div>
+      </div>
+    </div>
+  </div>
+
   <footer id="siteFooter" class="sticky-nav" aria-label="التنقل بين الخطوات">
     <div class="footer-inner">
       <div class="footer-brand">
@@ -610,6 +836,7 @@
     const COUPONS_API_URL         = `${API_BASE}/api/coupons/validate`;
     const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;
     const PAYMENT_METHODS_URL     = `${API_BASE}/api/payment-methods`;
+    const OFFERS_API_URL          = `${API_BASE}/api/offers`;
 
     /* 🔐 OTP API endpoints (via proxy → Code.gs → Green API) */
     const OTP_REQUEST_URL         = `${API_BASE}/api/otp/request`;
@@ -1320,7 +1547,7 @@
             nForm.paymentMethod = methodId;
             renderSummary('page5');
             updateNextAvailability();
-            showPage(5);
+            showPage(4);
           };
 
           card.addEventListener('click', choose);
@@ -1342,6 +1569,312 @@
         `;
         if (errPay) errPay.style.display = 'block';
       }
+    }
+
+    /* 🎁 Offers / Ads popup (from Code.gs API) */
+    let offersLoaded = false;
+    let offersCache  = [];
+    let offersFilterAll = true;
+    let offersFilterTypes = { image:true, text:true, coupon:true };
+
+    function normalizeOfferType(raw){
+      const t = String(raw || '').toLowerCase().trim();
+      if (['image','img','banner','photo','picture'].includes(t)) return 'image';
+      if (['coupon','code','promo','voucher'].includes(t)) return 'coupon';
+      if (!t) return 'text';
+      return t === 'text' ? 'text' : 'text';
+    }
+
+    function formatOfferDateRange(startRaw, endRaw){
+      const isEn = isEnglishLocale();
+      if (!startRaw && !endRaw) return '';
+      const fmt = (iso) => {
+        const d = DateTime.fromISO(String(iso).slice(0,10));
+        if (!d.isValid) return String(iso);
+        return d.toFormat(isEn ? 'dd LLL yyyy' : 'd LLL yyyy');
+      };
+      const fromTxt = startRaw ? fmt(startRaw) : '';
+      const toTxt   = endRaw   ? fmt(endRaw)   : '';
+      if (fromTxt && toTxt){
+        return isEn ? `Valid ${fromTxt} → ${toTxt}` : `ساري من ${fromTxt} إلى ${toTxt}`;
+      }
+      if (fromTxt){
+        return isEn ? `From ${fromTxt}` : `ساري من ${fromTxt}`;
+      }
+      return isEn ? `Until ${toTxt}` : `ساري حتى ${toTxt}`;
+    }
+
+    async function fetchOffersFromServer(){
+      const todayIso = DateTime.now().toISODate();
+      const params = new URLSearchParams({
+        appId: APP_ID,
+        action: 'listOffers',
+        today: todayIso
+      });
+      const url = `${OFFERS_API_URL}?${params.toString()}`;
+      const res = await fetch(url, { method:'GET', cache:'no-store' });
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json().catch(()=>({}));
+      const items = data.items || data.offers || data.rows || [];
+      offersCache = Array.isArray(items) ? items : [];
+      offersLoaded = true;
+    }
+
+    function getFilteredOffers(){
+      if (!offersCache || !offersCache.length) return [];
+      const today = DateTime.now().toISODate();
+      const todayDt = DateTime.fromISO(today);
+
+      return offersCache
+        .map(o => {
+          const type = normalizeOfferType(o.type || o.kind || o.category || o.offerType);
+          const startRaw = o.startDate || o.StartDate || o.start_date || o.validFrom || o.ValidFrom;
+          const endRaw   = o.endDate   || o.EndDate   || o.end_date   || o.validTo   || o.ValidTo;
+          const activeRaw = (o.active ?? o.Active ?? o.isActive ?? true);
+          const active = !(String(activeRaw).toLowerCase() === 'false' || activeRaw === false);
+
+          let fromOk = true, toOk = true;
+          if (startRaw){
+            const d = DateTime.fromISO(String(startRaw).slice(0,10));
+            if (d.isValid) fromOk = todayDt >= d;
+          }
+          if (endRaw){
+            const d = DateTime.fromISO(String(endRaw).slice(0,10));
+            if (d.isValid) toOk = todayDt <= d;
+          }
+
+          const showOnWelcomeRaw = (o.showOnWelcome ?? o.ShowOnWelcome ?? o.show_on_welcome);
+          const showOnWelcome = showOnWelcomeRaw === undefined || String(showOnWelcomeRaw).toLowerCase() === 'true';
+
+          return {
+            raw: o,
+            id: o.offerId || o.OfferId || o.id || o.ID,
+            type,
+            title: o.title || o.Title || o.headline || '',
+            body: o.description || o.Description || o.body || o.text || '',
+            imageUrl: o.imageUrl || o.ImageUrl || o.image || '',
+            couponCode: o.couponCode || o.CouponCode || o.coupon || o.code || '',
+            startRaw,
+            endRaw,
+            active,
+            fromOk,
+            toOk,
+            showOnWelcome,
+            priority: Number(o.priority ?? o.Priority ?? 0) || 0
+          };
+        })
+        .filter(o => {
+          if (!o.active || !o.fromOk || !o.toOk || !o.showOnWelcome) return false;
+          if (!o.type) return false;
+          if (!offersFilterAll && !offersFilterTypes[o.type]) return false;
+          return true;
+        })
+        .sort((a,b) => b.priority - a.priority);
+    }
+
+    function renderOffersList(){
+      const listEl = document.getElementById('offersList');
+      if (!listEl) return;
+
+      const filtered = getFilteredOffers();
+      listEl.innerHTML = '';
+
+      if (!offersLoaded){
+        const div = document.createElement('div');
+        div.className = 'offers-empty text-muted small';
+        div.textContent = isEnglishLocale()
+          ? 'Loading offers…'
+          : 'جاري تحميل العروض…';
+        listEl.appendChild(div);
+        return;
+      }
+
+      if (!filtered.length){
+        const div = document.createElement('div');
+        div.className = 'offers-empty text-muted small';
+        div.textContent = isEnglishLocale()
+          ? 'No active offers at the moment.'
+          : 'لا توجد عروض فعّالة حاليًا.';
+        listEl.appendChild(div);
+        return;
+      }
+
+      filtered.forEach(o => {
+        const card = document.createElement('div');
+        card.className = 'offer-card';
+
+        const title = document.createElement('h3');
+        title.className = 'offer-title';
+        title.textContent = o.title || (isEnglishLocale() ? 'Special offer' : 'عرض خاص');
+        card.appendChild(title);
+
+        if (o.body){
+          const body = document.createElement('p');
+          body.className = 'offer-body';
+          body.textContent = o.body;
+          card.appendChild(body);
+        }
+
+        if (o.imageUrl){
+          const img = document.createElement('img');
+          img.className = 'offer-image';
+          img.src = o.imageUrl;
+          img.alt = o.title || 'Offer';
+          card.appendChild(img);
+        }
+
+        const metaRow = document.createElement('div');
+        metaRow.className = 'offer-tag-row';
+
+        const tag = document.createElement('span');
+        tag.className = 'offer-tag';
+        if (o.type === 'image'){
+          tag.textContent = isEnglishLocale() ? 'Image Ad' : 'إعلان بالصورة';
+        } else if (o.type === 'coupon'){
+          tag.textContent = isEnglishLocale() ? 'Coupon' : 'كوبون خصم';
+        } else {
+          tag.textContent = isEnglishLocale() ? 'Text Offer' : 'عرض نصي';
+        }
+        metaRow.appendChild(tag);
+
+        const datesTxt = formatOfferDateRange(o.startRaw, o.endRaw);
+        if (datesTxt){
+          const datesSpan = document.createElement('span');
+          datesSpan.className = 'offer-dates';
+          datesSpan.textContent = datesTxt;
+          metaRow.appendChild(datesSpan);
+        }
+
+        card.appendChild(metaRow);
+
+        if (o.couponCode){
+          const couponRow = document.createElement('div');
+          couponRow.style.display = 'flex';
+          couponRow.style.alignItems = 'center';
+          couponRow.style.justifyContent = 'space-between';
+          couponRow.style.gap = '8px';
+          couponRow.style.marginTop = '6px';
+
+          const chip = document.createElement('span');
+          chip.className = 'offer-coupon-chip';
+          chip.innerHTML = `<i class="fa-solid fa-ticket"></i><span>${o.couponCode}</span>`;
+          couponRow.appendChild(chip);
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'offer-apply-btn';
+          btn.innerHTML = `<i class="fa-solid fa-check"></i>${isEnglishLocale() ? 'Apply coupon' : 'تطبيق الكوبون'}`;
+          btn.addEventListener('click', () => applyOfferCouponFromOffer(o));
+          couponRow.appendChild(btn);
+
+          card.appendChild(couponRow);
+        }
+
+        listEl.appendChild(card);
+      });
+    }
+
+    async function ensureOffersLoaded(){
+      try{
+        if (!offersLoaded){
+          await fetchOffersFromServer();
+        }
+      }catch(err){
+        console.error('fetchOffersFromServer error:', err);
+        if (typeof showToast === 'function'){
+          showToast('error', isEnglishLocale() ? 'Could not load offers.' : 'تعذر تحميل العروض الآن.');
+        }
+      }finally{
+        renderOffersList();
+      }
+    }
+
+    function openOffersModal(){
+      const modal = document.getElementById('offersModal');
+      if (!modal) return;
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+      document.body.classList.add('offers-open');
+      ensureOffersLoaded();
+    }
+
+    function closeOffersModal(){
+      const modal = document.getElementById('offersModal');
+      if (!modal) return;
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+      document.body.classList.remove('offers-open');
+    }
+
+    function applyOfferCouponFromOffer(o){
+      const code = o.couponCode;
+      if (!code){
+        return;
+      }
+      const input = document.getElementById('couponCode');
+      if (input){
+        input.value = code;
+      }
+      closeOffersModal();
+      if (typeof validateCouponAndApply === 'function'){
+        validateCouponAndApply();
+      }else if (typeof showToast === 'function'){
+        showToast('success', isEnglishLocale()
+          ? `Coupon ${code} copied, you can apply it from payment step.`
+          : `تم نسخ الكوبون ${code}، يمكنك تطبيقه من خطوة الدفع.`);
+      }
+    }
+
+    function initOffersFilters(){
+      const wrap = document.getElementById('offersFilters');
+      if (!wrap) return;
+      wrap.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-type]');
+        if (!btn) return;
+        const t = btn.dataset.type;
+        if (t === 'all'){
+          offersFilterAll = true;
+          offersFilterTypes = { image:true, text:true, coupon:true };
+          wrap.querySelectorAll('[data-type]').forEach(el => {
+            const type = el.dataset.type;
+            el.classList.toggle('active', type === 'all' || type === 'image' || type === 'text' || type === 'coupon');
+          });
+        } else {
+          offersFilterAll = false;
+          offersFilterTypes[t] = !offersFilterTypes[t];
+          const allChip = wrap.querySelector('[data-type="all"]');
+          if (allChip) allChip.classList.remove('active');
+          btn.classList.toggle('active', !!offersFilterTypes[t]);
+        }
+        renderOffersList();
+      });
+    }
+
+    function wireOffersUI(){
+      const btn = document.getElementById('btnShowOffers');
+      const modal = document.getElementById('offersModal');
+      const closeBtn = modal ? modal.querySelector('.offers-close') : null;
+      const backdrop = modal ? modal.querySelector('.offers-backdrop') : null;
+
+      if (btn){
+        btn.addEventListener('click', () => {
+          openOffersModal();
+        });
+      }
+      if (closeBtn){
+        closeBtn.addEventListener('click', () => closeOffersModal());
+      }
+      if (backdrop){
+        backdrop.addEventListener('click', () => closeOffersModal());
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape'){
+          if (modal && modal.classList.contains('show')){
+            closeOffersModal();
+          }
+        }
+      });
+      initOffersFilters();
     }
 
     /* 🔐 OTP Helpers */
@@ -1948,9 +2481,10 @@
         if(errOtp)      errOtp.style.display      = 'none';
       }
 
-      // Load dynamic extras + payment methods
+      // Load dynamic extras + payment methods + wire offers popup
       loadAdditionalServices();
       loadPaymentMethods();
+      wireOffersUI();
 
       setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
 
@@ -1962,6 +2496,21 @@
         if (lblPrice) lblPrice.textContent = 'Service price (incl. VAT)';
         const footerTotalLabel = document.getElementById('footer-total-label');
         if (footerTotalLabel) footerTotalLabel.textContent = 'Order total:';
+
+        const offersTitle = document.getElementById('offersTitle');
+        if (offersTitle) offersTitle.textContent = "Today's offers";
+        const offersBtn = document.getElementById('btnShowOffers');
+        if (offersBtn) offersBtn.innerHTML = '<i class="fa-solid fa-gift"></i><span>Today\'s offers</span>';
+        const filterWrap = document.getElementById('offersFilters');
+        if (filterWrap){
+          filterWrap.querySelectorAll('[data-type]').forEach(chip => {
+            const t = chip.dataset.type;
+            if (t === 'all') chip.textContent = 'All';
+            else if (t === 'image') chip.textContent = 'Images';
+            else if (t === 'text') chip.textContent = 'Text';
+            else if (t === 'coupon') chip.textContent = 'Coupons';
+          });
+        }
       }
 
       updateFooterTotal();
