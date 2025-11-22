@@ -1,134 +1,101 @@
 // pages/api/offers.js
-//
-// Proxy API لعروض "Offers" يربط بين الـ Frontend (index.html)
-// وبين Google Apps Script (Code.gs API).
-//
-// ✅ المتصفح يطلب: /api/offers?appId=...&action=listOffers&today=2025-11-22
-// ✅ هذا الملف يعيد توجيه الطلب إلى WebApp في Apps Script
-// ✅ ويرجع النتيجة كـ JSON للـ Frontend.
-//
-// ملاحظات مهمة:
-// - لازم تضيف متغيّر البيئة NAHL_TIME_GAS_URL في Vercel
-//   مثل: https://script.google.com/macros/s/AKfycbXXXXXXXXXXXX/exec
-// - ما في NAHL_DEFAULT_APP_ID: لازم يجي appId من الـ query.
 
-export default async function handler(req, res) {
-  // 👈 نسمح فقط بـ GET (نفس اللي يستخدمه index.html)
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET');
-    return res.status(405).json({
-      ok: false,
-      message: 'Method not allowed. Use GET only.',
-    });
+// 🔁 Proxy لعروض الحجز (Offers) من Google Apps Script
+// يعتمد على متغير بيئة: NAHL_OFFERS_APPSCRIPT_URL
+
+const APPSCRIPT_OFFERS_URL = process.env.NAHL_OFFERS_APPSCRIPT_URL;
+
+/**
+ * Helper: يبني رابط Google Apps Script مع نفس البارامترات
+ */
+function buildUpstreamUrl({ appId, action, today }) {
+  if (!APPSCRIPT_OFFERS_URL) {
+    throw new Error('NAHL_OFFERS_APPSCRIPT_URL is not configured');
   }
 
-  const GAS_BASE_URL = process.env.NAHL_TIME_GAS_URL;
+  // نتأكد ما فيه query قديم في الرابط
+  const base = APPSCRIPT_OFFERS_URL.replace(/\?.*$/, '');
+  const url = new URL(base);
 
-  if (!GAS_BASE_URL) {
-    return res.status(500).json({
+  if (appId)  url.searchParams.set('appId', appId);
+  if (action) url.searchParams.set('action', action);
+  if (today)  url.searchParams.set('today', today);
+
+  return url.toString();
+}
+
+export default async function handler(req, res) {
+  // 🌍 CORS بسيط (اختياري)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({
       ok: false,
-      message:
-        'NAHL_TIME_GAS_URL is not configured. Please set it in your environment variables.',
+      message: 'Method Not Allowed. Use GET.'
     });
   }
 
   try {
     const { appId, action = 'listOffers', today } = req.query || {};
 
-    // 🔐 ما في NAHL_DEFAULT_APP_ID → appId مطلوب من الواجهة
-    if (!appId || typeof appId !== 'string') {
+    // ❗ لازم appId يجي من الفرونت (ما فيه NAHL_DEFAULT_APP_ID)
+    if (!appId) {
       return res.status(400).json({
         ok: false,
-        message: 'Missing or invalid appId in query string.',
+        message: 'Missing required parameter: appId'
       });
     }
 
-    // 🧭 نبني URL الاستدعاء لـ Code.gs WebApp
-    //
-    // في Code.gs كنا عاملين:
-    //   - doGet(e)
-    //   - endpoint = e.parameter.endpoint
-    //   - لو endpoint === 'offers' نروح لدوال العروض
-    //
-    // لذلك نرسل:
-    //   endpoint=offers
-    //   appId=...
-    //   action=listOffers (افتراضي)
-    //   today=YYYY-MM-DD (اختياري)
-    //
-    const url = new URL(GAS_BASE_URL);
-
-    // ثابت لتوجيه Code.gs على "العروض"
-    url.searchParams.set('endpoint', 'offers');
-
-    // قِيَم أساسية
-    url.searchParams.set('appId', appId);
-    if (action) url.searchParams.set('action', String(action));
-
-    // اليوم (اختياري لكن مفيد لتصفية العروض في Code.gs)
-    if (today) {
-      url.searchParams.set('today', String(today));
+    if (!APPSCRIPT_OFFERS_URL) {
+      return res.status(500).json({
+        ok: false,
+        message: 'Server is not configured: NAHL_OFFERS_APPSCRIPT_URL is missing'
+      });
     }
 
-    // لو حاب تمرر باراميترات إضافية للـ Code.gs،
-    // نمرّ عليهم كلهم ونضيفهم ماعدا الأشياء اللي عيّناها فوق.
-    const skipKeys = new Set(['endpoint', 'appId', 'action', 'today']);
-    Object.entries(req.query || {}).forEach(([key, value]) => {
-      if (skipKeys.has(key)) return;
-      if (Array.isArray(value)) {
-        value.forEach((v) => url.searchParams.append(key, String(v)));
-      } else if (value != null) {
-        url.searchParams.set(key, String(value));
-      }
-    });
+    const upstreamUrl = buildUpstreamUrl({ appId, action, today });
 
-    // 🛰️ نرسل الطلب إلى Apps Script
-    const upstreamRes = await fetch(url.toString(), {
+    const upstreamRes = await fetch(upstreamUrl, {
       method: 'GET',
-      // Apps Script غالبًا لا يحتاج هيدر خاص، لكن عدم التخزين مفيد
       headers: {
-        'Accept': 'application/json',
-      },
+        'Accept': 'application/json,text/plain,*/*'
+      }
     });
 
     const text = await upstreamRes.text();
     let data;
 
     try {
-      data = text ? JSON.parse(text) : {};
-    } catch (parseErr) {
-      console.error('Offers proxy: JSON parse error from GAS:', parseErr);
-      console.error('Raw response was:', text);
-      return res.status(502).json({
-        ok: false,
-        message: 'Invalid JSON received from Apps Script for offers.',
-        raw: text,
-      });
+      data = JSON.parse(text);
+    } catch (e) {
+      // لو الرجوع مو JSON صافي، نرجّعه كـ raw
+      data = { ok: false, raw: text };
     }
 
-    // لو Apps Script رجّع خطأ خاص فيه (مثلاً ok: false)،
-    // نمرره كما هو مع Status مناسب.
     if (!upstreamRes.ok) {
-      console.error('Offers proxy: GAS returned error status', upstreamRes.status, data);
+      // نمرّر كود الخطأ من Apps Script قدر الإمكان
       return res.status(upstreamRes.status).json({
         ok: false,
-        message:
-          data && data.message
-            ? data.message
-            : `Apps Script returned HTTP ${upstreamRes.status}`,
-        data,
+        status: upstreamRes.status,
+        message: 'Upstream Apps Script error',
+        upstream: data
       });
     }
 
-    // ✅ نجاح: نرجع البيانات كما هي مع no-store
-    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    // ✅ نرجّع الـ JSON كما هو (index.html متوقع items/offers/rows...)
     return res.status(200).json(data);
   } catch (err) {
-    console.error('Offers proxy: unexpected error:', err);
-    return res.status(500).json({
+    console.error('offers proxy error:', err);
+    return res.status(502).json({
       ok: false,
-      message: 'Unexpected error in /api/offers proxy.',
-      error: String(err),
+      message: 'Offers proxy failed',
+      error: String(err)
     });
   }
 }
