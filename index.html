@@ -2842,6 +2842,30 @@ async function ensureOffersLoaded() {
         showToast('success', 'تم تثبيت تطبيق NahlTime على جهازك ✅');
       }
     });
+    async function fetchOffersFromServer(){
+  const todayIso = DateTime.now().toISODate();
+  const params = new URLSearchParams({
+    appId: APP_ID,
+    action: 'listOffers',
+    today: todayIso
+  });
+  const url = `${OFFERS_API_URL}?${params.toString()}`;
+  console.log('🛰️ [frontend] Fetching offers from:', url); // 👈 جديد
+
+  const res = await fetch(url, { method:'GET', cache:'no-store' });
+  console.log('🛰️ [frontend] /api/offers status:', res.status); // 👈 جديد
+
+  if (!res.ok) throw new Error('HTTP '+res.status);
+  const data = await res.json().catch(()=>({}));
+  console.log('🎁 [frontend] Offers API JSON:', data); // 👈 جديد
+
+  const items = data.items || data.offers || data.rows || [];
+  console.log('🎁 [frontend] Normalized items length:', items.length); // 👈 جديد
+
+  offersCache = Array.isArray(items) ? items : [];
+  offersLoaded = true;
+}
+
   </script>
 </body>
 </html>
