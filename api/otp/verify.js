@@ -1,101 +1,94 @@
-// pages/api/otp/verify.js
+// pages/api/otp/verify.ts
+// Proxy → Google Apps Script (action=verifyOtp)
 
-/**
- * Proxy endpoint for verifying an OTP.
- *
- * Frontend call example:
- *   POST /api/otp/verify?appid=21eddbf5-efe5-4a5d-9134-b581717b17ff
- *   body: { mobileNumber: "5XXXXXXXX", otp: "1234" }
- *
- * This route forwards the request to Google Apps Script Web App:
- *   GAS_WEBAPP_URL?action=verifyOtp&appid=...
- */
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-export default async function handler(req, res) {
-  // --- CORS preflight ---
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    return res.status(204).end();
-  }
+const SCRIPT_URL = process.env.NAHLTIME_OTP_SCRIPT_URL || '';
 
-  // --- Method guard ---
+async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Allow only POST
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    return res
-      .status(405)
-      .json({ success: false, error: 'Method not allowed. Use POST.' });
-  }
-
-  // --- Resolve GAS_WEBAPP_URL (env var → hard-coded fallback) ---
-  let GAS_WEBAPP_URL = process.env.GAS_WEBAPP_URL;
-
-  // 🔁 Optional: hard-coded fallback for quick testing
-  // TODO: replace with your real Apps Script Web App URL and then (later) remove this line.
-  if (!GAS_WEBAPP_URL) {
-    GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyXA8Rc7i3FyzDBnaLS-926Rx3bMIUuQ5n1WouVLSGlGMybUnujQ79OPK4qn-JATJs/exec';
-  }
-
-  if (!GAS_WEBAPP_URL) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    return res.status(500).json({
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({
       success: false,
-      error: 'OTP backend URL (GAS_WEBAPP_URL) is not configured',
+      error: 'Method Not Allowed. Use POST.',
     });
-  }
-
-  // --- Resolve appId / appid from query ---
-  const { appid, appId } = req.query;
-  const resolvedAppId =
-    (Array.isArray(appid) ? appid[0] : appid) ||
-    (Array.isArray(appId) ? appId[0] : appId) ||
-    '';
-
-  if (!resolvedAppId) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    return res
-      .status(400)
-      .json({ success: false, error: 'Missing appid in query string' });
   }
 
   try {
-    // --- Forward request to Apps Script (verifyOtp) ---
-    const forwardUrl =
-      GAS_WEBAPP_URL +
-      `?action=verifyOtp&appid=${encodeURIComponent(resolvedAppId)}`;
-
-    const gsResponse = await fetch(forwardUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json, text/plain, */*',
-      },
-      body: JSON.stringify(req.body || {}),
-    });
-
-    const rawText = await gsResponse.text();
-    let data;
-
-    try {
-      data = JSON.parse(rawText);
-    } catch (_err) {
-      data = {
-        success: gsResponse.ok,
-        raw: rawText,
-      };
+    if (!SCRIPT_URL) {
+      return res.status(500).json({
+        success: false,
+        error: 'Missing NAHLTIME_OTP_SCRIPT_URL env variable',
+      });
     }
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    return res.status(gsResponse.status).json(data);
-  } catch (err) {
-    console.error('OTP verify proxy error:', err);
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // appid from query or body
+    const queryAppId = (req.query.appid || req.query.appId || '') as string;
+    const bodyAppId =
+      (req.body && (req.body.appid || req.body.appId || req.body.APP_ID)) || '';
+
+    const appId = String(queryAppId || bodyAppId || '').trim();
+
+    if (!appId) {
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        error: 'Missing appId / appid',
+      });
+    }
+
+    // Body from client (mobileNumber, countryCode, otp, etc.)
+    const clientBody = (req.body && typeof req.body === 'object')
+      ? req.body
+      : {};
+
+    const forwardBody = {
+      ...clientBody,
+      appid: appId,
+    };
+
+    // Build target URL → Apps Script doPost?action=verifyOtp&appid=...
+    const url =
+      `${SCRIPT_URL}` +
+      `?action=verifyOtp&appid=${encodeURIComponent(appId)}`;
+
+    console.log('[OTP VERIFY] Forwarding to Apps Script:', {
+      url,
+      body: forwardBody,
+    });
+
+    const gsResp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(forwardBody),
+    });
+
+    const text = await gsResp.text();
+    let data: any;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+
+    console.log('[OTP VERIFY] Apps Script response:', {
+      status: gsResp.status,
+      data,
+    });
+
+    // Pass-through status & body from Apps Script
+    return res.status(gsResp.status).json(data);
+  } catch (err: any) {
+    console.error('[OTP VERIFY] Proxy error:', err);
     return res.status(500).json({
       success: false,
-      error: 'Failed to contact OTP backend',
-      details: String(err),
+      verified: false,
+      error: 'OTP verify proxy error',
+      details: String(err?.message || err),
     });
   }
 }
+
+export default handler;
