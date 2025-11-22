@@ -1402,115 +1402,123 @@
       }, 1000);
     }
 
-    async function requestOtpForMobile() {
-      const mobileInput = document.getElementById('mobile');
-      const btnSend     = document.getElementById('btnSendOtp');
-      const statusEl    = document.getElementById('otpStatus');
+async function requestOtpForMobile() {
+  const mobileInput = document.getElementById('mobile');
+  const btnSend     = document.getElementById('btnSendOtp');
+  const statusEl    = document.getElementById('otpStatus');
 
-      try {
-        if (!mobileInput) {
-          showToast('error', 'حصل خطأ في حقل رقم الجوال');
-          return;
-        }
+  try {
+    if (!mobileInput) {
+      showToast('error', 'حصل خطأ في حقل رقم الجوال');
+      return;
+    }
 
-        // ✅ تحقّق مبسّط باستخدام الهيلبر
-        const digits = getMobileDigits();
+    // ✅ أرقام الجوال (مع كود الدولة لو موجود من intl-tel-input)
+    const digits = getMobileDigits(); // مثال: 966564491003 أو 9745XXXXXXX
 
-        if (!digits || digits.length < 8) {
-          showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
-          return;
-        }
+    if (!digits || digits.length < 8) {
+      showToast('error', 'الرجاء إدخال رقم جوال صحيح قبل إرسال الكود');
+      return;
+    }
 
-        const mobilePlain = digits;   // مثال: 9665XXXXXXX
-
-        console.log('OTP_REQUEST_URL =', OTP_REQUEST_URL, 'mobilePlain =', mobilePlain);
-
-        // ⏳ تحديث حالة الزرّ والنص أثناء الإرسال
-        if (btnSend) {
-          btnSend.disabled = true;
-          btnSend.textContent = 'جارٍ الإرسال…';
-        }
-        if (statusEl) {
-          statusEl.className = 'small text-muted';
-          statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
-        }
-
-        const res = await fetch(OTP_REQUEST_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mobileNumber: mobilePlain,
-            appid: APP_ID   // نرسلها أيضاً في الـ body للاحتياط
-          })
-        });
-
-        let data = null;
-        try {
-          data = await res.json();
-        } catch (e) {
-          console.warn('OTP request: failed to parse JSON', e);
-        }
-
-        console.log('OTP request response:', res.status, data);
-
-        if (!res.ok || !data || data.success === false) {
-          const msg =
-            (data && (data.error || data.message)) ||
-            'تعذر إرسال رمز التحقق حالياً، حاول مرة أخرى لاحقاً.';
-
-          showToast('error', msg);
-
-          if (statusEl) {
-            statusEl.className = 'small text-danger';
-            statusEl.textContent = 'تعذر إرسال الكود، حاول مرة أخرى.';
-          }
-          if (btnSend) {
-            btnSend.disabled = false;
-            btnSend.textContent = 'إرسال كود على واتساب';
-          }
-          return;
-        }
-
-        // ✅ نجاح الإرسال
-        showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
-
-        if (statusEl) {
-          statusEl.className = 'small text-success';
-          statusEl.textContent = 'تم إرسال الكود بنجاح، يرجى إدخال الكود المكون من ٤ أرقام في الخانة أدناه.';
-        }
-
-        // إظهار صف إدخال الكود
-        const verifyRow = document.getElementById('otpVerifyRow');
-        if (verifyRow) {
-          verifyRow.style.display = 'flex';
-        }
-
-        // بدء العدّ التنازلي لإعادة الإرسال
-        if (typeof startOtpCountdown === 'function') {
-          startOtpCountdown();
-        } else {
-          if (btnSend) {
-            btnSend.disabled = false;
-            btnSend.textContent = 'إعادة إرسال الكود';
-          }
-        }
-      } catch (err) {
-        console.error('requestOtpForMobile error:', err);
-        showToast('error', 'حدث خطأ أثناء طلب رمز التحقق');
-
-        const btnSend = document.getElementById('btnSendOtp');
-        const statusEl = document.getElementById('otpStatus');
-
-        if (statusEl) {
-          statusEl.className = 'small text-danger';
-          statusEl.textContent = 'حدث خطأ أثناء الإرسال، حاول مرة أخرى.';
-        }
-        if (btnSend) {
-          btnSend.disabled = false;
-          btnSend.textContent = 'إرسال كود على واتساب';
-        }
+    // ✅ كود الدولة المختار من القائمة (من intl-tel-input)
+    let dialCode = '966';
+    if (window.itiPhone && typeof itiPhone.getSelectedCountryData === 'function') {
+      const cData = itiPhone.getSelectedCountryData() || {};
+      if (cData.dialCode) {
+        dialCode = String(cData.dialCode).replace(/\D/g, '') || '966';
       }
     }
+
+    const mobilePlain = digits;   // نرسل الأرقام كما هي + نرسل كود الدولة منفصل
+    console.log('OTP_REQUEST_URL =', OTP_REQUEST_URL, 'mobilePlain =', mobilePlain, 'dialCode =', dialCode);
+
+    // ⏳ تحديث حالة الزرّ والنص أثناء الإرسال
+    if (btnSend) {
+      btnSend.disabled = true;
+      btnSend.textContent = 'جارٍ الإرسال…';
+    }
+    if (statusEl) {
+      statusEl.className = 'small text-muted';
+      statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
+    }
+
+    const res = await fetch(OTP_REQUEST_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mobileNumber: mobilePlain, // الأرقام الكاملة
+        countryCode: dialCode,     // ✅ كود الدولة المختار من النموذج
+        appid: APP_ID              // نرسلها أيضاً في الـ body للاحتياط
+      })
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (e) {
+      console.warn('OTP request: failed to parse JSON', e);
+    }
+
+    console.log('OTP request response:', res.status, data);
+
+    // 🔴 فشل الطلب أو رد error من السيرفر
+    if (!res.ok || !data || data.success === false) {
+      const msg =
+        (data && (data.error || data.message)) ||
+        'تعذر إرسال رمز التحقق حالياً، حاول مرة أخرى لاحقاً.';
+
+      showToast('error', msg);
+
+      if (statusEl) {
+        statusEl.className = 'small text-danger';
+        statusEl.textContent = 'تعذر إرسال الكود، حاول مرة أخرى.';
+      }
+      if (btnSend) {
+        btnSend.disabled = false;
+        btnSend.textContent = 'إرسال كود على واتساب';
+      }
+      return;
+    }
+
+    // ✅ نجاح الإرسال
+    showToast('success', 'تم إرسال رمز التحقق عبر واتساب');
+
+    if (statusEl) {
+      statusEl.className = 'small text-success';
+      statusEl.textContent = 'تم إرسال الكود بنجاح، يرجى إدخال الكود المكون من ٤ أرقام في الخانة أدناه.';
+    }
+
+    // إظهار صف إدخال الكود
+    const verifyRow = document.getElementById('otpVerifyRow');
+    if (verifyRow) {
+      verifyRow.style.display = 'flex';
+    }
+
+    // بدء العدّ التنازلي لإعادة الإرسال
+    if (typeof startOtpCountdown === 'function') {
+      startOtpCountdown();
+    } else {
+      if (btnSend) {
+        btnSend.disabled = false;
+        btnSend.textContent = 'إعادة إرسال الكود';
+      }
+    }
+  } catch (err) {
+    console.error('requestOtpForMobile error:', err);
+    showToast('error', 'حدث خطأ أثناء طلب رمز التحقق');
+
+    if (statusEl) {
+      statusEl.className = 'small text-danger';
+      statusEl.textContent = 'حدث خطأ أثناء الإرسال، حاول مرة أخرى.';
+    }
+    if (btnSend) {
+      btnSend.disabled = false;
+      btnSend.textContent = 'إرسال كود على واتساب';
+    }
+  }
+}
+
 
     /* ✅ Updated relaxed OTP verification:
        - لا يعتمد على itiPhone.isValidNumber()
