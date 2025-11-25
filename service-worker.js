@@ -1,106 +1,72 @@
-// NahlTime2 Booking PWA Service Worker
-// Scope: ./ (subfolder)
-// Make sure index.html is cached and used for all navigation requests.
+// 🔄 غيّر هذا الرقم كل ما حدّثت التصميم / الكود
+const CACHE_VERSION = 'nahltime-v3-2025-11-25';
+const CACHE_NAME = `nahltime-cache-${CACHE_VERSION}`;
 
-const CACHE_NAME = 'nahltime2-cache-v3';
-const OFFLINE_URL = './index.html';
-
-// Files we want to cache on install
-const PRECACHE_URLS = [
+// ملفات مهمة (App Shell)
+const ASSETS = [
   './',
   './index.html',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  './NahlTimeNewLOGO.png',        // لو عندك نسخة محلية
+  './favicon.ico',
+
+  // ممكن تضيف مكتبات محلية لو فيه (لو كلها CDN مو ضروري)
 ];
 
-// ---- Install ----
+// 🧱 install → نخزن الملفات الأساسية + skipWaiting
 self.addEventListener('install', (event) => {
+  console.log('[SW] Install', CACHE_NAME);
   event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.addAll(PRECACHE_URLS);
-      await self.skipWaiting();
-    })()
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
+  self.skipWaiting(); // 🔥 فعّل الـ SW الجديد مباشرة
 });
 
-// ---- Activate ----
+// 🧹 activate → نحذف الكاشات القديمة + نسيطر على كل الـ clients
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activate', CACHE_NAME);
   event.waitUntil(
-    (async () => {
-      const keys = await caches.keys();
-      await Promise.all(
-        keys.map((key) => {
-          if (key.startsWith('nahltime2-cache-') && key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-          return null;
-        })
-      );
-      await self.clients.claim();
-    })()
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith('nahltime-cache-') && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
+    )
   );
+
+  return self.clients.claim();
 });
 
-// ---- Fetch ----
+// 🌐 fetch → Network-first للـ HTML، Cache-first للباقي
 self.addEventListener('fetch', (event) => {
-  const request = event.request;
+  const req = event.request;
 
-  // Only handle GET
-  if (request.method !== 'GET') return;
-
-  // 1) All navigations (PWA open, address bar, internal links)
-  //    → always serve our cached index.html (SPA style)
-  if (request.mode === 'navigate') {
+  // HTML + navigation → نحاول الشبكة أولًا (لجلب آخر نسخة)
+  if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
     event.respondWith(
-      (async () => {
-        const cache = await caches.open(CACHE_NAME);
-
-        // Prefer cached index.html if available
-        const cached = await cache.match(OFFLINE_URL);
-        if (cached) {
-          return cached;
-        }
-
-        // First load (or cache missing): try network, then fallback
-        try {
-          const networkResponse = await fetch(request);
-          if (networkResponse && networkResponse.ok) {
-            // Store as offline copy for next time
-            cache.put(OFFLINE_URL, networkResponse.clone());
-          }
-          return networkResponse;
-        } catch (err) {
-          // If completely offline and we don't have cache yet
-          return new Response(
-            'You are offline and the app is not cached yet.',
-            { status: 503, statusText: 'Offline' }
-          );
-        }
-      })()
+      fetch(req)
+        .then((res) => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          return res;
+        })
+        .catch(() =>
+          caches.match(req).then((cached) => cached || caches.match('./index.html'))
+        )
     );
     return;
   }
 
-  // 2) For same-origin assets (CSS, JS, images…): cache-first, then network
-  if (request.url.startsWith(self.location.origin)) {
-    event.respondWith(
-      (async () => {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-
-        try {
-          const response = await fetch(request);
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(request, response.clone());
-          return response;
-        } catch (err) {
-          // If network fails and no cache, just fail normally
-          return new Response('Network error', {
-            status: 408,
-            statusText: 'Network error'
-          });
-        }
-      })()
-    );
-  }
+  // باقي الملفات (CSS/JS/صور) → Cache-first
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        const resClone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+        return res;
+      });
+    })
+  );
 });
