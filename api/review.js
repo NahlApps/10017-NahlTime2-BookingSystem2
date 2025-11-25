@@ -4,24 +4,30 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ ok: false, error: 'Method not allowed. Use POST.' });
+    return res
+      .status(405)
+      .json({ success: false, error: 'Method not allowed. Use POST.' });
   }
 
   const scriptUrl = process.env.GAS_REVIEW_WEBAPP_URL;
   if (!scriptUrl) {
     return res.status(500).json({
-      ok: false,
+      success: false,
       error: 'Missing GAS_REVIEW_WEBAPP_URL env variable on Vercel.'
     });
   }
 
   try {
     const body = req.body || {};
+
+    // 🔁 Normalize incoming fields (mobile vs customerPhone)
+    const customerPhone = body.customerPhone || body.mobile || '';
+
     const payload = {
       action: 'scheduleReview',
       appId: body.appId,
       bookingId: body.bookingId,
-      customerPhone: body.customerPhone,
+      customerPhone,
       delayMinutes: body.delayMinutes,
       locale: body.locale || 'ar'
     };
@@ -37,12 +43,23 @@ export default async function handler(req, res) {
     try {
       data = JSON.parse(text);
     } catch (e) {
-      data = { ok: false, error: 'Invalid JSON from GAS', raw: text };
+      data = { success: false, error: 'Invalid JSON from GAS', raw: text };
     }
 
-    return res.status(gasRes.status).json(data);
+    // ✅ Normalize success flag for the frontend
+    const success =
+      gasRes.ok &&
+      data.success !== false &&
+      data.ok !== false;
+
+    return res
+      .status(success ? 200 : gasRes.status || 500)
+      .json({ success, ...data });
   } catch (err) {
     console.error('Proxy /api/review error:', err);
-    return res.status(500).json({ ok: false, error: String(err) });
+    return res.status(500).json({
+      success: false,
+      error: String(err)
+    });
   }
 }
