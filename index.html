@@ -41,8 +41,8 @@
     function handleLogoError(img){
       const fallbacks = [
         "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/spong&Soap%20-%20logo.png",
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/spong%26Soap%20-%20logo.png",
-        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20Soap/logo.png",
+        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/spong%26Soap%20-%20logo.png",
+        "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/logo.png",
         "https://dummyimage.com/180x54/027A93/ffffff.png&text=Sponge+%26+Soap"
       ];
       const i = Number(img.dataset.fidx || 0);
@@ -849,7 +849,7 @@
     /* ⭐⭐ REVIEW FEATURE: constants (review link + delay + API endpoint) */
     const REVIEW_FORM_BASE_URL    = 'https://nahltimereview.nahl.app/?bookingid='; // ⭐ REVIEW: base URL of review form
     const REVIEW_DELAY_MINUTES    = 30; // ⭐ REVIEW: change this value to control delay (in minutes)
-    const REVIEW_SCHEDULE_API_URL = `${API_BASE}/api/review/schedule`; // ⭐ REVIEW: proxy endpoint to Apps Script
+    const REVIEW_SCHEDULE_API_URL = `${API_BASE}/api/review`; // ⭐ REVIEW: proxy endpoint to Apps Script
 
     /* 🔐 OTP API endpoints (via proxy → Code.gs → Green API) */
     const OTP_REQUEST_URL         = `${API_BASE}/api/otp/request`;
@@ -1271,35 +1271,49 @@
       header && ro.observe(header); footer && ro.observe(footer);
     }
 
+    /* ⭐⭐ REVIEW FEATURE: BookingId generator (reviews-only) */
+    function generateReviewBookingId(){
+      const now = new Date();
+      const pad = (n)=>String(n).padStart(2,'0');
+      const datePart = now.getFullYear().toString()
+        + pad(now.getMonth()+1)
+        + pad(now.getDate())
+        + pad(now.getHours())
+        + pad(now.getMinutes())
+        + pad(now.getSeconds());
+      const rand = Math.floor(Math.random()*1000000).toString().padStart(6,'0');
+      return `R-${datePart}-${rand}`;
+    }
+
     /* ⭐⭐ REVIEW FEATURE: helper to schedule sending review form via WhatsApp after booking */
-    async function scheduleReviewForBooking(bookingId){
+    async function scheduleReviewForBooking(bookingIdFromReservation){
       try{
-        // ⭐ REVIEW: skip if there is no bookingId
-        if(!bookingId){
-          console.warn('[review] No bookingId provided, skipping schedule.');
-          return;
-        }
+        const reviewBookingId = bookingIdFromReservation || generateReviewBookingId();
 
         const phoneDigits =
           (itiPhone && typeof itiPhone.getNumber === 'function')
             ? itiPhone.getNumber().replace(/^\+/, '')
             : '';
 
-        // ⭐ REVIEW: require customer mobile number to schedule WhatsApp review
         if(!phoneDigits){
           console.warn('[review] No customer mobile, skipping review schedule.');
           return;
         }
 
         const payload = {
-          action:       'scheduleReview',   // ⭐ REVIEW: Code.gs will route on this action
-          appId:        APP_ID,
-          bookingId:    bookingId,
-          mobile:       phoneDigits,
-          delayMinutes: REVIEW_DELAY_MINUTES // ⭐ REVIEW: delay defined in index.html
+          action:        'scheduleReview',
+          appId:         APP_ID,
+          bookingId:     reviewBookingId,         // 🔹 BookingId خاص بالتقييم (أو القادم من الحجز)
+          customerPhone: phoneDigits,            // للـ proxy /api/review.js
+          mobile:        phoneDigits,            // لو استُخدم الاتصال مباشرة مع GAS
+          delayMinutes:  REVIEW_DELAY_MINUTES,
+          locale:        isEnglishLocale() ? 'en' : 'ar'
         };
 
-        console.log('[review] Scheduling review message…', payload);
+        console.log('[review] Scheduling review message…', {
+          url: REVIEW_SCHEDULE_API_URL,
+          payload
+        });
 
         const res = await fetch(REVIEW_SCHEDULE_API_URL, {
           method: 'POST',
@@ -1307,15 +1321,44 @@
           body: JSON.stringify(payload)
         });
 
-        const data = await res.json().catch(()=> ({}));
-        if(!res.ok || data.success === false){
-          console.warn('[review] scheduleReview API error:', data);
+        const text = await res.text();
+        let data;
+        try{
+          data = JSON.parse(text);
+        }catch(parseErr){
+          console.warn('[review] Response is not valid JSON:', text);
+          data = { ok:false, error:'Invalid JSON', raw:text };
+        }
+
+        console.log('[review] Review API response:', {
+          status: res.status,
+          ok: res.ok,
+          data
+        });
+
+        if(!res.ok || data.ok === false || data.success === false){
+          console.warn('[review] scheduleReview API indicates failure', data);
+          if(typeof showToast === 'function'){
+            showToast('error', isEnglishLocale()
+              ? 'Could not queue review message.'
+              : 'تعذر جدولة رسالة التقييم حالياً.');
+          }
           return;
         }
 
-        console.log('[review] Review message scheduled successfully.');
+        if(typeof showToast === 'function'){
+          showToast('success', isEnglishLocale()
+            ? 'Review message queued successfully.'
+            : 'تم جدولة رسالة التقييم بنجاح ✅');
+        }
+
       }catch(err){
         console.error('[review] scheduleReviewForBooking error:', err);
+        if(typeof showToast === 'function'){
+          showToast('error', isEnglishLocale()
+            ? 'Error while scheduling review message.'
+            : 'حدث خطأ أثناء جدولة رسالة التقييم.');
+        }
       }
     }
 
@@ -2558,14 +2601,23 @@
           $prev.style.display='none';
           $wait.classList.add('show');
 
-          const r=await postReservation(buildPayload());
+          const payload = buildPayload();
+          console.log('[booking] Sending reservation payload', payload);
+
+          const r=await postReservation(payload);
+          console.log('[booking] Reservation response:', r);
 
           if(r.ok && r.data?.success){
             showToast('success','تم إنشاء الحجز');
 
-            // ⭐ REVIEW: try to extract bookingId from backend response
             const bookingId =
-              (r.data.bookingId ?? r.data.bookingID ?? r.data.id ?? r.data.BookingId ?? r.data.BookingID) || null;
+              (r.data.bookingId ??
+               r.data.bookingID ??
+               r.data.id ??
+               r.data.BookingId ??
+               r.data.BookingID) || null;
+
+            console.log('[booking] Derived bookingId for review:', bookingId);
 
             // ⭐ REVIEW: schedule sending review form after N minutes via backend
             scheduleReviewForBooking(bookingId);
