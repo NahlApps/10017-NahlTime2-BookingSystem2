@@ -843,9 +843,13 @@
     const COUPONS_API_URL         = `${API_BASE}/api/coupons/validate`;
     const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;
     const PAYMENT_METHODS_URL     = `${API_BASE}/api/payment-methods`;
-   const OFFERS_API_URL          = `${API_BASE}/api/offers`;
-// Skip local /api route & go directly to Apps Script backend
+    const OFFERS_API_URL          = `${API_BASE}/api/offers`;
+    // Skip local /api route & go directly to Apps Script backend
 
+    /* ⭐⭐ REVIEW FEATURE: constants (review link + delay + API endpoint) */
+    const REVIEW_FORM_BASE_URL    = 'https://nahltimereview.nahl.app/?bookingid='; // ⭐ REVIEW: base URL of review form
+    const REVIEW_DELAY_MINUTES    = 30; // ⭐ REVIEW: change this value to control delay (in minutes)
+    const REVIEW_SCHEDULE_API_URL = `${API_BASE}/api/review/schedule`; // ⭐ REVIEW: proxy endpoint to Apps Script
 
     /* 🔐 OTP API endpoints (via proxy → Code.gs → Green API) */
     const OTP_REQUEST_URL         = `${API_BASE}/api/otp/request`;
@@ -1265,6 +1269,54 @@
         });
       });
       header && ro.observe(header); footer && ro.observe(footer);
+    }
+
+    /* ⭐⭐ REVIEW FEATURE: helper to schedule sending review form via WhatsApp after booking */
+    async function scheduleReviewForBooking(bookingId){
+      try{
+        // ⭐ REVIEW: skip if there is no bookingId
+        if(!bookingId){
+          console.warn('[review] No bookingId provided, skipping schedule.');
+          return;
+        }
+
+        const phoneDigits =
+          (itiPhone && typeof itiPhone.getNumber === 'function')
+            ? itiPhone.getNumber().replace(/^\+/, '')
+            : '';
+
+        // ⭐ REVIEW: require customer mobile number to schedule WhatsApp review
+        if(!phoneDigits){
+          console.warn('[review] No customer mobile, skipping review schedule.');
+          return;
+        }
+
+        const payload = {
+          action:       'scheduleReview',   // ⭐ REVIEW: Code.gs will route on this action
+          appId:        APP_ID,
+          bookingId:    bookingId,
+          mobile:       phoneDigits,
+          delayMinutes: REVIEW_DELAY_MINUTES // ⭐ REVIEW: delay defined in index.html
+        };
+
+        console.log('[review] Scheduling review message…', payload);
+
+        const res = await fetch(REVIEW_SCHEDULE_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(()=> ({}));
+        if(!res.ok || data.success === false){
+          console.warn('[review] scheduleReview API error:', data);
+          return;
+        }
+
+        console.log('[review] Review message scheduled successfully.');
+      }catch(err){
+        console.error('[review] scheduleReviewForBooking error:', err);
+      }
     }
 
     function buildPayload(){
@@ -2512,6 +2564,14 @@ async function ensureOffersLoaded() {
 
           if(r.ok && r.data?.success){
             showToast('success','تم إنشاء الحجز');
+
+            // ⭐ REVIEW: try to extract bookingId from backend response
+            const bookingId =
+              (r.data.bookingId ?? r.data.bookingID ?? r.data.id ?? r.data.BookingId ?? r.data.BookingID) || null;
+
+            // ⭐ REVIEW: schedule sending review form after N minutes via backend
+            scheduleReviewForBooking(bookingId);
+
             document.getElementById('ts-area').textContent = $('#area').find(':selected').text()||'—';
             document.getElementById('ts-service').textContent = $('#service').find(':selected').text()||'—';
             document.getElementById('ts-dt').textContent = (nForm.date?DateTime.fromISO(nForm.date).toFormat('d LLL yyyy'):'') + (nForm.time?(' • '+nForm.time):'');
