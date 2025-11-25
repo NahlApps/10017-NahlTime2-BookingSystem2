@@ -1,27 +1,22 @@
 {
-  "name": "NahlTime - Booking System",
+  "name": "NahlTime",
   "short_name": "NahlTime",
-  "id": "./index.html",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "dir": "rtl",
-  "lang": "ar-SA",
-  "theme_color": "#01657A",
   "background_color": "#01657A",
-  "description": "حجوزات مواعيد غسيل السيارات – نجيك لين باب بيتك مع خدمات عناية فاخرة وسيطرة كاملة على موعدك.",
+  "theme_color": "#01657A",
+  "dir": "rtl",
+  "lang": "ar",
   "icons": [
     {
-      "src": "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeProLogoImage.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
