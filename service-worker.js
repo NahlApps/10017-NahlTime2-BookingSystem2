@@ -1,18 +1,15 @@
 // 🔄 غير هذا الرقم كل ما تسوي تحديث جديد
-const CACHE_VERSION = 'nahltime-v3-2025-11-25';
+const CACHE_VERSION = 'nahltime-v4-2025-11-26';
 const CACHE_NAME    = `nahltime-cache-${CACHE_VERSION}`;
 
-// ❗ خلك بسيط في البداية: فقط ملفات نعرف إنها موجودة فعلاً
-// لو التطبيق داخل فولدر، تأكد من المسارات (مثلاً "./sub/index.html")
+// ملفات أساسية فقط (تأكد أن المسارات صحيحة)
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest'
-  // لو لاحقًا حفظت لوجو محلي: أضفه هنا مثل:
-  // './NahlTimeNewLOGO.png',
 ];
 
-// 🧱 install – نخزن الـ App Shell لكن "كل ملف لوحده" مع try/catch
+// 🧱 install – نخزن الـ App Shell لكن كل ملف لوحده مع try/catch
 self.addEventListener('install', (event) => {
   console.log('[SW] Install:', CACHE_NAME);
 
@@ -22,22 +19,20 @@ self.addEventListener('install', (event) => {
 
       for (const asset of ASSETS) {
         try {
-          // cache.add = fetch + put
           await cache.add(asset);
           console.log('[SW] Cached:', asset);
         } catch (err) {
-          // 👈 هنا أصل المشكلة اللي كانت تطلع لك
           console.warn('[SW] Failed to cache asset:', asset, err);
-          // ما نرمي error عشان ما يفشل install كله
+          // ما نرمي error عشان ما نفشل الـ install كله
         }
       }
     })()
   );
 
-  self.skipWaiting(); // فعّل الـ SW الجديد مباشرة
+  self.skipWaiting();
 });
 
-// 🧹 activate – حذف الكاش القديم
+// 🧹 activate – حذف الكاشات القديمة
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activate:', CACHE_NAME);
 
@@ -57,10 +52,18 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 🌐 fetch – Network-first للـ HTML، Cache-first للباقي
+// 🌐 fetch – Network-first للـ HTML، Cache-first لباقي GET فقط
 self.addEventListener('fetch', (event) => {
-  const req = event.request;
+  const req    = event.request;
+  const method = req.method || 'GET';
   const accept = req.headers.get('accept') || '';
+
+  // ❌ مهم: تجاهل أي طلب غير GET (POST, PUT, DELETE...)
+  if (method !== 'GET') {
+    // مثلاً /reserveAppointment أو /api/... تظل تروح مباشرة للسيرفر
+    event.respondWith(fetch(req));
+    return;
+  }
 
   // صفحات HTML / تنقل
   if (req.mode === 'navigate' || accept.includes('text/html')) {
@@ -68,7 +71,7 @@ self.addEventListener('fetch', (event) => {
       (async () => {
         try {
           const networkRes = await fetch(req);
-          const cache = await caches.open(CACHE_NAME);
+          const cache      = await caches.open(CACHE_NAME);
           cache.put(req, networkRes.clone());
           return networkRes;
         } catch (err) {
@@ -81,7 +84,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // باقي الملفات (CSS/JS/صور…)
+  // باقي ملفات GET (CSS/JS/صور…)
   event.respondWith(
     (async () => {
       const cached = await caches.match(req);
@@ -89,7 +92,7 @@ self.addEventListener('fetch', (event) => {
 
       try {
         const networkRes = await fetch(req);
-        const cache = await caches.open(CACHE_NAME);
+        const cache      = await caches.open(CACHE_NAME);
         cache.put(req, networkRes.clone());
         return networkRes;
       } catch (err) {
