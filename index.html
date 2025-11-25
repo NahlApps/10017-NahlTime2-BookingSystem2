@@ -2865,6 +2865,22 @@ async function ensureOffersLoaded() {
   offersCache = Array.isArray(items) ? items : [];
   offersLoaded = true;
 }
+// 👀 لو صار تحديث في الـ Service Worker → نعيد تحميل الصفحة مرة واحدة
+let hasRefreshedForNewSW = false;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hasRefreshedForNewSW) return;
+    hasRefreshedForNewSW = true;
+
+    if (typeof showToast === 'function') {
+      showToast('info', '🤍 تم تحديث التطبيق، سيتم إعادة تحميل الصفحة...');
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      window.location.reload();
+    }
+  });
+}
 
   </script>
 </body>
