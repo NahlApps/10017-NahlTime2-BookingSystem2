@@ -468,6 +468,106 @@
     body.offers-open{
       overflow:hidden;
     }
+
+    /* 📜 Terms Modal Styles */
+    .terms-modal{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:1300;
+    }
+    .terms-modal.show{
+      display:flex;
+      animation:fadeIn var(--dur-sm) var(--ease) both;
+    }
+    .terms-backdrop{
+      position:absolute;
+      inset:0;
+      background:rgba(11,38,48,.6);
+      backdrop-filter:blur(8px);
+    }
+    .terms-dialog{
+      position:relative;
+      z-index:1;
+      background:#ffffff;
+      color:#0B2630;
+      border-radius:18px;
+      box-shadow:var(--shadow-md);
+      width:100%;
+      max-width:520px;
+      max-height:80vh;
+      padding:18px 20px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .terms-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .terms-title{
+      font-size:1.05rem;
+      font-weight:800;
+      margin:0;
+    }
+    .terms-close{
+      border:none;
+      background:transparent;
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      color:#4b5563;
+      transition:background var(--dur-xs) var(--ease), transform var(--dur-xs) var(--ease);
+    }
+    .terms-close:hover{
+      background:rgba(15,23,42,.07);
+      transform:translateY(-1px);
+    }
+    .terms-body{
+      flex:1 1 auto;
+      overflow:auto;
+      font-size:.9rem;
+      line-height:1.7;
+      padding-right:2px;
+      white-space:pre-wrap;
+    }
+    .terms-footer{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:6px;
+      flex-wrap:wrap;
+    }
+    .terms-updated{
+      font-size:.78rem;
+      color:#6b7280;
+    }
+    .terms-accept-row{
+      font-size:.9rem;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .terms-accept-row input[type="checkbox"]{
+      width:18px;
+      height:18px;
+      cursor:pointer;
+    }
+    .terms-view-link{
+      font-size:.85rem;
+      color:#0284c7;
+      cursor:pointer;
+      text-decoration:underline;
+    }
   </style>
 </head>
 <body>
@@ -675,6 +775,18 @@
                 <div class="field-error" id="err-otp" style="display:none;">يرجى إدخال كود التحقق الصحيح</div>
               </div>
             </div>
+
+            <!-- 📜 Terms acceptance row (if enabled) -->
+            <div id="termsAcceptRow" class="mt-3" style="display:none;">
+              <div class="terms-accept-row">
+                <input type="checkbox" id="termsAcceptCheckbox">
+                <label for="termsAcceptCheckbox" id="termsAcceptLabel">
+                  أوافق على الشروط والأحكام
+                  <span id="viewTermsInline" class="terms-view-link">عرض الشروط</span>
+                </label>
+              </div>
+              <div class="field-error" id="err-terms" style="display:none;">يرجى الموافقة على الشروط والأحكام قبل المتابعة</div>
+            </div>
           </div>
 
           <h1>معلومات المركبة</h1>
@@ -782,6 +894,28 @@
     </div>
   </div>
 
+  <!-- 📜 Terms Modal Markup -->
+  <div id="termsModal" class="terms-modal" aria-hidden="true">
+    <div class="terms-backdrop"></div>
+    <div class="terms-dialog" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+      <div class="terms-header">
+        <h2 id="termsTitle" class="terms-title">الشروط والأحكام</h2>
+        <button type="button" class="terms-close" aria-label="إغلاق" id="btnTermsClose">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="termsBody" class="terms-body">
+        <!-- سيتم حقن النص من API -->
+      </div>
+      <div class="terms-footer">
+        <span id="termsUpdatedAt" class="terms-updated"></span>
+        <button type="button" class="btn btn-primary btn-sm" id="btnTermsAgree">
+          موافق
+        </button>
+      </div>
+    </div>
+  </div>
+
   <footer id="siteFooter" class="sticky-nav" aria-label="التنقل بين الخطوات">
     <div class="footer-inner">
       <div class="footer-brand">
@@ -844,7 +978,9 @@
     const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;
     const PAYMENT_METHODS_URL     = `${API_BASE}/api/payment-methods`;
     const OFFERS_API_URL          = `${API_BASE}/api/offers`;
-    // Skip local /api route & go directly to Apps Script backend
+
+    /* 📜 Terms API (Apps Script) */
+    const TERMS_API_URL           = `${API_BASE}?action=terms&appId=${encodeURIComponent(APP_ID)}`;
 
     /* ⭐⭐ REVIEW FEATURE: constants (review link + delay + API endpoint) */
     const REVIEW_FORM_BASE_URL    = 'https://nahltimereview.nahl.app/?bookingid='; // ⭐ REVIEW: base URL of review form
@@ -859,6 +995,19 @@
     const OTP_ENABLED             = true;   // 🟢 true = require OTP verify, 🔴 false = skip OTP
     const OTP_CODE_LENGTH         = 4;
     const OTP_RESEND_SECONDS      = 60;
+
+    /* 📜 Terms runtime state */
+    let termsConfig = {
+      ok: true,
+      enabled: false,
+      requireAccept: false,
+      titleAr: '',
+      bodyAr: '',
+      titleEn: '',
+      bodyEn: '',
+      updatedAt: ''
+    };
+    let termsAccepted = false;
 
     let controllers = [];
     async function callContent2(path, cb, abortable=false, retries=3){
@@ -1843,7 +1992,6 @@
         })
         .sort((a, b) => b.priority - a.priority);
     }
-
     // 🔹 رسم العروض في البوب أب
     function renderOffersList() {
       const listEl = document.getElementById('offersList');
@@ -1950,6 +2098,175 @@
       });
     }
 
+    // ==========================
+    // 📜 Terms & Conditions (Code.gs ?action=terms&appId=...)
+    // ==========================
+    const TERMS_API_URL = `?action=terms&appId=${encodeURIComponent(APP_ID)}`;
+    let termsConfig = null;
+    let termsAccepted = false;
+
+    function ensureTermsModal() {
+      let modal = document.getElementById('termsModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'termsModal';
+        modal.className = 'offers-modal'; // إعادة استخدام نفس ستايل مودال العروض
+        modal.setAttribute('aria-hidden', 'true');
+
+        modal.innerHTML = `
+          <div class="offers-backdrop"></div>
+          <div class="offers-dialog" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+            <div class="offers-header">
+              <h2 id="termsTitle" class="offers-title">الشروط والأحكام</h2>
+              <button type="button" class="offers-close terms-close" aria-label="إغلاق">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <div id="termsBody" class="offers-list" style="font-size:.85rem;line-height:1.7;white-space:pre-wrap;"></div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+
+        const backdrop = modal.querySelector('.offers-backdrop');
+        const closeBtn = modal.querySelector('.terms-close');
+        backdrop?.addEventListener('click', () => closeTermsModal());
+        closeBtn?.addEventListener('click', () => closeTermsModal());
+      }
+      return modal;
+    }
+
+    function openTermsModal() {
+      if (!termsConfig || !termsConfig.enabled) return;
+      const modal = ensureTermsModal();
+      const titleEl = modal.querySelector('#termsTitle');
+      const bodyEl = modal.querySelector('#termsBody');
+
+      const isEn = isEnglishLocale();
+      if (titleEl) {
+        titleEl.textContent = isEn
+          ? (termsConfig.titleEn || 'Terms & Conditions')
+          : (termsConfig.titleAr || 'الشروط والأحكام');
+      }
+      if (bodyEl) {
+        bodyEl.textContent = isEn
+          ? (termsConfig.bodyEn || termsConfig.bodyAr || '')
+          : (termsConfig.bodyAr || termsConfig.bodyEn || '');
+      }
+
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('offers-open');
+    }
+
+    function closeTermsModal() {
+      const modal = document.getElementById('termsModal');
+      if (!modal) return;
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('offers-open');
+    }
+
+    function injectTermsConsentIntoPage6() {
+      if (!termsConfig || !termsConfig.enabled) return;
+
+      const page6 = document.getElementById('page6');
+      if (!page6) return;
+      if (document.getElementById('termsConsentSection')) return;
+
+      const consent = document.createElement('div');
+      consent.id = 'termsConsentSection';
+      consent.style.marginTop = '14px';
+      consent.style.fontSize = '.85rem';
+      consent.style.color = '#e5e7eb';
+
+      const labelTextAr =
+        'أوافق على ' +
+        'الشروط والأحكام';
+      const labelTextEn =
+        'I agree to the terms & conditions';
+
+      consent.innerHTML = `
+        <label style="display:flex;align-items:flex-start;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="termsCheckbox" style="margin-top:4px;">
+          <span>
+            ${
+              isEnglishLocale()
+                ? 'I agree to '
+                : 'أوافق على '
+            }
+            <button type="button" id="btnShowTerms"
+              style="border:none;background:none;color:#bfdbfe;text-decoration:underline;padding:0;cursor:pointer;">
+              ${isEnglishLocale() ? 'the Terms & Conditions' : 'الشروط والأحكام'}
+            </button>
+          </span>
+        </label>
+        <div id="err-terms" class="field-error" style="margin-top:4px;display:none;">
+          ${
+            isEnglishLocale()
+              ? 'You must agree to the Terms & Conditions to complete your booking.'
+              : 'يجب الموافقة على الشروط والأحكام لإكمال الحجز.'
+          }
+        </div>
+      `;
+
+      // نضيفه أسفل صفحة الخريطة
+      page6.appendChild(consent);
+
+      const checkbox = consent.querySelector('#termsCheckbox');
+      const btnShow = consent.querySelector('#btnShowTerms');
+
+      if (checkbox) {
+        checkbox.addEventListener('change', () => {
+          termsAccepted = checkbox.checked;
+          const err = document.getElementById('err-terms');
+          if (err) err.style.display = termsAccepted ? 'none' : 'block';
+          updateNextAvailability();
+        });
+      }
+
+      if (btnShow) {
+        btnShow.addEventListener('click', () => openTermsModal());
+      }
+    }
+
+    async function loadTermsConfig() {
+      try {
+        const res = await fetch(TERMS_API_URL, {
+          method: 'GET',
+          cache: 'no-store'
+        });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || data.ok === false) {
+          console.warn('[terms] Disabled or error from API', data);
+          termsConfig = null;
+          termsAccepted = true; // لا نمنع الحجز إذا فشلت الشروط
+          updateNextAvailability();
+          return;
+        }
+
+        if (!data.enabled) {
+          termsConfig = data;
+          termsAccepted = true; // الشروط موجودة لكن غير مفعّلة
+          updateNextAvailability();
+          return;
+        }
+
+        termsConfig = data;
+        // لو requireAccept=false → لا نلزم المستخدم بالتأشير
+        termsAccepted = !data.requireAccept;
+
+        ensureTermsModal();          // نبني المودال
+        injectTermsConsentIntoPage6(); // نبني صندوق الموافقة
+        updateNextAvailability();
+      } catch (err) {
+        console.error('[terms] loadTermsConfig error:', err);
+        termsConfig = null;
+        termsAccepted = true;
+        updateNextAvailability();
+      }
+    }
+
     // 🔹 تأكد من تحميل العروض مرة واحدة فقط
     async function ensureOffersLoaded() {
       try {
@@ -1971,55 +2288,61 @@
       }
     }
 
-    function openOffersModal(){
+    function openOffersModal() {
       const modal = document.getElementById('offersModal');
       if (!modal) return;
       modal.classList.add('show');
-      modal.setAttribute('aria-hidden','false');
+      modal.setAttribute('aria-hidden', 'false');
       document.body.classList.add('offers-open');
       ensureOffersLoaded();
     }
 
-    function closeOffersModal(){
+    function closeOffersModal() {
       const modal = document.getElementById('offersModal');
       if (!modal) return;
       modal.classList.remove('show');
-      modal.setAttribute('aria-hidden','true');
+      modal.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('offers-open');
     }
 
-    function applyOfferCouponFromOffer(o){
+    function applyOfferCouponFromOffer(o) {
       const code = o.couponCode;
-      if (!code){
+      if (!code) {
         return;
       }
       const input = document.getElementById('couponCode');
-      if (input){
+      if (input) {
         input.value = code;
       }
       closeOffersModal();
-      if (typeof validateCouponAndApply === 'function'){
+      if (typeof validateCouponAndApply === 'function') {
         validateCouponAndApply();
-      }else if (typeof showToast === 'function'){
-        showToast('success', isEnglishLocale()
-          ? `Coupon ${code} copied, you can apply it from payment step.`
-          : `تم نسخ الكوبون ${code}، يمكنك تطبيقه من خطوة الدفع.`);
+      } else if (typeof showToast === 'function') {
+        showToast(
+          'success',
+          isEnglishLocale()
+            ? `Coupon ${code} copied, you can apply it from payment step.`
+            : `تم نسخ الكوبون ${code}، يمكنك تطبيقه من خطوة الدفع.`
+        );
       }
     }
 
-    function initOffersFilters(){
+    function initOffersFilters() {
       const wrap = document.getElementById('offersFilters');
       if (!wrap) return;
       wrap.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-type]');
         if (!btn) return;
         const t = btn.dataset.type;
-        if (t === 'all'){
+        if (t === 'all') {
           offersFilterAll = true;
-          offersFilterTypes = { image:true, text:true, coupon:true };
-          wrap.querySelectorAll('[data-type]').forEach(el => {
+          offersFilterTypes = { image: true, text: true, coupon: true };
+          wrap.querySelectorAll('[data-type]').forEach((el) => {
             const type = el.dataset.type;
-            el.classList.toggle('active', type === 'all' || type === 'image' || type === 'text' || type === 'coupon');
+            el.classList.toggle(
+              'active',
+              type === 'all' || type === 'image' || type === 'text' || type === 'coupon'
+            );
           });
         } else {
           offersFilterAll = false;
@@ -2032,26 +2355,26 @@
       });
     }
 
-    function wireOffersUI(){
+    function wireOffersUI() {
       const btn = document.getElementById('btnShowOffers');
       const modal = document.getElementById('offersModal');
       const closeBtn = modal ? modal.querySelector('.offers-close') : null;
       const backdrop = modal ? modal.querySelector('.offers-backdrop') : null;
 
-      if (btn){
+      if (btn) {
         btn.addEventListener('click', () => {
           openOffersModal();
         });
       }
-      if (closeBtn){
+      if (closeBtn) {
         closeBtn.addEventListener('click', () => closeOffersModal());
       }
-      if (backdrop){
+      if (backdrop) {
         backdrop.addEventListener('click', () => closeOffersModal());
       }
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape'){
-          if (modal && modal.classList.contains('show')){
+        if (e.key === 'Escape') {
+          if (modal && modal.classList.contains('show')) {
             closeOffersModal();
           }
         }
@@ -2061,116 +2384,121 @@
 
     /* 🔐 OTP Helpers */
 
-    function resetOtpState(fullReset){
-      if(!OTP_ENABLED) return;
+    function resetOtpState(fullReset) {
+      if (!OTP_ENABLED) return;
       otpRequested = false;
-      otpVerified  = false;
+      otpVerified = false;
       otpLastSentAt = null;
-      if(otpCountdownTimer){
+      if (otpCountdownTimer) {
         clearInterval(otpCountdownTimer);
         otpCountdownTimer = null;
       }
       const statusEl = document.getElementById('otpStatus');
-      const errEl    = document.getElementById('err-otp');
-      const codeEl   = document.getElementById('otpCode');
-      const verifyRow= document.getElementById('otpVerifyRow');
-      const sendBtn  = document.getElementById('btnSendOtp');
+      const errEl = document.getElementById('err-otp');
+      const codeEl = document.getElementById('otpCode');
+      const verifyRow = document.getElementById('otpVerifyRow');
+      const sendBtn = document.getElementById('btnSendOtp');
 
-      if(statusEl){
+      if (statusEl) {
         statusEl.className = 'small text-muted';
-        statusEl.textContent = 'سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.';
+        statusEl.textContent =
+          'سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.';
       }
-      if(errEl){
+      if (errEl) {
         errEl.style.display = 'none';
       }
-      if(codeEl){
+      if (codeEl) {
         codeEl.removeAttribute('readonly');
-        if(fullReset) codeEl.value = '';
+        if (fullReset) codeEl.value = '';
       }
-      if(verifyRow){
+      if (verifyRow) {
         verifyRow.style.display = 'none';
       }
-      if(sendBtn){
+      if (sendBtn) {
         sendBtn.disabled = false;
         sendBtn.textContent = 'إرسال كود على واتساب';
       }
     }
 
-    function startOtpCountdown(){
-      const sendBtn  = document.getElementById('btnSendOtp');
+    function startOtpCountdown() {
+      const sendBtn = document.getElementById('btnSendOtp');
       const statusEl = document.getElementById('otpStatus');
-      if(!sendBtn || !statusEl) return;
+      if (!sendBtn || !statusEl) return;
 
-      otpRequested   = true;
-      otpVerified    = false;
-      otpLastSentAt  = Date.now();
-      let remaining  = OTP_RESEND_SECONDS;
+      otpRequested = true;
+      otpVerified = false;
+      otpLastSentAt = Date.now();
+      let remaining = OTP_RESEND_SECONDS;
 
       statusEl.className = 'small text-muted';
       statusEl.textContent = `تم إرسال الكود، يمكنك إعادة الإرسال بعد ${remaining} ثانية.`;
       sendBtn.disabled = true;
       sendBtn.textContent = `إعادة الإرسال (${remaining})`;
 
-      if(otpCountdownTimer){
+      if (otpCountdownTimer) {
         clearInterval(otpCountdownTimer);
       }
-      otpCountdownTimer = setInterval(()=>{
+      otpCountdownTimer = setInterval(() => {
         remaining--;
-        if(remaining <= 0){
+        if (remaining <= 0) {
           clearInterval(otpCountdownTimer);
           otpCountdownTimer = null;
           sendBtn.disabled = false;
           sendBtn.textContent = 'إعادة إرسال الكود';
-          statusEl.textContent = 'إذا لم يصلك الكود خلال دقيقة، اضغط "إعادة إرسال الكود".';
-        }else{
+          statusEl.textContent =
+            'إذا لم يصلك الكود خلال دقيقة، اضغط "إعادة إرسال الكود".';
+        } else {
           sendBtn.textContent = `إعادة الإرسال (${remaining})`;
           statusEl.textContent = `تم إرسال الكود، يمكنك إعادة الإرسال بعد ${remaining} ثانية.`;
         }
       }, 1000);
     }
 
-    async function requestOtpForMobile(){
-      if(!OTP_ENABLED) return;
-      const sendBtn  = document.getElementById('btnSendOtp');
+    async function requestOtpForMobile() {
+      if (!OTP_ENABLED) return;
+      const sendBtn = document.getElementById('btnSendOtp');
       const statusEl = document.getElementById('otpStatus');
-      const errEl    = document.getElementById('err-otp');
+      const errEl = document.getElementById('err-otp');
 
-      if(errEl) errEl.style.display = 'none';
+      if (errEl) errEl.style.display = 'none';
 
-      if(!itiPhone || !itiPhone.isValidNumber()){
+      if (!itiPhone || !itiPhone.isValidNumber()) {
         document.getElementById('err-mobile').style.display = 'block';
-        showToast('error','من فضلك أدخل رقم جوال صحيح قبل طلب الكود');
+        showToast('error', 'من فضلك أدخل رقم جوال صحيح قبل طلب الكود');
         return;
       }
 
       const mobile = itiPhone.getNumber().replace(/^\+/, '');
 
-      try{
-        if(sendBtn){
+      try {
+        if (sendBtn) {
           sendBtn.disabled = true;
           sendBtn.textContent = 'جاري الإرسال…';
         }
-        if(statusEl){
+        if (statusEl) {
           statusEl.className = 'small text-muted';
           statusEl.textContent = 'جاري إرسال كود التحقق إلى واتساب…';
         }
 
         const res = await fetch(OTP_REQUEST_URL, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ appId: APP_ID, mobileNumber: mobile })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appId: APP_ID, mobileNumber: mobile })
         });
 
-        const data = await res.json().catch(()=>null);
+        const data = await res.json().catch(() => null);
 
-        if(!res.ok || !data || data.success === false){
-          const msg = data && data.message ? data.message : 'تعذر إرسال كود التحقق الآن، حاول مرة أخرى.';
+        if (!res.ok || !data || data.success === false) {
+          const msg =
+            data && data.message
+              ? data.message
+              : 'تعذر إرسال كود التحقق الآن، حاول مرة أخرى.';
           showToast('error', msg);
-          if(statusEl){
+          if (statusEl) {
             statusEl.className = 'small text-danger';
             statusEl.textContent = msg;
           }
-          if(sendBtn){
+          if (sendBtn) {
             sendBtn.disabled = false;
             sendBtn.textContent = 'إرسال كود على واتساب';
           }
@@ -2178,80 +2506,88 @@
         }
 
         const verifyRow = document.getElementById('otpVerifyRow');
-        if(verifyRow){
+        if (verifyRow) {
           verifyRow.style.display = 'flex';
         }
-        if(statusEl){
+        if (statusEl) {
           statusEl.className = 'small text-success';
-          statusEl.textContent = 'تم إرسال الكود إلى واتساب، من فضلك أدخل الكود المكون من 4 أرقام للتحقق من رقمك.';
+          statusEl.textContent =
+            'تم إرسال الكود إلى واتساب، من فضلك أدخل الكود المكون من 4 أرقام للتحقق من رقمك.';
         }
 
-        showToast('success','تم إرسال كود التحقق إلى واتساب');
+        showToast('success', 'تم إرسال كود التحقق إلى واتساب');
         startOtpCountdown();
-      }catch(err){
+      } catch (err) {
         console.error('requestOtpForMobile error:', err);
-        if(statusEl){
+        if (statusEl) {
           statusEl.className = 'small text-danger';
-          statusEl.textContent = 'حدث خطأ أثناء إرسال الكود، حاول مرة أخرى.';
+          statusEl.textContent =
+            'حدث خطأ أثناء إرسال الكود، حاول مرة أخرى.';
         }
-        if(sendBtn){
+        if (sendBtn) {
           sendBtn.disabled = false;
           sendBtn.textContent = 'إرسال كود على واتساب';
         }
-        showToast('error','تعذر إرسال كود التحقق الآن');
+        showToast('error', 'تعذر إرسال كود التحقق الآن');
       }
     }
 
-    async function verifyOtpCode(){
-      if(!OTP_ENABLED) return;
+    async function verifyOtpCode() {
+      if (!OTP_ENABLED) return;
       const codeInput = document.getElementById('otpCode');
-      const statusEl  = document.getElementById('otpStatus');
-      const errEl     = document.getElementById('err-otp');
-      const btn       = document.getElementById('btnVerifyOtp');
-      if(!codeInput || !btn) return;
+      const statusEl = document.getElementById('otpStatus');
+      const errEl = document.getElementById('err-otp');
+      const btn = document.getElementById('btnVerifyOtp');
+      if (!codeInput || !btn) return;
 
       const raw = (codeInput.value || '').trim();
-      if(!new RegExp(`^\\d{${OTP_CODE_LENGTH}}$`).test(raw)){
-        if(errEl){
+      if (!new RegExp(`^\\d{${OTP_CODE_LENGTH}}$`).test(raw)) {
+        if (errEl) {
           errEl.textContent = `رجاءً أدخل كود مكون من ${OTP_CODE_LENGTH} أرقام`;
           errEl.style.display = 'block';
         }
-        showToast('error',`كود التحقق يجب أن يكون ${OTP_CODE_LENGTH} أرقام`);
+        showToast(
+          'error',
+          `كود التحقق يجب أن يكون ${OTP_CODE_LENGTH} أرقام`
+        );
         return;
       }
 
-      if(!itiPhone || !itiPhone.isValidNumber()){
-        document.getElementById('err-mobile').style.display='block';
-        showToast('error','من فضلك تأكد من صحة رقم الجوال أولاً');
+      if (!itiPhone || !itiPhone.isValidNumber()) {
+        document.getElementById('err-mobile').style.display = 'block';
+        showToast('error', 'من فضلك تأكد من صحة رقم الجوال أولاً');
         return;
       }
 
       const mobile = itiPhone.getNumber().replace(/^\+/, '');
 
-      try{
+      try {
         btn.disabled = true;
         btn.textContent = 'جاري التحقق…';
-        if(errEl) errEl.style.display = 'none';
-        if(statusEl){
+        if (errEl) errEl.style.display = 'none';
+        if (statusEl) {
           statusEl.className = 'small text-muted';
           statusEl.textContent = 'جاري التحقق من كود التحقق…';
         }
 
         const res = await fetch(OTP_VERIFY_URL, {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ appId: APP_ID, mobileNumber: mobile, otp: raw })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appId: APP_ID, mobileNumber: mobile, otp: raw })
         });
 
-        const data = await res.json().catch(()=>null);
+        const data = await res.json().catch(() => null);
 
-        if(!res.ok || !data || data.success === false){
-          const msg = data && data.message ? data.message : 'كود التحقق غير صحيح أو منتهي.';
-          if(errEl){
+        if (!res.ok || !data || data.success === false) {
+          const msg =
+            data && data.message
+              ? data.message
+              : 'كود التحقق غير صحيح أو منتهي.';
+          if (errEl) {
             errEl.textContent = msg;
             errEl.style.display = 'block';
           }
-          if(statusEl){
+          if (statusEl) {
             statusEl.className = 'small text-danger';
             statusEl.textContent = msg;
           }
@@ -2262,70 +2598,77 @@
         }
 
         otpVerified = true;
-        if(statusEl){
+        if (statusEl) {
           statusEl.className = 'small text-success';
-          statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅ يمكنك المتابعة لإكمال الحجز.';
+          statusEl.textContent =
+            'تم التحقق من رقم الجوال بنجاح ✅ يمكنك المتابعة لإكمال الحجز.';
         }
-        if(errEl) errEl.style.display = 'none';
-        if(codeInput){
-          codeInput.setAttribute('readonly','readonly');
+        if (errEl) errEl.style.display = 'none';
+        if (codeInput) {
+          codeInput.setAttribute('readonly', 'readonly');
         }
         const sendBtn = document.getElementById('btnSendOtp');
-        if(sendBtn){
+        if (sendBtn) {
           sendBtn.disabled = true;
           sendBtn.textContent = 'تم التحقق';
         }
-        if(otpCountdownTimer){
+        if (otpCountdownTimer) {
           clearInterval(otpCountdownTimer);
           otpCountdownTimer = null;
         }
-        showToast('success','تم التحقق من رقم جوالك');
+        showToast('success', 'تم التحقق من رقم جوالك');
         updateNextAvailability();
-      }catch(err){
+      } catch (err) {
         console.error('verifyOtpCode error:', err);
-        if(statusEl){
+        if (statusEl) {
           statusEl.className = 'small text-danger';
-          statusEl.textContent = 'تعذر التحقق من الكود الآن، حاول مرة أخرى.';
+          statusEl.textContent =
+            'تعذر التحقق من الكود الآن، حاول مرة أخرى.';
         }
-        showToast('error','حدث خطأ أثناء التحقق من الكود');
-      }finally{
-        if(btn && !otpVerified){
-          btn.disabled=false;
-          btn.textContent='تأكيد';
+        showToast('error', 'حدث خطأ أثناء التحقق من الكود');
+      } finally {
+        if (btn && !otpVerified) {
+          btn.disabled = false;
+          btn.textContent = 'تأكيد';
         }
       }
     }
 
     /* Map globals */
-    let map, marker, autocomplete, areaPolygon, pendingAreaForBounds=null, currentAreaBounds;
+    let map,
+      marker,
+      autocomplete,
+      areaPolygon,
+      pendingAreaForBounds = null,
+      currentAreaBounds;
     let lastValidLatLng = null;
     const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
 
-    async function loadAreaBounds(areaId){
-      if(!areaId) return;
+    async function loadAreaBounds(areaId) {
+      if (!areaId) return;
 
-      if(!window.google || !window.google.maps || !map){
+      if (!window.google || !window.google.maps || !map) {
         pendingAreaForBounds = areaId;
         return;
       }
 
-      try{
+      try {
         const params = new URLSearchParams({
           appId: APP_ID,
           areaId: String(areaId)
         });
         const res = await fetch(`${AREA_BOUNDS_URL}?${params.toString()}`, {
-          method:'GET',
-          cache:'no-store'
+          method: 'GET',
+          cache: 'no-store'
         });
-        if(!res.ok){
+        if (!res.ok) {
           console.warn('loadAreaBounds HTTP error', res.status);
           return;
         }
         const json = await res.json();
         const payload = json && json.data ? json.data : json;
 
-        if(!payload){
+        if (!payload) {
           console.warn('loadAreaBounds: no payload');
           return;
         }
@@ -2339,47 +2682,54 @@
 
         const north = Number(boundsObj.north);
         const south = Number(boundsObj.south);
-        const east  = Number(boundsObj.east);
-        const west  = Number(boundsObj.west);
+        const east = Number(boundsObj.east);
+        const west = Number(boundsObj.west);
 
         let center;
-        if(Number.isFinite(centerLat) && Number.isFinite(centerLng)){
+        if (Number.isFinite(centerLat) && Number.isFinite(centerLng)) {
           center = new google.maps.LatLng(centerLat, centerLng);
-        }else{
+        } else {
           center = map.getCenter();
         }
 
-        if(center){
+        if (center) {
           map.setCenter(center);
-          if(marker){
+          if (marker) {
             marker.setPosition(center);
           }
           lastValidLatLng = center;
         }
 
-        if(Number.isFinite(north) && Number.isFinite(south) && Number.isFinite(east) && Number.isFinite(west)){
+        if (
+          Number.isFinite(north) &&
+          Number.isFinite(south) &&
+          Number.isFinite(east) &&
+          Number.isFinite(west)
+        ) {
           const areaLatLngBounds = new google.maps.LatLngBounds(
             new google.maps.LatLng(south, west),
             new google.maps.LatLng(north, east)
           );
           map.setOptions({
-            restriction:{
+            restriction: {
               latLngBounds: areaLatLngBounds,
-              strictBounds:true
+              strictBounds: true
             }
           });
           map.fitBounds(areaLatLngBounds);
         }
 
         const poly = payload.polygon;
-        if(poly && Array.isArray(poly) && poly.length){
-          const path = poly.map(pt=>{
-            const lat = Number(pt.lat ?? pt[0]);
-            const lng = Number(pt.lng ?? pt[1]);
-            return {lat, lng};
-          }).filter(p=>Number.isFinite(p.lat) && Number.isFinite(p.lng));
-          if(path.length){
-            if(areaPolygon){
+        if (poly && Array.isArray(poly) && poly.length) {
+          const path = poly
+            .map((pt) => {
+              const lat = Number(pt.lat ?? pt[0]);
+              const lng = Number(pt.lng ?? pt[1]);
+              return { lat, lng };
+            })
+            .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+          if (path.length) {
+            if (areaPolygon) {
               areaPolygon.setMap(null);
             }
             areaPolygon = new google.maps.Polygon({
@@ -2393,78 +2743,157 @@
             areaPolygon.setMap(map);
           }
         }
-      }catch(err){
+      } catch (err) {
         console.error('loadAreaBounds error:', err);
       }
     }
 
-    function requestAreaBoundsForCurrentArea(){
+    function requestAreaBoundsForCurrentArea() {
       const areaId = $('#area').val() || '';
-      if(!areaId) return;
+      if (!areaId) return;
       loadAreaBounds(areaId);
     }
 
-    $(function(){
+    $(function () {
       installResizeObservers();
 
-      Object.values(PAGE_BACKGROUNDS).forEach(src=>{ const i=new Image(); i.src=src; });
-
-      $('#area').select2({width:'100%',placeholder:'اختر المنطقة لخدمة العناية الفاخرة', dir:'rtl'});
-      $('#serviceCat').select2({width:'100%',placeholder:'فئة الخدمة', dir:'rtl'});
-      $('#service').select2({width:'100%',placeholder:'باقتك المختارة', dir:'rtl'});
-      $('#carBrand').select2({width:'100%',placeholder:'اختر ماركة المركبة (الأسماء الفاخرة أولاً)', dir:'rtl'});
-      $('#area, #serviceCat, #service, #carBrand').on('select2:open', ()=>{$('.select2-search__field').attr('dir','rtl');});
-
-      itiPhone=window.intlTelInput(document.querySelector('#mobile'),{
-        initialCountry:'sa', onlyCountries:['sa','ae','bh','kw','om','qa'],
-        separateDialCode:true, placeholderNumberType:'MOBILE',
-        utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js'
+      Object.values(PAGE_BACKGROUNDS).forEach((src) => {
+        const i = new Image();
+        i.src = src;
       });
-      $('#mobile').attr({placeholder:'رقم التواصل الخاص — مثال 5XXXXXXXX', inputmode:'tel', autocomplete:'tel'})
-                  .on('blur', ()=> {
-                    const ok = itiPhone && itiPhone.isValidNumber();
-                    document.getElementById('err-mobile').style.display = ok ? 'none':'block';
-                  });
 
-      $('#name').attr('placeholder','الاسم كما سيظهر في الفاتورة');
-      $('#carName').attr('placeholder','الموديل/الفئة — مثال: S-Class، LX 570');
-      $('#plateNumber').attr('placeholder','أرقام اللوحة — اختياري');
+      $('#area').select2({
+        width: '100%',
+        placeholder: 'اختر المنطقة لخدمة العناية الفاخرة',
+        dir: 'rtl'
+      });
+      $('#serviceCat').select2({
+        width: '100%',
+        placeholder: 'فئة الخدمة',
+        dir: 'rtl'
+      });
+      $('#service').select2({
+        width: '100%',
+        placeholder: 'باقتك المختارة',
+        dir: 'rtl'
+      });
+      $('#carBrand').select2({
+        width: '100%',
+        placeholder: 'اختر ماركة المركبة (الأسماء الفاخرة أولاً)',
+        dir: 'rtl'
+      });
+      $('#area, #serviceCat, #service, #carBrand').on('select2:open', () => {
+        $('.select2-search__field').attr('dir', 'rtl');
+      });
 
-      const today=DateTime.now().toFormat('yyyy-LL-dd');
-      $('#date').val(today).attr('min',today);
+      itiPhone = window.intlTelInput(document.querySelector('#mobile'), {
+        initialCountry: 'sa',
+        onlyCountries: ['sa', 'ae', 'bh', 'kw', 'om', 'qa'],
+        separateDialCode: true,
+        placeholderNumberType: 'MOBILE',
+        utilsScript:
+          'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js'
+      });
+      $('#mobile')
+        .attr({
+          placeholder: 'رقم التواصل الخاص — مثال 5XXXXXXXX',
+          inputmode: 'tel',
+          autocomplete: 'tel'
+        })
+        .on('blur', () => {
+          const ok = itiPhone && itiPhone.isValidNumber();
+          document.getElementById('err-mobile').style.display = ok
+            ? 'none'
+            : 'block';
+        });
+
+      $('#name').attr('placeholder', 'الاسم كما سيظهر في الفاتورة');
+      $('#carName').attr(
+        'placeholder',
+        'الموديل/الفئة — مثال: S-Class، LX 570'
+      );
+      $('#plateNumber').attr('placeholder', 'أرقام اللوحة — اختياري');
+
+      const today = DateTime.now().toFormat('yyyy-LL-dd');
+      $('#date').val(today).attr('min', today);
 
       setLoadingServices(true);
-      callContent2(`/locations`, res=>{
-        const list=res?.data||[]; const ds=list.map(l=>({id:l.id,text:l.TS_location_arabic_name}));
-        $('#area').empty().select2({data:ds,width:'100%',placeholder:'اختر المنطقة لخدمة العناية الفاخرة', dir:'rtl'});
-        if(ds.length){
+      callContent2(`/locations`, (res) => {
+        const list = res?.data || [];
+        const ds = list.map((l) => ({
+          id: l.id,
+          text: l.TS_location_arabic_name
+        }));
+        $('#area')
+          .empty()
+          .select2({
+            data: ds,
+            width: '100%',
+            placeholder: 'اختر المنطقة لخدمة العناية الفاخرة',
+            dir: 'rtl'
+          });
+        if (ds.length) {
           $('#area').val(ds[0].id).trigger('change');
         } else {
-          setLoadingServices(false); showToast('error','لا توجد مناطق متاحة حالياً');
+          setLoadingServices(false);
+          showToast('error', 'لا توجد مناطق متاحة حالياً');
         }
         renderSummary('page2');
       });
 
-      $('#area').on('change', function(){
-        nForm.location=this.value;
+      $('#area').on('change', function () {
+        nForm.location = this.value;
         requestAreaBoundsForCurrentArea();
 
         setLoadingServices(true);
-        callContent2(`/services?location=${encodeURIComponent(this.value)}`, res=>{
-          servicesCache=res?.data?.services||[]; categoriesCache=res?.data?.servicesCat||[];
-          const cats=categoriesCache.map(c=>({id:c.TS_category_id,text:c.TS_category_arabic_name}));
-          $('#serviceCat').empty().select2({data:cats,width:'100%',placeholder:'فئة الخدمة', dir:'rtl'});
-          if(cats.length) $('#serviceCat').val(cats[0].id).trigger('change');
-          setLoadingServices(false); renderSummary('page2'); updateNextAvailability();
-        }, true);
+        callContent2(
+          `/services?location=${encodeURIComponent(this.value)}`,
+          (res) => {
+            servicesCache = res?.data?.services || [];
+            categoriesCache = res?.data?.servicesCat || [];
+            const cats = categoriesCache.map((c) => ({
+              id: c.TS_category_id,
+              text: c.TS_category_arabic_name
+            }));
+            $('#serviceCat')
+              .empty()
+              .select2({
+                data: cats,
+                width: '100%',
+                placeholder: 'فئة الخدمة',
+                dir: 'rtl'
+              });
+            if (cats.length) $('#serviceCat').val(cats[0].id).trigger('change');
+            setLoadingServices(false);
+            renderSummary('page2');
+            updateNextAvailability();
+          },
+          true
+        );
       });
 
-      $('#serviceCat').on('change', function(){
-        nForm.serviceCat=this.value; const cid=Number(this.value);
-        const items=servicesCache?.filter(s=>Number(s.TS_category_id)===cid)?.sort((a,b)=>a.TS_service_id-b.TS_service_id)?.map(s=>({id:s.TS_service_id,text:s.TS_service_arabic_name}))||[];
-        $('#service').empty().select2({data:items,width:'100%',placeholder:'باقتك المختارة', dir:'rtl'});
-        if(items.length) $('#service').val(items[0].id).trigger('change');
-        renderSummary('page2'); updateNextAvailability();
+      $('#serviceCat').on('change', function () {
+        nForm.serviceCat = this.value;
+        const cid = Number(this.value);
+        const items =
+          servicesCache
+            ?.filter((s) => Number(s.TS_category_id) === cid)
+            ?.sort((a, b) => a.TS_service_id - b.TS_service_id)
+            ?.map((s) => ({
+              id: s.TS_service_id,
+              text: s.TS_service_arabic_name
+            })) || [];
+        $('#service')
+          .empty()
+          .select2({
+            data: items,
+            width: '100%',
+            placeholder: 'باقتك المختارة',
+            dir: 'rtl'
+          });
+        if (items.length) $('#service').val(items[0].id).trigger('change');
+        renderSummary('page2');
+        updateNextAvailability();
       });
 
       $('#service').on('change', function () {
@@ -2474,7 +2903,7 @@
         let selectedService = null;
         if (servicesCache && Array.isArray(servicesCache)) {
           selectedService = servicesCache.find(
-            s => String(s.TS_service_id) === selectedId
+            (s) => String(s.TS_service_id) === selectedId
           );
         }
 
@@ -2493,8 +2922,10 @@
 
         const priceBox = document.getElementById('servicePrice');
         if (priceBox) {
-          const priceRaw = selectedService ? selectedService.TS_service_final_price : '';
-          baseServicePrice = (!isNaN(Number(priceRaw))) ? Number(priceRaw) : 0;
+          const priceRaw = selectedService
+            ? selectedService.TS_service_final_price
+            : '';
+          baseServicePrice = !isNaN(Number(priceRaw)) ? Number(priceRaw) : 0;
           const priceText = formatServicePrice(priceRaw);
           priceBox.textContent = priceText || '—';
         } else {
@@ -2507,185 +2938,334 @@
       });
 
       const luxuryFirstBrands = [
-        'Rolls-Royce','Bentley','Mercedes-Benz (Maybach)','Aston Martin','Ferrari','Lamborghini','McLaren','Maserati',
-        'Porsche','Land Rover (Range Rover)','Mercedes-Benz','BMW','Audi','Lexus','Genesis','Jaguar','Cadillac','Infiniti',
-        'GMC','Toyota','Nissan','Hyundai','Kia','Honda','Chevrolet','Ford','Mazda','Mitsubishi','Other'
-      ].map(b=>({id:b,text:b}));
-      $('#carBrand').empty().select2({data:luxuryFirstBrands,width:'100%',placeholder:'اختر ماركة المركبة (الأسماء الفاخرة أولاً)', dir:'rtl'});
+        'Rolls-Royce',
+        'Bentley',
+        'Mercedes-Benz (Maybach)',
+        'Aston Martin',
+        'Ferrari',
+        'Lamborghini',
+        'McLaren',
+        'Maserati',
+        'Porsche',
+        'Land Rover (Range Rover)',
+        'Mercedes-Benz',
+        'BMW',
+        'Audi',
+        'Lexus',
+        'Genesis',
+        'Jaguar',
+        'Cadillac',
+        'Infiniti',
+        'GMC',
+        'Toyota',
+        'Nissan',
+        'Hyundai',
+        'Kia',
+        'Honda',
+        'Chevrolet',
+        'Ford',
+        'Mazda',
+        'Mitsubishi',
+        'Other'
+      ].map((b) => ({ id: b, text: b }));
+      $('#carBrand')
+        .empty()
+        .select2({
+          data: luxuryFirstBrands,
+          width: '100%',
+          placeholder: 'اختر ماركة المركبة (الأسماء الفاخرة أولاً)',
+          dir: 'rtl'
+        });
 
-      $('#name').on('input', function(){ nForm.customerN=this.value.trim(); renderSummary('page4'); updateNextAvailability(); });
-      $('#mobile').on('input', function(){
+      $('#name').on('input', function () {
+        nForm.customerN = this.value.trim();
         renderSummary('page4');
-        if(OTP_ENABLED){
+        updateNextAvailability();
+      });
+      $('#mobile').on('input', function () {
+        renderSummary('page4');
+        if (OTP_ENABLED) {
           resetOtpState(false);
         }
         updateNextAvailability();
       });
-      $('#carName').on('input', function(){ updateNextAvailability(); });
+      $('#carName').on('input', function () {
+        updateNextAvailability();
+      });
 
-      $('#serviceCount').on('change', function(){
-        nForm.serviceCount=this.value||'1';
+      $('#serviceCount').on('change', function () {
+        nForm.serviceCount = this.value || '1';
         renderSummary('page2');
         updateNextAvailability();
         updateFooterTotal();
       });
 
-      $('#plateNumber').on('input', function(){ updatePlateHint(); renderSummary('page4'); updateNextAvailability(); });
+      $('#plateNumber').on('input', function () {
+        updatePlateHint();
+        renderSummary('page4');
+        updateNextAvailability();
+      });
 
-      $('#date').on('change', ()=>{ fetchTimesForSelectedDate(); renderSummary('page3'); });
-      $('#timeFilter').on('change', function(){ currentTimeFilter=this.value; renderSelectedDateTimes(lastSelectedISO); });
+      $('#date').on('change', () => {
+        fetchTimesForSelectedDate();
+        renderSummary('page3');
+      });
+      $('#timeFilter').on('change', function () {
+        currentTimeFilter = this.value;
+        renderSelectedDateTimes(lastSelectedISO);
+      });
 
-      const $prev=document.getElementById('footer-prev');
-      const $next=document.getElementById('footer-next');
-      const $wait=document.getElementById('footer-wait');
+      const $prev = document.getElementById('footer-prev');
+      const $next = document.getElementById('footer-next');
+      const $wait = document.getElementById('footer-wait');
 
-      async function gotoNext(){
-        const i=getActiveIndex(); const id=orderedPages[i];
-        if(id==='page1'){ stopWelcomeDeck(); showPage(1); return; }
-
-        if(id==='page2'){
-          const areaOk=!!$('#area').val(), catOk=!!$('#serviceCat').val(), svcOk=!!$('#service').val();
-          document.getElementById('err-area').style.display=areaOk?'none':'block';
-          document.getElementById('err-serviceCat').style.display=catOk?'none':'block';
-          document.getElementById('err-service').style.display=svcOk?'none':'block';
-          if(!areaOk||!catOk||!svcOk){ showToast('error','يرجى إكمال اختيار المنطقة/التصنيف/الخدمة'); return; }
-          showPage(2); document.getElementById('date').dispatchEvent(new Event('change')); return;
+      async function gotoNext() {
+        const i = getActiveIndex();
+        const id = orderedPages[i];
+        if (id === 'page1') {
+          stopWelcomeDeck();
+          showPage(1);
+          return;
         }
 
-        if(id==='page3'){ if(!selectedTime){ showToast('error','الرجاء اختيار وقت'); return; } showPage(3); return; }
+        if (id === 'page2') {
+          const areaOk = !!$('#area').val(),
+            catOk = !!$('#serviceCat').val(),
+            svcOk = !!$('#service').val();
+          document.getElementById('err-area').style.display = areaOk
+            ? 'none'
+            : 'block';
+          document.getElementById('err-serviceCat').style.display = catOk
+            ? 'none'
+            : 'block';
+          document.getElementById('err-service').style.display = svcOk
+            ? 'none'
+            : 'block';
+          if (!areaOk || !catOk || !svcOk) {
+            showToast(
+              'error',
+              'يرجى إكمال اختيار المنطقة/التصنيف/الخدمة'
+            );
+            return;
+          }
+          showPage(2);
+          document.getElementById('date').dispatchEvent(new Event('change'));
+          return;
+        }
 
-        if(id==='page4'){
-          const nameOk=($('#name').val()||'').trim().length>0;
-          const phoneOk=itiPhone && itiPhone.isValidNumber();
-          document.getElementById('err-name').style.display=nameOk?'none':'block';
-          document.getElementById('err-mobile').style.display=phoneOk?'none':'block';
+        if (id === 'page3') {
+          if (!selectedTime) {
+            showToast('error', 'الرجاء اختيار وقت');
+            return;
+          }
+          showPage(3);
+          return;
+        }
 
-          if(!nameOk||!phoneOk){
-            showToast('error','يرجى التحقق من الاسم ورقم الجوال');
+        if (id === 'page4') {
+          const nameOk = ($('#name').val() || '').trim().length > 0;
+          const phoneOk = itiPhone && itiPhone.isValidNumber();
+          document.getElementById('err-name').style.display = nameOk
+            ? 'none'
+            : 'block';
+          document.getElementById('err-mobile').style.display = phoneOk
+            ? 'none'
+            : 'block';
+
+          if (!nameOk || !phoneOk) {
+            showToast('error', 'يرجى التحقق من الاسم ورقم الجوال');
             return;
           }
 
-          if(OTP_ENABLED && !otpVerified){
+          if (OTP_ENABLED && !otpVerified) {
             const errOtp = document.getElementById('err-otp');
-            if(errOtp){
-              errOtp.textContent = 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة.';
+            if (errOtp) {
+              errOtp.textContent =
+                'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة.';
               errOtp.style.display = 'block';
             }
-            showToast('error','يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة');
+            showToast(
+              'error',
+              'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة'
+            );
             return;
           }
 
           const errOtp = document.getElementById('err-otp');
-          if(errOtp) errOtp.style.display = 'none';
+          if (errOtp) errOtp.style.display = 'none';
 
-          nForm.customerN=$('#name').val().trim(); 
-          nForm.customerM=itiPhone.getNumber().replace(/^\+/,'');
+          nForm.customerN = $('#name').val().trim();
+          nForm.customerM = itiPhone.getNumber().replace(/^\+/, '');
 
-          nForm.locationDescription=[$('#carBrand').val()||'', $('#carName').val()||'', $('#plateNumber').val()||''].filter(Boolean).join(', ');
+          nForm.locationDescription = [
+            $('#carBrand').val() || '',
+            $('#carName').val() || '',
+            $('#plateNumber').val() || ''
+          ]
+            .filter(Boolean)
+            .join(', ');
 
-          showPage(4); return;
+          showPage(4);
+          return;
         }
 
-        if(id==='page5'){
-          if(!nForm.paymentMethod){ document.getElementById('err-pay').style.display='block'; showToast('error','اختر طريقة الدفع'); return; }
-          document.getElementById('err-pay').style.display='none'; showPage(5); return;
+        if (id === 'page5') {
+          if (!nForm.paymentMethod) {
+            document.getElementById('err-pay').style.display = 'block';
+            showToast('error', 'اختر طريقة الدفع');
+            return;
+          }
+          document.getElementById('err-pay').style.display = 'none';
+          showPage(5);
+          return;
         }
 
-        if(id==='page6'){
-          if(!positionUrl){ document.getElementById('err-map').style.display='block'; showToast('error','الرجاء تحديد الموقع'); return; }
-          document.getElementById('err-map').style.display='none'; nForm.urlLocation=positionUrl;
+        if (id === 'page6') {
+          if (!positionUrl) {
+            document.getElementById('err-map').style.display = 'block';
+            showToast('error', 'الرجاء تحديد الموقع');
+            return;
+          }
+          document.getElementById('err-map').style.display = 'none';
+          nForm.urlLocation = positionUrl;
 
-          if(isSubmitting) return;
-          isSubmitting=true;
-          $next.style.display='none';
-          $prev.style.display='none';
+          const needTerms =
+            termsConfig &&
+            termsConfig.enabled &&
+            termsConfig.requireAccept === true;
+          if (needTerms && !termsAccepted) {
+            const errTerms = document.getElementById('err-terms');
+            if (errTerms) errTerms.style.display = 'block';
+            showToast(
+              'error',
+              isEnglishLocale()
+                ? 'Please accept the Terms & Conditions to complete your booking.'
+                : 'يجب الموافقة على الشروط والأحكام لإكمال الحجز.'
+            );
+            return;
+          }
+
+          if (isSubmitting) return;
+          isSubmitting = true;
+          $next.style.display = 'none';
+          $prev.style.display = 'none';
           $wait.classList.add('show');
 
           const payload = buildPayload();
           console.log('[booking] Sending reservation payload', payload);
 
-          const r=await postReservation(payload);
+          const r = await postReservation(payload);
           console.log('[booking] Reservation response:', r);
 
-          if(r.ok && r.data?.success){
-            showToast('success','تم إنشاء الحجز');
+          if (r.ok && r.data?.success) {
+            showToast('success', 'تم إنشاء الحجز');
 
             const bookingId =
-              (r.data.bookingId ??
-               r.data.bookingID ??
-               r.data.id ??
-               r.data.BookingId ??
-               r.data.BookingID) || null;
+              r.data.bookingId ??
+              r.data.bookingID ??
+              r.data.id ??
+              r.data.BookingId ??
+              r.data.BookingID ??
+              null;
 
             console.log('[booking] Derived bookingId for review:', bookingId);
 
             // ⭐ REVIEW: schedule sending review form after N minutes via backend
             scheduleReviewForBooking(bookingId);
 
-            document.getElementById('ts-area').textContent = $('#area').find(':selected').text()||'—';
-            document.getElementById('ts-service').textContent = $('#service').find(':selected').text()||'—';
-            document.getElementById('ts-dt').textContent = (nForm.date?DateTime.fromISO(nForm.date).toFormat('d LLL yyyy'):'') + (nForm.time?(' • '+nForm.time):'');
-            document.getElementById('ts-pay').textContent = (nForm.paymentMethod||'').toUpperCase()||'—';
-            const waMsg = encodeURIComponent(`تم إرسال طلب حجز: \nالخدمة: ${$('#service').find(':selected').text()}\nالتاريخ: ${nForm.date} ${nForm.time}\nالرابط: ${location.href}`);
-            document.getElementById('ts-whatsapp').href = `https://wa.me/?text=${waMsg}`;
+            document.getElementById('ts-area').textContent =
+              $('#area').find(':selected').text() || '—';
+            document.getElementById('ts-service').textContent =
+              $('#service').find(':selected').text() || '—';
+            document.getElementById('ts-dt').textContent =
+              (nForm.date
+                ? DateTime.fromISO(nForm.date).toFormat('d LLL yyyy')
+                : '') + (nForm.time ? ' • ' + nForm.time : '');
+            document.getElementById('ts-pay').textContent =
+              (nForm.paymentMethod || '').toUpperCase() || '—';
+            const waMsg = encodeURIComponent(
+              `تم إرسال طلب حجز: \nالخدمة: ${$('#service')
+                .find(':selected')
+                .text()}\nالتاريخ: ${nForm.date} ${nForm.time}\nالرابط: ${
+                location.href
+              }`
+            );
+            document.getElementById(
+              'ts-whatsapp'
+            ).href = `https://wa.me/?text=${waMsg}`;
 
             $wait.classList.remove('show');
-            isSubmitting=false;
+            isSubmitting = false;
             showPage(6);
           } else {
-            const msg=r?.data?.msgAR || (r.status===404?'المسار غير موجود':'تعذر إنشاء الحجز');
-            showToast('error',msg);
-            isSubmitting=false;
+            const msg =
+              r?.data?.msgAR ||
+              (r.status === 404 ? 'المسار غير موجود' : 'تعذر إنشاء الحجز');
+            showToast('error', msg);
+            isSubmitting = false;
             $wait.classList.remove('show');
-            $next.style.display='';
-            $prev.style.display='';
+            $next.style.display = '';
+            $prev.style.display = '';
             return;
           }
           return;
         }
-        showPage(Math.min(i+1, orderedPages.length-1));
+        showPage(Math.min(i + 1, orderedPages.length - 1));
       }
       document.getElementById('footer-next').addEventListener('click', gotoNext);
-      document.getElementById('footer-prev').addEventListener('click', ()=>{ const i=getActiveIndex(); showPage(Math.max(i-1,0)); });
+      document
+        .getElementById('footer-prev')
+        .addEventListener('click', () => {
+          const i = getActiveIndex();
+          showPage(Math.max(i - 1, 0));
+        });
 
       // ✅ إصلاح حجز جديد: يرجع دائماً لنفس index.html بدل الروت /
-      $('#rebook').on('click', ()=>{
+      $('#rebook').on('click', () => {
         window.location.href = 'index.html';
       });
 
       const applyBtn = document.getElementById('applyCouponBtn');
-      if (applyBtn){
+      if (applyBtn) {
         applyBtn.addEventListener('click', validateCouponAndApply);
       }
 
       // 🔐 Wire OTP controls (if enabled)
-      if(OTP_ENABLED){
+      if (OTP_ENABLED) {
         const otpControls = document.getElementById('otpControls');
-        const verifyRow  = document.getElementById('otpVerifyRow');
-        if(otpControls) otpControls.style.display = 'flex';
-        if(verifyRow)   verifyRow.style.display   = 'none';
+        const verifyRow = document.getElementById('otpVerifyRow');
+        if (otpControls) otpControls.style.display = 'flex';
+        if (verifyRow) verifyRow.style.display = 'none';
 
-        const btnSendOtp   = document.getElementById('btnSendOtp');
+        const btnSendOtp = document.getElementById('btnSendOtp');
         const btnVerifyOtp = document.getElementById('btnVerifyOtp');
-        if(btnSendOtp){   btnSendOtp.addEventListener('click', requestOtpForMobile); }
-        if(btnVerifyOtp){ btnVerifyOtp.addEventListener('click', verifyOtpCode); }
+        if (btnSendOtp) {
+          btnSendOtp.addEventListener('click', requestOtpForMobile);
+        }
+        if (btnVerifyOtp) {
+          btnVerifyOtp.addEventListener('click', verifyOtpCode);
+        }
 
         resetOtpState(true);
       } else {
         const otpControls = document.getElementById('otpControls');
-        const verifyRow   = document.getElementById('otpVerifyRow');
-        const errOtp      = document.getElementById('err-otp');
-        if(otpControls) otpControls.style.display = 'none';
-        if(verifyRow)   verifyRow.style.display   = 'none';
-        if(errOtp)      errOtp.style.display      = 'none';
+        const verifyRow = document.getElementById('otpVerifyRow');
+        const errOtp = document.getElementById('err-otp');
+        if (otpControls) otpControls.style.display = 'none';
+        if (verifyRow) verifyRow.style.display = 'none';
+        if (errOtp) errOtp.style.display = 'none';
       }
 
-      // Load dynamic extras + payment methods + wire offers popup
+      // Load dynamic extras + payment methods + offers popup + terms
       loadAdditionalServices();
       loadPaymentMethods();
       wireOffersUI();
+      loadTermsConfig();
 
-      setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
+      setPageBackground('page1');
+      renderSummary('page1');
+      syncProgress(0);
+      startWelcomeDeck();
 
       const isEnglish = isEnglishLocale();
       if (isEnglish) {
@@ -2693,16 +3273,19 @@
         if (lblDetails) lblDetails.textContent = 'Service details';
         const lblPrice = document.getElementById('servicePriceLabel');
         if (lblPrice) lblPrice.textContent = 'Service price (incl. VAT)';
-        const footerTotalLabel = document.getElementById('footer-total-label');
+        const footerTotalLabel =
+          document.getElementById('footer-total-label');
         if (footerTotalLabel) footerTotalLabel.textContent = 'Order total:';
 
         const offersTitle = document.getElementById('offersTitle');
         if (offersTitle) offersTitle.textContent = "Today's offers";
         const offersBtn = document.getElementById('btnShowOffers');
-        if (offersBtn) offersBtn.innerHTML = '<i class="fa-solid fa-gift"></i><span>Today\'s offers</span>';
+        if (offersBtn)
+          offersBtn.innerHTML =
+            '<i class="fa-solid fa-gift"></i><span>Today\'s offers</span>';
         const filterWrap = document.getElementById('offersFilters');
-        if (filterWrap){
-          filterWrap.querySelectorAll('[data-type]').forEach(chip => {
+        if (filterWrap) {
+          filterWrap.querySelectorAll('[data-type]').forEach((chip) => {
             const t = chip.dataset.type;
             if (t === 'all') chip.textContent = 'All';
             else if (t === 'image') chip.textContent = 'Images';
@@ -2715,258 +3298,174 @@
       updateFooterTotal();
     });
 
-    function updateNextAvailability(){
-      const i=getActiveIndex(); const nextBtn=document.getElementById('footer-next'); let enable=true;
-      if(i===0){ 
-        enable=true; 
-      }
-      else if(i===1){ 
-        enable=!!($('#area').val()&&$('#service').val()); 
-      }
-      else if(i===2){ 
-        enable=!!selectedTime; 
-      }
-      else if(i===3){ 
-        const nameOk=($('#name').val()||'').trim().length>0; 
-        const phoneOk = (window.itiPhone ? itiPhone.isValidNumber() : true);
-        const otpOk   = (!OTP_ENABLED) || otpVerified;
+    function updateNextAvailability() {
+      const i = getActiveIndex();
+      const nextBtn = document.getElementById('footer-next');
+      let enable = true;
+      if (i === 0) {
+        enable = true;
+      } else if (i === 1) {
+        enable = !!($('#area').val() && $('#service').val());
+      } else if (i === 2) {
+        enable = !!selectedTime;
+      } else if (i === 3) {
+        const nameOk = ($('#name').val() || '').trim().length > 0;
+        const phoneOk = window.itiPhone ? itiPhone.isValidNumber() : true;
+        const otpOk = !OTP_ENABLED || otpVerified;
         enable = nameOk && phoneOk && otpOk;
+      } else if (i === 4) {
+        enable = !!document.querySelector('#payGroup input:checked');
+      } else if (i === 5) {
+        const needTerms =
+          termsConfig &&
+          termsConfig.enabled &&
+          termsConfig.requireAccept === true;
+        enable = !!positionUrl && (!needTerms || termsAccepted);
       }
-      else if(i===4){ 
-        enable=!!(document.querySelector('#payGroup input:checked')); 
-      }
-      else if(i===5){ 
-        enable=!!positionUrl; 
-      }
-      nextBtn.disabled=!enable; nextBtn.classList.toggle('disabled',!enable);
+      nextBtn.disabled = !enable;
+      nextBtn.classList.toggle('disabled', !enable);
     }
 
-    function initMap(){
-      const def={lat:24.7136,lng:46.6753};
-      map=new google.maps.Map(document.getElementById('googleMap'),{
-        center:def, zoom:12, disableDoubleClickZoom:true, mapTypeControl:false, fullscreenControl:true,
-        restriction:{latLngBounds: SA_BOUNDS, strictBounds:false}
+    function initMap() {
+      const def = { lat: 24.7136, lng: 46.6753 };
+      map = new google.maps.Map(document.getElementById('googleMap'), {
+        center: def,
+        zoom: 12,
+        disableDoubleClickZoom: true,
+        mapTypeControl: false,
+        fullscreenControl: true,
+        restriction: { latLngBounds: SA_BOUNDS, strictBounds: false }
       });
-      marker=new google.maps.Marker({
-        position:def,
+      marker = new google.maps.Marker({
+        position: def,
         map,
-        draggable:true,
-        title:'اسحب أو اضغط لتحديد الموقع'
+        draggable: true,
+        title: 'اسحب أو اضغط لتحديد الموقع'
       });
       lastValidLatLng = def;
 
       const setPos = (latLng, pan = false) => {
         if (!latLng) return;
 
-        if (areaPolygon && google.maps && google.maps.geometry && google.maps.geometry.poly && typeof google.maps.geometry.poly.containsLocation === 'function') {
-          const inside = google.maps.geometry.poly.containsLocation(latLng, areaPolygon);
+        if (
+          areaPolygon &&
+          google.maps &&
+          google.maps.geometry &&
+          google.maps.geometry.poly &&
+          typeof google.maps.geometry.poly.containsLocation === 'function'
+        ) {
+          const inside = google.maps.geometry.poly.containsLocation(
+            latLng,
+            areaPolygon
+          );
           if (!inside) {
             if (lastValidLatLng) {
-              const last = (lastValidLatLng.lat && lastValidLatLng.lng)
-                ? new google.maps.LatLng(lastValidLatLng.lat, lastValidLatLng.lng)
-                : lastValidLatLng;
+              const last =
+                lastValidLatLng.lat && lastValidLatLng.lng
+                  ? new google.maps.LatLng(
+                      lastValidLatLng.lat,
+                      lastValidLatLng.lng
+                    )
+                  : lastValidLatLng;
               marker.setPosition(last);
               map.panTo(last);
             }
-            showToast('error','الخدمة متاحة فقط داخل المنطقة المحددة على الخريطة');
+            showToast(
+              'error',
+              'الخدمة متاحة فقط داخل المنطقة المحددة على الخريطة'
+            );
             return;
           }
         }
 
         marker.setPosition(latLng);
-        if (pan){ map.panTo(latLng); }
+        if (pan) {
+          map.panTo(latLng);
+        }
         map.setZoom(17);
 
-        positionUrl=`https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
+        positionUrl = `https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
         lastValidLatLng = latLng;
 
-        const hint=document.getElementById('mapHint');
-        if(hint) hint.innerHTML=`تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`;
-        renderSummary('page6'); updateNextAvailability();
+        const hint = document.getElementById('mapHint');
+        if (hint)
+          hint.innerHTML = `تم اختيار الموقع: <strong>${latLng
+            .lat()
+            .toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`;
+        renderSummary('page6');
+        updateNextAvailability();
       };
 
-      marker.addListener('dragend',({latLng})=>setPos(latLng));
-      map.addListener('click',({latLng})=>setPos(latLng,true));
+      marker.addListener('dragend', ({ latLng }) => setPos(latLng));
+      map.addListener('click', ({ latLng }) => setPos(latLng, true));
 
-      const input=document.getElementById('mapSearch');
-      const opts={ fields:['geometry','name'], componentRestrictions:{country:'sa'}, strictBounds:false };
-      autocomplete=new google.maps.places.Autocomplete(input, opts);
+      const input = document.getElementById('mapSearch');
+      const opts = {
+        fields: ['geometry', 'name'],
+        componentRestrictions: { country: 'sa' },
+        strictBounds: false
+      };
+      autocomplete = new google.maps.places.Autocomplete(input, opts);
       autocomplete.bindTo('bounds', map);
-      autocomplete.addListener('place_changed', ()=>{
-        const place=autocomplete.getPlace(); if(!place?.geometry) return;
-        const loc=place.geometry.location;
-        map.panTo(loc); map.setZoom(16); setPos(loc,true);
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place?.geometry) return;
+        const loc = place.geometry.location;
+        map.panTo(loc);
+        map.setZoom(16);
+        setPos(loc, true);
       });
 
-      const btn=document.getElementById('show-my-location');
-      btn?.addEventListener('click',()=>{
-        if(!navigator.geolocation){ showToast('error','المتصفح لا يدعم تحديد الموقع'); return; }
+      const btn = document.getElementById('show-my-location');
+      btn?.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          showToast('error', 'المتصفح لا يدعم تحديد الموقع');
+          return;
+        }
         navigator.geolocation.getCurrentPosition(
-          pos=>setPos(new google.maps.LatLng(pos.coords.latitude,pos.coords.longitude),true),
-          err=>{ showToast('error','تعذر تحديد موقعك'); },
-          { enableHighAccuracy:true, timeout:10000, maximumAge:30000 }
+          (pos) =>
+            setPos(
+              new google.maps.LatLng(
+                pos.coords.latitude,
+                pos.coords.longitude
+              ),
+              true
+            ),
+          (err) => {
+            showToast('error', 'تعذر تحديد موقعك');
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
         );
       });
 
-      if(pendingAreaForBounds){
+      if (pendingAreaForBounds) {
         loadAreaBounds(pendingAreaForBounds);
         pendingAreaForBounds = null;
       } else {
         requestAreaBoundsForCurrentArea();
       }
     }
-    window.initMap=initMap;
+    window.initMap = initMap;
   </script>
 
-  <!-- Google Maps (with geometry library) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async&libraries=places,geometry&language=ar&region=SA" async defer></script>
-
-  <!-- Analytics or extra script -->
+  <!-- 🔹 Google Maps + Places + Geometry -->
   <script
-    src="https://rybbit.nahls.app/api/script.js"
-    data-site-id="6371ee910e9c"
-    defer
-  ></script>
+    async
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,geometry&callback=initMap">
+  </script>
 
-  <!-- PWA Service Worker + Install logic -->
+  <!-- 🔹 Service Worker registration for PWA (scope = current folder) -->
   <script>
-    // ✅ Register Service Worker (relative path for subfolder)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker
-          .register('service-worker.js')
+          .register('./sw.js')
           .then(function (reg) {
-            console.log('Service worker registered 👍', reg.scope);
+            console.log('[PWA] Service worker registered with scope:', reg.scope);
           })
           .catch(function (err) {
-            console.error('Service worker registration failed:', err);
+            console.warn('[PWA] Service worker registration failed:', err);
           });
-      });
-    }
-
-    // ====== PWA Install Logic (Android + iOS) ======
-    let deferredInstallPrompt = null;
-
-    const floatingInstallBtn = document.getElementById('installPwaBtn');
-    const footerInstallBtn   = document.getElementById('footer-install-btn');
-
-    function isIos() {
-      return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
-    }
-
-    function isInStandaloneMode() {
-      return (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true
-      );
-    }
-
-    function showIosInstallInstructions() {
-      alert(
-        'لتثبيت NahlTime على جهازك:\n' +
-        '1️⃣ اضغط زر "المشاركة" في أسفل سفاري.\n' +
-        '2️⃣ اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen).\n' +
-        '3️⃣ بعد التثبيت افتح التطبيق من الأيقونة الجديدة ✅'
-      );
-    }
-
-    async function handlePwaInstallClick() {
-      if (isInStandaloneMode()) {
-        console.log('App already running in standalone mode.');
-        return;
-      }
-
-      if (deferredInstallPrompt) {
-        deferredInstallPrompt.prompt();
-        const choice = await deferredInstallPrompt.userChoice;
-        console.log('User choice:', choice.outcome);
-        deferredInstallPrompt = null;
-
-        if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
-        if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
-        return;
-      }
-
-      if (isIos()) {
-        showIosInstallInstructions();
-        return;
-      }
-
-      alert('يمكنك تثبيت التطبيق من إعدادات المتصفح أو "إضافة إلى الشاشة الرئيسية".');
-    }
-
-    window.addEventListener('load', () => {
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredInstallPrompt = e;
-
-        if (floatingInstallBtn) {
-          floatingInstallBtn.style.display = 'block';
-          floatingInstallBtn.textContent = '📲 تثبيت تطبيق NahlTime';
-        }
-        if (footerInstallBtn) {
-          footerInstallBtn.style.display = 'block';
-          footerInstallBtn.textContent = '📲 تحميل التطبيق';
-        }
-      });
-
-      if (floatingInstallBtn) {
-        floatingInstallBtn.addEventListener('click', handlePwaInstallClick);
-      }
-      if (footerInstallBtn) {
-        footerInstallBtn.addEventListener('click', handlePwaInstallClick);
-      }
-
-      // iOS: إظهار زر التثبيت + توست بسيط لو التطبيق غير مثبت
-      if (isIos() && !isInStandaloneMode()) {
-        if (footerInstallBtn) {
-          footerInstallBtn.style.display   = 'block';
-          footerInstallBtn.textContent     = '📲 تحميل التطبيق';
-        }
-        if (floatingInstallBtn) {
-          floatingInstallBtn.style.display = 'block';
-          floatingInstallBtn.textContent   = '📲 تثبيت تطبيق NahlTime';
-        }
-
-        // 🔔 إشعار بسيط عند الفتح يشرح طريقة التثبيت
-        if (typeof showToast === 'function') {
-          setTimeout(() => {
-            showToast('info', '📲 تقدر تثبت NahlTime من زر "تحميل التطبيق" في الأسفل أو من مشاركة سفاري → إضافة إلى الشاشة الرئيسية');
-          }, 2500);
-        }
-      } else if (!isInStandaloneMode()) {
-        // لأغلب المتصفحات على أندرويد/ديسكتوب: توست توعوي بسيط
-        if (typeof showToast === 'function') {
-          setTimeout(() => {
-            showToast('info', '📲 عند ظهور زر "تحميل التطبيق" في الأسفل تقدر تثبت NahlTime كتطبيق على جهازك');
-          }, 2500);
-        }
-      }
-    });
-
-    window.addEventListener('appinstalled', () => {
-      console.log('NahlTime installed ✅');
-      if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
-      if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
-      if (typeof showToast === 'function') {
-        showToast('success', 'تم تثبيت تطبيق NahlTime على جهازك ✅');
-      }
-    });
-
-    // 👀 لو صار تحديث في الـ Service Worker → نعيد تحميل الصفحة مرة واحدة
-    let hasRefreshedForNewSW = false;
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (hasRefreshedForNewSW) return;
-        hasRefreshedForNewSW = true;
-
-        if (typeof showToast === 'function') {
-          showToast('info', '🤍 تم تحديث التطبيق، سيتم إعادة تحميل الصفحة...');
-          setTimeout(() => window.location.reload(), 1200);
-        } else {
-          window.location.reload();
-        }
       });
     }
   </script>
