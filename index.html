@@ -772,12 +772,51 @@
       </div>
       <div id="offersFilters" class="offers-filters">
         <button type="button" class="offers-filter-chip active" data-type="all">الكل</button>
-        <button type="button" class="offers-filter-chip" data-type="image">صور</button>
-        <button type="button" class="offers-filter-chip" data-type="text">نصوص</button>
-        <button type="button" class="offers-filter-chip" data-type="coupon">كوبونات</button>
+        <button type="button" class="offers-filter-chip active" data-type="image">صور</button>
+        <button type="button" class="offers-filter-chip active" data-type="text">نصوص</button>
+        <button type="button" class="offers-filter-chip active" data-type="coupon">كوبونات</button>
       </div>
       <div id="offersList" class="offers-list">
         <div class="offers-empty text-muted small">جاري تحميل العروض…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📃 Terms & Conditions Modal -->
+  <div id="termsModal" class="offers-modal" aria-hidden="true">
+    <div class="offers-backdrop"></div>
+    <div class="offers-dialog" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+      <div class="offers-header">
+        <h2 id="termsTitle" class="offers-title">الشروط والأحكام</h2>
+        <button type="button" class="offers-close" data-terms-dismiss="1" aria-label="إغلاق الشروط">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="offers-list" style="font-size:.85rem;line-height:1.7;">
+        <p>باستخدامك لخدمة الحجز فإنك توافق على:</p>
+        <ul>
+          <li>وصول فريق الخدمة إلى الموقع الذي قمت بتحديده في الوقت المتفق عليه قدر الإمكان.</li>
+          <li>إلغاء أو تعديل الموعد يكون قبل موعد الزيارة بوقت كافٍ حسب سياسة مزود الخدمة.</li>
+          <li>الأسعار قد تختلف حسب حالة المركبة أو الطلبات الإضافية في موقع الخدمة.</li>
+          <li>في حال تعذر الوصول للموقع أو عدم تجاوب العميل قد يتم إلغاء الطلب أو احتساب رسوم زيارة.</li>
+        </ul>
+        <p class="text-muted small mb-0">
+          يمكنك التواصل مع فريق نحل لأي استفسار قبل تأكيد الحجز.
+        </p>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+        <button type="button"
+                class="btn btn-light"
+                data-terms-dismiss="1">
+          إلغاء
+        </button>
+        <button type="button"
+                class="btn btn-primary"
+                id="btnAcceptTerms">
+          أوافق على الشروط
+        </button>
       </div>
     </div>
   </div>
@@ -838,7 +877,7 @@
     const RESERVE_URL_PRIMARY  = `${defaultLink2}/reserveAppointment`;
     const RESERVE_URL_FALLBACK = `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
 
-    const API_BASE = window.location.origin.replace(/\/$/,'');
+    const API_BASE = window.location.origin.replace(/\/$/, '');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
     const COUPONS_API_URL         = `${API_BASE}/api/coupons/validate`;
     const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;
@@ -933,6 +972,9 @@
     let otpVerified  = false;
     let otpLastSentAt = null;
     let otpCountdownTimer = null;
+
+    /* 📃 Terms & Conditions state */
+    let termsAccepted = false;
 
     const nForm={
       date:'',time:'',location:'',service:'',serviceCount:'1',serviceCat:'',
@@ -1063,7 +1105,7 @@
       const onThanks=(orderedPages[i]==='page7');
       prev.classList.toggle('hidden', i===0 || onThanks);
       next.classList.toggle('hidden', onThanks);
-      if (wait) wait.classList.remove('show');
+      wait.classList.remove('show');
 
       if (isEn){
         next.textContent = (i===0) ? 'Skip intro' : 'Next';
@@ -1675,6 +1717,59 @@
       }
     }
 
+    /* 📃 Terms & Conditions Helpers */
+
+    function openTermsModal(){
+      const modal = document.getElementById('termsModal');
+      if (!modal) return;
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('offers-open');
+    }
+
+    function closeTermsModal(){
+      const modal = document.getElementById('termsModal');
+      if (!modal) return;
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('offers-open');
+    }
+
+    function wireTermsModal(){
+      const modal = document.getElementById('termsModal');
+      if (!modal) return;
+
+      modal.addEventListener('click', (e) => {
+        if (
+          e.target.classList.contains('offers-backdrop') ||
+          e.target.dataset.termsDismiss === '1'
+        ) {
+          closeTermsModal();
+        }
+      });
+
+      const btnAccept = document.getElementById('btnAcceptTerms');
+      if (btnAccept){
+        btnAccept.addEventListener('click', () => {
+          termsAccepted = true;
+          closeTermsModal();
+          if (typeof showToast === 'function'){
+            showToast('success', 'تمت الموافقة على الشروط، يمكنك إكمال الحجز ✅');
+          }
+          // المستخدم سيضغط "التالي" مرة أخرى بعد الموافقة
+        });
+      }
+
+      // Close on ESC when open
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          if (modal.classList.contains('show')) {
+            closeTermsModal();
+          }
+        }
+      });
+    }
+
     /* 🎁 Offers / Ads popup (from Apps Script /api/offers) */
     let offersLoaded = false;
     let offersCache  = [];
@@ -2019,9 +2114,7 @@
           offersFilterTypes = { image:true, text:true, coupon:true };
           wrap.querySelectorAll('[data-type]').forEach(el => {
             const type = el.dataset.type;
-            el.classList.toggle('active',
-              type === 'all' || type === 'image' || type === 'text' || type === 'coupon'
-            );
+            el.classList.toggle('active', type === 'all' || type === 'image' || type === 'text' || type === 'coupon');
           });
         } else {
           offersFilterAll = false;
@@ -2594,8 +2687,23 @@
         }
 
         if(id==='page6'){
-          if(!positionUrl){ document.getElementById('err-map').style.display='block'; showToast('error','الرجاء تحديد الموقع'); return; }
-          document.getElementById('err-map').style.display='none'; nForm.urlLocation=positionUrl;
+
+          // ✅ Terms & Conditions check before final submit
+          if (!termsAccepted){
+            openTermsModal();
+            if (typeof showToast === 'function'){
+              showToast('info', 'من فضلك اقرأ ووافق على الشروط والأحكام قبل إكمال الحجز');
+            }
+            return;
+          }
+
+          if(!positionUrl){
+            document.getElementById('err-map').style.display='block';
+            showToast('error','الرجاء تحديد الموقع');
+            return;
+          }
+          document.getElementById('err-map').style.display='none'; 
+          nForm.urlLocation=positionUrl;
 
           if(isSubmitting) return;
           isSubmitting=true;
@@ -2682,10 +2790,11 @@
         if(errOtp)      errOtp.style.display      = 'none';
       }
 
-      // Load dynamic extras + payment methods + wire offers popup
+      // Load dynamic extras + payment methods + wire offers + terms popup
       loadAdditionalServices();
       loadPaymentMethods();
       wireOffersUI();
+      wireTermsModal();
 
       setPageBackground('page1'); renderSummary('page1'); syncProgress(0); startWelcomeDeck();
 
