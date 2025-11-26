@@ -1,30 +1,27 @@
-// 🔄 غير هذا الرقم كل ما تسوي تحديث جديد
-const CACHE_VERSION = 'nahltime-v4-2025-11-26';
-const CACHE_NAME    = `nahltime-cache-${CACHE_VERSION}`;
+// service-worker.js (نسخة خفيفة بدون ضغط كبير على الكاش)
 
-// ملفات أساسية فقط (تأكد أن المسارات صحيحة)
-const ASSETS = [
+const CACHE_NAME = 'nahltime-shell-v1';
+
+// نخزن فقط ملفات صغيرة / أساسية من نفس الدومين
+const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest'
+  // لو أضفت ملفات JS/CSS محلية (وليس من CDN) أضفها هنا
 ];
 
-// 🧱 install – نخزن الـ App Shell لكن كل ملف لوحده مع try/catch
 self.addEventListener('install', (event) => {
-  console.log('[SW] Install:', CACHE_NAME);
+  console.log('[SW] Install event');
 
   event.waitUntil(
     (async () => {
-      const cache = await caches.open(CACHE_NAME);
-
-      for (const asset of ASSETS) {
-        try {
-          await cache.add(asset);
-          console.log('[SW] Cached:', asset);
-        } catch (err) {
-          console.warn('[SW] Failed to cache asset:', asset, err);
-          // ما نرمي error عشان ما نفشل الـ install كله
-        }
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.addAll(CORE_ASSETS);
+        console.log('[SW] Core assets cached');
+      } catch (err) {
+        // هنا نمسك أي QuotaExceededError أو غيره حتى لا يظهر Uncaught (in promise)
+        console.error('[SW] Error while caching core assets:', err);
       }
     })()
   );
@@ -32,73 +29,54 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// 🧹 activate – حذف الكاشات القديمة
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activate:', CACHE_NAME);
+  console.log('[SW] Activate event');
 
   event.waitUntil(
     (async () => {
-      const keys = await caches.keys();
-      await Promise.all(
-        keys
-          .filter((key) => key.startsWith('nahltime-cache-') && key !== CACHE_NAME)
-          .map((key) => {
-            console.log('[SW] Deleting old cache:', key);
-            return caches.delete(key);
-          })
-      );
+      try {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => {
+              console.log('[SW] Deleting old cache:', key);
+              return caches.delete(key);
+            })
+        );
+      } catch (err) {
+        console.error('[SW] Error while cleaning old caches:', err);
+      }
+
       await self.clients.claim();
     })()
   );
 });
 
-// 🌐 fetch – Network-first للـ HTML، Cache-first لباقي GET فقط
+// 🎯 إستراتيجية بسيطة:
+// - لو الطلب "navigate" (فتح صفحة)، نحاول الشبكة أولاً
+//   وإذا فشل (أوفلاين) نرجع index.html من الكاش.
+// - باقي الطلبات نتركها تمر للشبكة بدون تخزين جديد في الكاش
 self.addEventListener('fetch', (event) => {
-  const req    = event.request;
-  const method = req.method || 'GET';
-  const accept = req.headers.get('accept') || '';
+  const { request } = event;
 
-  // ❌ مهم: تجاهل أي طلب غير GET (POST, PUT, DELETE...)
-  if (method !== 'GET') {
-    // مثلاً /reserveAppointment أو /api/... تظل تروح مباشرة للسيرفر
-    event.respondWith(fetch(req));
-    return;
-  }
-
-  // صفحات HTML / تنقل
-  if (req.mode === 'navigate' || accept.includes('text/html')) {
+  // فقط طلبات التنقّل (navigation)
+  if (request.mode === 'navigate') {
     event.respondWith(
       (async () => {
         try {
-          const networkRes = await fetch(req);
-          const cache      = await caches.open(CACHE_NAME);
-          cache.put(req, networkRes.clone());
-          return networkRes;
+          // نحاول من الشبكة أولاً
+          const networkResp = await fetch(request);
+          return networkResp;
         } catch (err) {
-          console.warn('[SW] HTML fetch failed, fallback to cache.', err);
-          const cached = await caches.match(req);
-          return cached || caches.match('./index.html');
+          console.warn('[SW] Network failed for navigation, trying cache:', err);
+          // لو أوفلاين نرجع index.html
+          const cache = await caches.open(CACHE_NAME);
+          const cached = await cache.match('./index.html');
+          return cached || Response.error();
         }
       })()
     );
-    return;
   }
-
-  // باقي ملفات GET (CSS/JS/صور…)
-  event.respondWith(
-    (async () => {
-      const cached = await caches.match(req);
-      if (cached) return cached;
-
-      try {
-        const networkRes = await fetch(req);
-        const cache      = await caches.open(CACHE_NAME);
-        cache.put(req, networkRes.clone());
-        return networkRes;
-      } catch (err) {
-        console.warn('[SW] Asset fetch failed:', req.url, err);
-        return new Response('', { status: 503, statusText: 'Service Unavailable' });
-      }
-    })()
-  );
+  // باقي الطلبات: لا نعمل caching إضافي حتى لا نستهلك الكوتا
 });
