@@ -772,9 +772,9 @@
       </div>
       <div id="offersFilters" class="offers-filters">
         <button type="button" class="offers-filter-chip active" data-type="all">الكل</button>
-        <button type="button" class="offers-filter-chip active" data-type="image">صور</button>
-        <button type="button" class="offers-filter-chip active" data-type="text">نصوص</button>
-        <button type="button" class="offers-filter-chip active" data-type="coupon">كوبونات</button>
+        <button type="button" class="offers-filter-chip" data-type="image">صور</button>
+        <button type="button" class="offers-filter-chip" data-type="text">نصوص</button>
+        <button type="button" class="offers-filter-chip" data-type="coupon">كوبونات</button>
       </div>
       <div id="offersList" class="offers-list">
         <div class="offers-empty text-muted small">جاري تحميل العروض…</div>
@@ -838,7 +838,7 @@
     const RESERVE_URL_PRIMARY  = `${defaultLink2}/reserveAppointment`;
     const RESERVE_URL_FALLBACK = `${defaultLink2.replace(/\/form\/?$/,'')}/reserveAppointment`;
 
-    const API_BASE = window.location.origin.replace(/\/$/, '');
+    const API_BASE = window.location.origin.replace(/\/$/,'');
     const ADDITIONAL_SERVICES_URL = `${API_BASE}/api/additional-services`;
     const COUPONS_API_URL         = `${API_BASE}/api/coupons/validate`;
     const AREA_BOUNDS_URL         = `${API_BASE}/api/area-bounds`;
@@ -1063,7 +1063,7 @@
       const onThanks=(orderedPages[i]==='page7');
       prev.classList.toggle('hidden', i===0 || onThanks);
       next.classList.toggle('hidden', onThanks);
-      wait.classList.remove('show');
+      if (wait) wait.classList.remove('show');
 
       if (isEn){
         next.textContent = (i===0) ? 'Skip intro' : 'Next';
@@ -2019,7 +2019,9 @@
           offersFilterTypes = { image:true, text:true, coupon:true };
           wrap.querySelectorAll('[data-type]').forEach(el => {
             const type = el.dataset.type;
-            el.classList.toggle('active', type === 'all' || type === 'image' || type === 'text' || type === 'coupon');
+            el.classList.toggle('active',
+              type === 'all' || type === 'image' || type === 'text' || type === 'coupon'
+            );
           });
         } else {
           offersFilterAll = false;
