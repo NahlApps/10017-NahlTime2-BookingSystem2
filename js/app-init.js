@@ -1,6 +1,6 @@
 // app-init.js
 // High-level bootstrapping & DOM wiring for NahlTime booking form.
-// Depends on globals defined in other modules (config-core, booking-core, etc).
+// Depends on globals defined in other modules (config-core, booking-core, pricing-promotions, etc).
 
 (function () {
   'use strict';
@@ -253,7 +253,10 @@
       const priceBox = document.getElementById('servicePrice');
       if (priceBox) {
         const priceRaw = selectedService ? selectedService.TS_service_final_price : '';
-        window.baseServicePrice = !isNaN(Number(priceRaw))
+
+        // 🔧 IMPORTANT: update the SAME global used in getOrderSubtotal()
+        // (declared in pricing-promotions.js as `let baseServicePrice = 0;`)
+        baseServicePrice = !isNaN(Number(priceRaw))
           ? Number(priceRaw)
           : 0;
 
@@ -263,7 +266,8 @@
             : priceRaw;
         priceBox.textContent = priceText || '—';
       } else {
-        window.baseServicePrice = 0;
+        // fallback if price container missing
+        baseServicePrice = 0;
       }
 
       if (typeof renderSummary === 'function') {
@@ -405,12 +409,9 @@
 
     async function gotoNext() {
       if (typeof handleNextStep === 'function') {
-        // If booking-core.js exposes consolidated next-step handler
         await handleNextStep();
         return;
       }
-
-      // Fallback: if handleNextStep not provided, we do nothing here.
       console.warn(
         '[app-init] handleNextStep() not found. Next button will not progress steps.'
       );
@@ -432,7 +433,6 @@
     //  Re-book action
     // ============================
     $('#rebook').on('click', () => {
-      // Always reload index.html in same folder
       window.location.href = 'index.html';
     });
 
@@ -477,7 +477,7 @@
     }
 
     // ============================
-    //  Dynamic data: services, pay, offers, terms
+    //  Dynamic data: extras, pay, offers, terms
     // ============================
     if (typeof loadAdditionalServices === 'function') {
       loadAdditionalServices();
