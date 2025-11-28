@@ -1,6 +1,6 @@
 // app-init.js
 // High-level bootstrapping & DOM wiring for NahlTime booking form.
-// Depends on globals defined in other modules (config-core, booking-core, pricing-promotions, etc).
+// Depends on globals defined in other modules (config-core, booking-core, pricing-promotions, trust-verification, review-postbooking, map-location, ux-intro).
 
 (function () {
   'use strict';
@@ -235,9 +235,10 @@
 
       const descBox = document.getElementById('serviceDetails');
       if (descBox) {
-        const desc = selectedService && typeof getServiceDescription === 'function'
-          ? getServiceDescription(selectedService)
-          : '';
+        const desc =
+          selectedService && typeof getServiceDescription === 'function'
+            ? getServiceDescription(selectedService)
+            : '';
 
         if (desc) {
           descBox.textContent = desc;
@@ -406,15 +407,253 @@
     // ============================
     const $prev = document.getElementById('footer-prev');
     const $next = document.getElementById('footer-next');
+    const $wait = document.getElementById('footer-wait');
 
-    async function gotoNext() {
-      if (typeof handleNextStep === 'function') {
-        await handleNextStep();
+    // 🔁 Core step handler (from original gotoNext logic)
+    async function handleNextStep() {
+      if (typeof getActiveIndex !== 'function' || typeof showPage !== 'function') {
+        console.warn('[app-init] Missing getActiveIndex/showPage.');
         return;
       }
-      console.warn(
-        '[app-init] handleNextStep() not found. Next button will not progress steps.'
-      );
+
+      const i = getActiveIndex();
+      const id = (window.orderedPages || [])[i];
+
+      if (!id) {
+        console.warn('[app-init] No current step id');
+        return;
+      }
+
+      // 1️⃣ Welcome → خدمة
+      if (id === 'page1') {
+        if (typeof stopWelcomeDeck === 'function') {
+          stopWelcomeDeck();
+        }
+        showPage(1); // page2 index
+        return;
+      }
+
+      // 2️⃣ Service & Location
+      if (id === 'page2') {
+        const areaOk = !!$('#area').val();
+        const catOk = !!$('#serviceCat').val();
+        const svcOk = !!$('#service').val();
+
+        document.getElementById('err-area').style.display = areaOk ? 'none' : 'block';
+        document.getElementById('err-serviceCat').style.display = catOk ? 'none' : 'block';
+        document.getElementById('err-service').style.display = svcOk ? 'none' : 'block';
+
+        if (!areaOk || !catOk || !svcOk) {
+          if (typeof showToast === 'function') {
+            showToast('error', 'يرجى إكمال اختيار المنطقة/التصنيف/الخدمة');
+          }
+          return;
+        }
+
+        showPage(2); // → page3
+        const dateEl = document.getElementById('date');
+        if (dateEl) {
+          dateEl.dispatchEvent(new Event('change'));
+        }
+        return;
+      }
+
+      // 3️⃣ Time
+      if (id === 'page3') {
+        if (!window.selectedTime) {
+          if (typeof showToast === 'function') {
+            showToast('error', 'الرجاء اختيار وقت');
+          }
+          return;
+        }
+        showPage(3); // → page4
+        return;
+      }
+
+      // 4️⃣ Contact
+      if (id === 'page4') {
+        const nameOk = ($('#name').val() || '').trim().length > 0;
+        const phoneOk = window.itiPhone && window.itiPhone.isValidNumber();
+
+        document.getElementById('err-name').style.display = nameOk ? 'none' : 'block';
+        document.getElementById('err-mobile').style.display = phoneOk ? 'none' : 'block';
+
+        if (!nameOk || !phoneOk) {
+          if (typeof showToast === 'function') {
+            showToast('error', 'يرجى التحقق من الاسم ورقم الجوال');
+          }
+          return;
+        }
+
+        // OTP check (if enabled)
+        if (window.OTP_ENABLED && !window.otpVerified) {
+          const errOtp = document.getElementById('err-otp');
+          if (errOtp) {
+            errOtp.textContent = 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة.';
+            errOtp.style.display = 'block';
+          }
+          if (typeof showToast === 'function') {
+            showToast('error', 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة');
+          }
+          return;
+        }
+
+        const errOtp = document.getElementById('err-otp');
+        if (errOtp) errOtp.style.display = 'none';
+
+        if (window.nForm && window.itiPhone) {
+          nForm.customerN = $('#name').val().trim();
+          nForm.customerM = window.itiPhone.getNumber().replace(/^\+/, '');
+          nForm.locationDescription = [
+            $('#carBrand').val() || '',
+            $('#carName').val() || '',
+            $('#plateNumber').val() || ''
+          ]
+            .filter(Boolean)
+            .join(', ');
+        }
+
+        showPage(4); // → page5
+        return;
+      }
+
+      // 5️⃣ Payment
+      if (id === 'page5') {
+        if (!window.nForm || !nForm.paymentMethod) {
+          document.getElementById('err-pay').style.display = 'block';
+          if (typeof showToast === 'function') {
+            showToast('error', 'اختر طريقة الدفع');
+          }
+          return;
+        }
+        document.getElementById('err-pay').style.display = 'none';
+        showPage(5); // → page6
+        return;
+      }
+
+      // 6️⃣ Map + Terms + Submit
+      if (id === 'page6') {
+        // Terms check
+        if (!window.termsAccepted) {
+          if (typeof openTermsModal === 'function') {
+            openTermsModal();
+          }
+          if (typeof showToast === 'function') {
+            showToast('info', 'من فضلك اقرأ ووافق على الشروط والأحكام قبل إكمال الحجز');
+          }
+          return;
+        }
+
+        if (!window.positionUrl) {
+          document.getElementById('err-map').style.display = 'block';
+          if (typeof showToast === 'function') {
+            showToast('error', 'الرجاء تحديد الموقع');
+          }
+          return;
+        }
+
+        document.getElementById('err-map').style.display = 'none';
+        if (window.nForm) {
+          nForm.urlLocation = window.positionUrl;
+        }
+
+        if (window.isSubmitting) return;
+        window.isSubmitting = true;
+
+        if ($next) $next.style.display = 'none';
+        if ($prev) $prev.style.display = 'none';
+        if ($wait) $wait.classList.add('show');
+
+        try {
+          const payload =
+            typeof buildPayload === 'function' ? buildPayload() : null;
+          console.log('[booking] Sending reservation payload', payload);
+
+          if (typeof postReservation !== 'function') {
+            console.error('[booking] postReservation() is not defined');
+            throw new Error('postReservation missing');
+          }
+
+          const r = await postReservation(payload);
+          console.log('[booking] Reservation response:', r);
+
+          if (r.ok && r.data?.success) {
+            if (typeof showToast === 'function') {
+              showToast('success', 'تم إنشاء الحجز');
+            }
+
+            const bookingId =
+              (r.data.bookingId ??
+                r.data.bookingID ??
+                r.data.id ??
+                r.data.BookingId ??
+                r.data.BookingID) || null;
+
+            console.log('[booking] Derived bookingId for review:', bookingId);
+
+            // ⭐ Schedule post-booking review
+            if (typeof scheduleReviewForBooking === 'function') {
+              scheduleReviewForBooking(bookingId);
+            }
+
+            // Fill thank-you summary
+            document.getElementById('ts-area').textContent =
+              $('#area').find(':selected').text() || '—';
+            document.getElementById('ts-service').textContent =
+              $('#service').find(':selected').text() || '—';
+            document.getElementById('ts-dt').textContent =
+              (nForm.date
+                ? DateTime.fromISO(nForm.date).toFormat('d LLL yyyy')
+                : '') + (nForm.time ? ' • ' + nForm.time : '');
+            document.getElementById('ts-pay').textContent =
+              (nForm.paymentMethod || '').toUpperCase() || '—';
+
+            const waMsg = encodeURIComponent(
+              `تم إرسال طلب حجز: \nالخدمة: ${$('#service')
+                .find(':selected')
+                .text()}\nالتاريخ: ${nForm.date} ${nForm.time}\nالرابط: ${location.href}`
+            );
+            document.getElementById(
+              'ts-whatsapp'
+            ).href = `https://wa.me/?text=${waMsg}`;
+
+            if ($wait) $wait.classList.remove('show');
+            window.isSubmitting = false;
+            showPage(6); // → page7 (thanks)
+          } else {
+            const msg =
+              r?.data?.msgAR ||
+              (r.status === 404 ? 'المسار غير موجود' : 'تعذر إنشاء الحجز');
+            if (typeof showToast === 'function') {
+              showToast('error', msg);
+            }
+            window.isSubmitting = false;
+            if ($wait) $wait.classList.remove('show');
+            if ($next) $next.style.display = '';
+            if ($prev) $prev.style.display = '';
+            return;
+          }
+        } catch (err) {
+          console.error('[booking] unexpected error:', err);
+          if (typeof showToast === 'function') {
+            showToast('error', 'حدث خطأ أثناء إنشاء الحجز');
+          }
+          window.isSubmitting = false;
+          if ($wait) $wait.classList.remove('show');
+          if ($next) $next.style.display = '';
+          if ($prev) $prev.style.display = '';
+        }
+
+        return;
+      }
+
+      // Default: advance one step
+      const list = window.orderedPages || [];
+      showPage(Math.min(i + 1, list.length - 1));
+    }
+
+    async function gotoNext() {
+      await handleNextStep();
     }
 
     if ($next) {
@@ -546,7 +785,7 @@
     }
 
     // ============================
-    //  Initial totals
+    //  Initial totals & buttons state
     // ============================
     if (typeof updateFooterTotal === 'function') {
       updateFooterTotal();
