@@ -2055,20 +2055,11 @@
       }
     }
     window.initMap=initMap;
+ 
 
-
-  <!-- Google Maps (with geometry library) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async&libraries=places,geometry&language=ar&region=SA" async defer></script>
-
-  <!-- Analytics or extra script -->
-  <script
-    src="https://rybbit.nahls.app/api/script.js"
-    data-site-id="6371ee910e9c"
-    defer
-  ></script>
 
   <!-- PWA Service Worker + Install logic -->
-  <script>
+
     // ✅ Register Service Worker (relative path for subfolder)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
