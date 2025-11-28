@@ -1,114 +1,102 @@
-// functions/api/terms.js
-// Proxy → Google Apps Script `doGet(e)` with action=terms
+// pages/api/terms.js
+// 🌐 Proxy between NahlTime frontend and Google Apps Script Terms WebApp
 //
-// Usage from frontend:
-//   GET /api/terms?appId=XXXX
+// Usage from frontend (example):
+//   GET /api/terms?appId=21eddbf5-efe5-4a5d-9134-b581717b17ff&lang=ar
 //
-// This proxy calls:
-//   https://script.google.com/macros/s/XXXX/exec?action=terms&appId=XXXX
-//
-// 🔁 Replace GAS_URL with your deployed Web App URL.
+// Expected GAS URL env:
+//   GAS_TERMS_WEBAPP_URL = 'https://script.google.com/macros/s/XXXX/exec'
+// and GAS will handle: action=getTerms&appId=...&lang=...
 
-const GAS_URL = 'https://script.google.com/macros/s/XXXXXXXXXXXX/exec'; // ⬅️ put your real Apps Script URL
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return res
+      .status(405)
+      .json({ ok: false, error: 'Method not allowed. Use GET.' });
+  }
 
-// Common CORS headers (if you need them)
-function corsHeaders(origin) {
-  return {
-    'Access-Control-Allow-Origin': origin || '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-}
-
-export async function onRequest(context) {
-  const { request } = context;
-  const url = new URL(request.url);
-  const origin = url.origin;
-
-  // Handle CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        ...corsHeaders(origin),
-      },
+  const scriptUrl = process.env.GAS_TERMS_WEBAPP_URL;
+  if (!scriptUrl) {
+    return res.status(500).json({
+      ok: false,
+      error: 'Missing GAS_TERMS_WEBAPP_URL env variable on Vercel.'
     });
   }
 
-  if (request.method !== 'GET') {
-    return new Response(
-      JSON.stringify({ ok: false, error: 'Method not allowed' }),
-      {
-        status: 405,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          ...corsHeaders(origin),
-        },
-      }
-    );
+  const { appId, lang } = req.query || {};
+
+  if (!appId || typeof appId !== 'string') {
+    return res.status(400).json({
+      ok: false,
+      error: 'Missing or invalid "appId" query parameter.'
+    });
   }
-
-  // Read appId from query string
-  const appId = (url.searchParams.get('appId') || '').trim();
-
-  if (!appId) {
-    return new Response(
-      JSON.stringify({ ok: false, error: 'Missing appId' }),
-      {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          ...corsHeaders(origin),
-        },
-      }
-    );
-  }
-
-  // Build target URL to Apps Script:
-  //  ?action=terms&appId=XXXX
-  const target = new URL(GAS_URL);
-  target.searchParams.set('action', 'terms');
-  target.searchParams.set('appId', appId);
-
-  // Optionally forward extra params (e.g., lang)
-  url.searchParams.forEach((value, key) => {
-    if (key === 'appId') return;   // already set
-    if (key === 'action') return;  // we force action=terms
-    target.searchParams.set(key, value);
-  });
 
   try {
-    const gasResp = await fetch(target.toString(), {
+    // Build query for GAS (Apps Script)
+    const params = new URLSearchParams({
+      action: 'getTerms',
+      appId: appId
+    });
+
+    if (lang && typeof lang === 'string') {
+      params.set('lang', lang.toLowerCase());
+    }
+
+    // Support both "…exec" and "…exec?foo=bar" in env
+    const joinChar = scriptUrl.includes('?') ? '&' : '?';
+    const url = `${scriptUrl}${joinChar}${params.toString()}`;
+
+    console.log('[terms] Calling GAS terms endpoint:', url);
+
+    const upstreamRes = await fetch(url, {
       method: 'GET',
-      headers: { Accept: 'application/json' },
-    });
-
-    const text = await gasResp.text();
-
-    // If GAS already returns JSON (as in jsonResponse_),
-    // just pass it through with the same status.
-    return new Response(text, {
-      status: gasResp.status,
       headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        ...corsHeaders(origin),
+        Accept: 'application/json'
       },
+      cache: 'no-store'
     });
-  } catch (err) {
-    console.error('Error calling GAS terms endpoint:', err);
-    return new Response(
-      JSON.stringify({
+
+    const text = await upstreamRes.text();
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch (parseErr) {
+      console.warn('[terms] GAS response is not valid JSON, returning raw text.');
+      data = { raw: text };
+    }
+
+    if (!upstreamRes.ok) {
+      console.error('[terms] GAS returned non-200 status:', upstreamRes.status, data);
+      return res.status(upstreamRes.status).json({
         ok: false,
-        error: 'Failed to reach terms backend',
-        details: String(err),
-      }),
-      {
-        status: 502,
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          ...corsHeaders(origin),
-        },
-      }
-    );
+        error: 'Upstream GAS returned error status for terms.',
+        status: upstreamRes.status,
+        data
+      });
+    }
+
+    // Normalize "ok" flag if GAS didn't set it
+    if (data && typeof data === 'object' && !Object.prototype.hasOwnProperty.call(data, 'ok')) {
+      data.ok = true;
+    }
+
+    // You can also normalize structure here if you want, e.g.:
+    // {
+    //   ok: true,
+    //   terms: {
+    //     titleAr, titleEn, bodyAr, bodyEn, updatedAt, appId
+    //   }
+    // }
+
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error('[terms] Error calling GAS_TERMS_WEBAPP_URL:', err);
+    return res.status(502).json({
+      ok: false,
+      error: 'Failed to contact Google Apps Script Terms WebApp.'
+    });
   }
 }
