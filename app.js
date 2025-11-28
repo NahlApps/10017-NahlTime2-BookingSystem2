@@ -1,11 +1,4 @@
 
-  <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/intlTelInputWithUtils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-
     const APP_ID = '21eddbf5-efe5-4a5d-9134-b581717b17ff';
 
     const defaultLink2 = `https://b0sk44sswgc4kcswoo8sk0og.nahls.app/api/app/AM/general/${APP_ID}/form`;
@@ -2062,7 +2055,7 @@
       }
     }
     window.initMap=initMap;
-  </script>
+
 
   <!-- Google Maps (with geometry library) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&callback=initMap&v=weekly&loading=async&libraries=places,geometry&language=ar&region=SA" async defer></script>
@@ -2215,10 +2208,9 @@
         }
       });
     }
-  </script>
 
-    <!-- ✅ Define handleLogoError early so onerror never fails -->
-  <script>
+
+
     function handleLogoError(img){
       const fallbacks = [
         "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/spong&Soap%20-%20logo.png",
@@ -2234,4 +2226,4 @@
         img.style.display = 'none';
       }
     }
-  </script>
+
