@@ -36,12 +36,18 @@
   <link rel="apple-touch-icon"
         href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png">
 
-<link rel="stylesheet" href="style.css">
-
+  <!-- Main app styles -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="toastWrap" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:1050;display:flex;flex-direction:column;gap:8px"></div>
+  <!-- 🔔 Toast container -->
+  <div id="toastWrap"
+       style="position:fixed;top:10px;left:50%;transform:translateX(-50%);
+              z-index:1050;display:flex;flex-direction:column;gap:8px"></div>
 
+  <!-- ========================= -->
+  <!--  Header                   -->
+  <!-- ========================= -->
   <header id="siteHeader">
     <div class="header-inner">
       <div class="brand">
@@ -61,6 +67,9 @@
     </div>
   </header>
 
+  <!-- ========================= -->
+  <!--  Main App                 -->
+  <!-- ========================= -->
   <main>
     <div id="app">
       <div class="stage">
@@ -99,7 +108,9 @@
           </div>
 
           <div class="card text-center" style="max-width:860px">
-            <p class="mb-0" style="color:#224652">انطلق — الخطوة التالية لاختيار المنطقة والخدمة</p>
+            <p class="mb-0" style="color:#224652">
+              انطلق — الخطوة التالية لاختيار المنطقة والخدمة
+            </p>
           </div>
         </section>
 
@@ -145,8 +156,11 @@
               <div class="col-12">
                 <label class="form-label">عدد السيارات</label>
                 <select id="serviceCount" class="form-select">
-                  <option value="1" selected>1</option><option value="2">2</option>
-                  <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                  <option value="1" selected>1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
                 </select>
               </div>
             </div>
@@ -232,8 +246,8 @@
                 <div class="row g-2 mt-2" id="otpVerifyRow" style="display:none;">
                   <div class="col-8 col-sm-6">
                     <input id="otpCode" type="tel" inputmode="numeric" maxlength="4"
-                      class="form-control"
-                      placeholder="أدخل كود التحقق (4 أرقام)"/>
+                           class="form-control"
+                           placeholder="أدخل كود التحقق (4 أرقام)"/>
                   </div>
                   <div class="col-4 col-sm-3 d-grid">
                     <button id="btnVerifyOtp" type="button" class="btn btn-success btn-sm" style="min-height:40px;">
@@ -260,7 +274,9 @@
               <div class="col-12 col-md-4">
                 <label class="form-label" for="plateNumber">رقم اللوحة (اختياري)</label>
                 <input id="plateNumber" type="text" inputmode="numeric" class="form-control" placeholder="أرقام اللوحة — اختياري" autocomplete="off"/>
-                <small id="plateHelp" class="text-muted d-block mt-1" style="opacity:.9">اختياري — يساعد فريقنا على التعرف على مركبتك بسرعة</small>
+                <small id="plateHelp" class="text-muted d-block mt-1" style="opacity:.9">
+                  اختياري — يساعد فريقنا على التعرف على مركبتك بسرعة
+                </small>
                 <div class="field-error" id="err-plate" style="display:none"></div>
               </div>
               <input id="locationDescription" type="text" hidden/>
@@ -281,7 +297,9 @@
             <label for="couponCode" class="form-label">كود الخصم (اختياري)</label>
             <div class="input-group">
               <input id="couponCode" type="text" class="form-control" placeholder="مثال: WELCOME10" autocomplete="off"/>
-              <button id="applyCouponBtn" type="button" class="btn btn-outline-primary" style="min-width:120px">تطبيق الكوبون</button>
+              <button id="applyCouponBtn" type="button" class="btn btn-outline-primary" style="min-width:120px">
+                تطبيق الكوبون
+              </button>
             </div>
             <div id="couponMessage" class="small mt-2 text-muted">
               يمكنك إدخال كوبون خصم إن وجد، وسيتم تطبيقه على إجمالي الطلب.
@@ -302,7 +320,9 @@
           <div class="card text-center">
             <button id="show-my-location" class="btn btn-outline-primary" type="button">إظهار موقعي</button>
           </div>
-          <small id="mapHint" class="text-muted d-block mt-2" style="text-align:center">اضغط على الخريطة أو اسحب العلامة لتحديد موقعك</small>
+          <small id="mapHint" class="text-muted d-block mt-2" style="text-align:center">
+            اضغط على الخريطة أو اسحب العلامة لتحديد موقعك
+          </small>
           <div class="field-error" id="err-map" style="text-align:center">الرجاء تحديد الموقع على الخريطة</div>
         </section>
 
@@ -310,18 +330,33 @@
         <section id="page7" class="page" aria-label="تم الحجز">
           <h1>شكراً لكم 🌟</h1>
           <div class="card text-center" style="max-width:720px">
-            <p class="mb-3" style="color:#224652">تم استلام طلبكم، وسنؤكد الموعد على واتساب قريبًا.</p>
+            <p class="mb-3" style="color:#224652">
+              تم استلام طلبكم، وسنؤكد الموعد على واتساب قريبًا.
+            </p>
 
             <div id="thanks-summary" class="text-start mx-auto" style="max-width:520px">
-              <div class="d-flex justify-content-between py-2 border-bottom"><span>المنطقة</span><strong id="ts-area">—</strong></div>
-              <div class="d-flex justify-content-between py-2 border-bottom"><span>الخدمة</span><strong id="ts-service">—</strong></div>
-              <div class="d-flex justify-content-between py-2 border-bottom"><span>الموعد</span><strong id="ts-dt">—</strong></div>
-              <div class="d-flex justify-content-between py-2"><span>طريقة الدفع</span><strong id="ts-pay">—</strong></div>
+              <div class="d-flex justify-content-between py-2 border-bottom">
+                <span>المنطقة</span><strong id="ts-area">—</strong>
+              </div>
+              <div class="d-flex justify-content-between py-2 border-bottom">
+                <span>الخدمة</span><strong id="ts-service">—</strong>
+              </div>
+              <div class="d-flex justify-content-between py-2 border-bottom">
+                <span>الموعد</span><strong id="ts-dt">—</strong>
+              </div>
+              <div class="d-flex justify-content-between py-2">
+                <span>طريقة الدفع</span><strong id="ts-pay">—</strong>
+              </div>
             </div>
 
             <div class="d-flex gap-2 justify-content-center mt-3 flex-wrap">
-              <a id="ts-whatsapp" class="btn btn-success" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> مشاركة عبر واتساب</a>
-              <button id="rebook" class="btn btn-primary" type="button" style="min-height:52px;font-weight:800;border-radius:12px;padding:12px 18px">🔁 حجز جديد</button>
+              <a id="ts-whatsapp" class="btn btn-success" target="_blank" rel="noopener">
+                <i class="fa-brands fa-whatsapp"></i> مشاركة عبر واتساب
+              </a>
+              <button id="rebook" class="btn btn-primary" type="button"
+                      style="min-height:52px;font-weight:800;border-radius:12px;padding:12px 18px">
+                🔁 حجز جديد
+              </button>
             </div>
           </div>
         </section>
@@ -390,14 +425,23 @@
     </div>
   </div>
 
+  <!-- ========================= -->
+  <!--  Footer / Navigation      -->
+  <!-- ========================= -->
   <footer id="siteFooter" class="sticky-nav" aria-label="التنقل بين الخطوات">
     <div class="footer-inner">
       <div class="footer-brand">
         <span>نحل • <a href="https://nahl.app" target="_blank" rel="noopener">Nahl.app</a></span>
         <div class="footer-social">
-          <a href="https://wa.me/966509027172" target="_blank" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
-          <a href="https://www.instagram.com/nahl.app?igsh=ZmljaXNncGtudjJ2" target="_blank" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
-          <a href="https://www.tiktok.com/@nahl.app?_t=ZS-8zgmzEQTSQW&_r=1" target="_blank" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+          <a href="https://wa.me/966509027172" target="_blank" aria-label="WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i>
+          </a>
+          <a href="https://www.instagram.com/nahl.app?igsh=ZmljaXNncGtudjJ2" target="_blank" aria-label="Instagram">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+          <a href="https://www.tiktok.com/@nahl.app?_t=ZS-8zgmzEQTSQW&_r=1" target="_blank" aria-label="TikTok">
+            <i class="fa-brands fa-tiktok"></i>
+          </a>
         </div>
       </div>
 
@@ -425,12 +469,13 @@
     <!-- زر PWA عائم للايفون/أندرويد -->
     <button id="installPwaBtn"
       style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
-            z-index:9999; padding:10px 18px; border-radius:999px;
-            border:none; background:#027A93; color:#fff; font-weight:800;
-            box-shadow:0 6px 18px rgba(0,0,0,.25);">
+             z-index:9999; padding:10px 18px; border-radius:999px;
+             border:none; background:#027A93; color:#fff; font-weight:800;
+             box-shadow:0 6px 18px rgba(0,0,0,.25);">
       📲 تثبيت تطبيق NahlTime
     </button>
   </footer>
+
   <!-- ========================= -->
   <!--  JS: Core Libraries      -->
   <!-- ========================= -->
@@ -438,13 +483,6 @@
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/intlTelInput.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
-
-  <!-- Google Maps (must stay AFTER luxon, BEFORE map-location.js init) -->
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&libraries=places,geometry&callback=initMap"
-    async
-    defer
-  ></script>
 
   <!-- ========================= -->
   <!--  JS: App Modules (/js/)   -->
@@ -454,9 +492,6 @@
   <script src="js/config-core.js"></script>
   <script src="js/booking-core.js"></script>
   <script src="js/pricing-promotions.js"></script>
-
-  <!-- (If you created availability-times.js, add it here too) -->
-  <!-- <script src="js/availability-times.js"></script> -->
 
   <!-- 2️⃣ Trust & Reviews -->
   <script src="js/trust-verification.js"></script>
@@ -471,7 +506,13 @@
   <!-- 5️⃣ PWA & Install UX -->
   <script src="js/pwa-install.js"></script>
 
-  <!-- 6️⃣ App Init & Wiring (must be last) -->
+  <!-- 6️⃣ App Init & Wiring (must be last before Maps) -->
   <script src="js/app-init.js"></script>
+
+  <!-- Google Maps (after map-location.js so initMap exists) -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&libraries=places,geometry&callback=initMap"
+    defer
+  ></script>
 </body>
 </html>
