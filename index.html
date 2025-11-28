@@ -386,8 +386,8 @@
     </div>
   </div>
 
-  <!-- 📃 Terms & Conditions Modal -->
-  <div id="termsModal" class="offers-modal" aria-hidden="true">
+  <!-- 📃 Terms & Conditions Modal (dynamic from Google Sheet via js/terms-modal.js) -->
+  <div id="termsModal" class="offers-modal" aria-hidden="true" data-terms-app-id="21eddbf5-efe5-4a5d-9134-b581717b17ff">
     <div class="offers-backdrop"></div>
     <div class="offers-dialog" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
       <div class="offers-header">
@@ -397,20 +397,16 @@
         </button>
       </div>
 
-      <div class="offers-list" style="font-size:.85rem;line-height:1.7;">
-        <p>باستخدامك لخدمة الحجز فإنك توافق على:</p>
-        <ul>
-          <li>وصول فريق الخدمة إلى الموقع الذي قمت بتحديده في الوقت المتفق عليه قدر الإمكان.</li>
-          <li>إلغاء أو تعديل الموعد يكون قبل موعد الزيارة بوقت كافٍ حسب سياسة مزود الخدمة.</li>
-          <li>الأسعار قد تختلف حسب حالة المركبة أو الطلبات الإضافية في موقع الخدمة.</li>
-          <li>في حال تعذر الوصول للموقع أو عدم تجاوب العميل قد يتم إلغاء الطلب أو احتساب رسوم زيارة.</li>
-        </ul>
-        <p class="text-muted small mb-0">
-          يمكنك التواصل مع فريق نحل لأي استفسار قبل تأكيد الحجز.
-        </p>
+      <!-- سيتم تعبئة المحتوى من js/terms-modal.js -->
+      <div id="termsBody" class="offers-list" style="font-size:.85rem;line-height:1.7;">
+        <p class="text-muted mb-0">جاري تحميل الشروط والأحكام…</p>
       </div>
 
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <div id="termsMeta" class="terms-meta small text-muted" style="margin-top:6px;display:none;">
+        <!-- مثال: آخر تحديث: 2025-11-28 -->
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
         <button type="button"
                 class="btn btn-light"
                 data-terms-dismiss="1">
@@ -477,7 +473,7 @@
   </footer>
 
   <!-- ========================= -->
-  <!--  JS: Core Libraries      -->
+  <!--  JS: Core Libraries       -->
   <!-- ========================= -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.full.min.js"></script>
@@ -485,13 +481,16 @@
   <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
 
   <!-- ========================= -->
-  <!--  JS: App Modules (/js/)   -->
+  <!--  JS: App Logic (current)  -->
   <!-- ========================= -->
   <script src="app.js"></script>
+
+  <!-- ========================= -->
+  <!--  JS: Terms Modal (dynamic from GAS via proxy) -->
+  <!-- ========================= -->
   <script src="js/terms-modal.js"></script>
 
-
-  <!-- Google Maps (after map-location.js so initMap exists) -->
+  <!-- Google Maps (after initMap is defined in app.js) -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&libraries=places,geometry&callback=initMap"
     defer
