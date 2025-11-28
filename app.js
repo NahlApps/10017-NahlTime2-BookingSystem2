@@ -1116,62 +1116,6 @@ async function loadPaymentMethods() {
   }
 }
 
-/* ========================================================================== */
-/* 22) TERMS & CONDITIONS MODAL                                               */
-/* ========================================================================== */
-
-/* 📃 Terms & Conditions Helpers */
-
-function openTermsModal(){
-  const modal = document.getElementById('termsModal');
-  if (!modal) return;
-  modal.classList.add('show');
-  modal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('offers-open');
-}
-
-function closeTermsModal(){
-  const modal = document.getElementById('termsModal');
-  if (!modal) return;
-  modal.classList.remove('show');
-  modal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('offers-open');
-}
-
-function wireTermsModal(){
-  const modal = document.getElementById('termsModal');
-  if (!modal) return;
-
-  modal.addEventListener('click', (e) => {
-    if (
-      e.target.classList.contains('offers-backdrop') ||
-      e.target.dataset.termsDismiss === '1'
-    ) {
-      closeTermsModal();
-    }
-  });
-
-  const btnAccept = document.getElementById('btnAcceptTerms');
-  if (btnAccept){
-    btnAccept.addEventListener('click', () => {
-      termsAccepted = true;
-      closeTermsModal();
-      if (typeof showToast === 'function'){
-        showToast('success', 'تمت الموافقة على الشروط، يمكنك إكمال الحجز ✅');
-      }
-      // المستخدم سيضغط "التالي" مرة أخرى بعد الموافقة
-    });
-  }
-
-  // Close on ESC when open
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (modal.classList.contains('show')) {
-        closeTermsModal();
-      }
-    }
-  });
-}
 
 /* ========================================================================== */
 /* 23) OFFERS / ADS POPUP                                                     */
