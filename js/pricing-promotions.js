@@ -1,32 +1,27 @@
 // /js/pricing-promotions.js
-// 💸 Additional services, coupons, payment methods & offers popup
+// Additional services, coupons, payment methods, and offers
 
-/* ─────────────────────────────
- *  Additional Services
- * ────────────────────────────*/
+function renderAdditionalServicesOptions(){
+  const wrap=document.getElementById('additionalServicesWrap');
+  if(!wrap) return;
 
-function renderAdditionalServicesOptions() {
-  const wrap = document.getElementById('additionalServicesWrap');
-  if (!wrap) return;
+  wrap.innerHTML='';
 
-  wrap.innerHTML = '';
-
-  if (!additionalServicesList.length) {
-    wrap.innerHTML = '<div class="text-muted small">لا توجد خدمات إضافية متاحة حاليًا</div>';
+  if(!additionalServicesList.length){
+    wrap.innerHTML='<div class="text-muted small">لا توجد خدمات إضافية متاحة حاليًا</div>';
     return;
   }
 
-  const container = document.createElement('div');
-  container.className = 'row g-2';
+  const container=document.createElement('div');
+  container.className='row g-2';
 
-  additionalServicesList.forEach(s => {
-    const col = document.createElement('div');
-    col.className = 'col-12 col-md-6';
+  additionalServicesList.forEach(s=>{
+    const col=document.createElement('div');
+    col.className='col-12 col-md-6';
 
-    const pricePart =
-      (s.price !== null && s.price !== undefined && s.price !== '')
-        ? `<div class="small text-primary">+ ${s.price} ر.س</div>`
-        : '';
+    const pricePart = (s.price !== null && s.price !== undefined && s.price !== '')
+      ? `<div class="small text-primary">+ ${s.price} ر.س</div>`
+      : '';
 
     col.innerHTML = `
       <label class="form-check d-flex align-items-start gap-2 p-2 bg-white rounded-3 shadow-sm">
@@ -43,16 +38,15 @@ function renderAdditionalServicesOptions() {
 
   wrap.appendChild(container);
 
-  wrap.querySelectorAll('input[type="checkbox"]').forEach(chk => {
-    chk.addEventListener('change', () => {
-      const ids    = [];
-      const labels = [];
+  wrap.querySelectorAll('input[type="checkbox"]').forEach(chk=>{
+    chk.addEventListener('change', ()=>{
+      const ids=[]; const labels=[];
       additionalServicesTotal = 0;
 
-      wrap.querySelectorAll('input[type="checkbox"]:checked').forEach(selected => {
+      wrap.querySelectorAll('input[type="checkbox"]:checked').forEach(selected=>{
         const chosenId = String(selected.value);
         ids.push(chosenId);
-        const labelEl = selected.closest('label').querySelector('.fw-bold');
+        const labelEl=selected.closest('label').querySelector('.fw-bold');
         labels.push(labelEl ? labelEl.textContent.trim() : chosenId);
 
         const svc = additionalServicesList.find(s => String(s.id) === chosenId);
@@ -62,84 +56,75 @@ function renderAdditionalServicesOptions() {
         }
       });
 
-      nForm.additionalServicesIds    = ids;
+      nForm.additionalServicesIds = ids;
       nForm.additionalServicesLabels = labels;
-
       renderSummary('page2');
       updateFooterTotal();
     });
   });
 }
 
-async function loadAdditionalServices() {
-  const wrap = document.getElementById('additionalServicesWrap');
-  if (!wrap) return;
-
-  try {
-    wrap.innerHTML = '<div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>';
+async function loadAdditionalServices(){
+  const wrap=document.getElementById('additionalServicesWrap');
+  if(!wrap) return;
+  try{
+    wrap.innerHTML='<div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>';
     const url = `${ADDITIONAL_SERVICES_URL}?appId=${encodeURIComponent(APP_ID)}`;
-    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const res = await fetch(url, { method:'GET', cache:'no-store' });
+    if(!res.ok) throw new Error('HTTP '+res.status);
     const data = await res.json();
     additionalServicesList = Array.isArray(data.services) ? data.services : [];
     renderAdditionalServicesOptions();
-  } catch (err) {
+  }catch(err){
     console.error('loadAdditionalServices error:', err);
-    if (wrap) {
-      wrap.innerHTML = '<div class="text-danger small">تعذر تحميل الخدمات الإضافية الآن</div>';
+    if(wrap){
+      wrap.innerHTML='<div class="text-danger small">تعذر تحميل الخدمات الإضافية الآن</div>';
     }
   }
 }
 
-/* ─────────────────────────────
- *  Coupons
- * ────────────────────────────*/
-
-async function validateCouponOnServer(code, subtotal, customer) {
+async function validateCouponOnServer(code, subtotal, customer){
   const params = new URLSearchParams({
-    appId:   APP_ID,
-    code:    code || '',
+    appId: APP_ID,
+    code: code || '',
     subtotal: String(subtotal || 0),
     customer: customer || ''
   });
   const url = `${COUPONS_API_URL}?${params.toString()}`;
-  const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+  const res = await fetch(url, { method:'GET', cache:'no-store' });
   if (!res.ok) {
     throw new Error('HTTP ' + res.status);
   }
   return res.json();
 }
 
-async function validateCouponAndApply() {
+async function validateCouponAndApply(){
   const input = document.getElementById('couponCode');
   const msgEl = document.getElementById('couponMessage');
-  const btn   = document.getElementById('applyCouponBtn');
+  const btn = document.getElementById('applyCouponBtn');
 
   if (!input || !msgEl || !btn) return;
 
   const code = (input.value || '').trim();
-  if (!code) {
-    showToast('error', 'رجاءً أدخل كود الكوبون أولاً');
+  if (!code){
+    showToast('error','رجاءً أدخل كود الكوبون أولاً');
     msgEl.textContent = 'من فضلك أدخل كود خصم ثم اضغط "تطبيق الكوبون".';
-    msgEl.className   = 'small mt-2 text-danger';
+    msgEl.className = 'small mt-2 text-danger';
     return;
   }
 
   const subtotal = getOrderSubtotal();
-  if (subtotal <= 0) {
-    showToast('error', 'من فضلك اختر الخدمة قبل تطبيق الكوبون');
+  if (subtotal <= 0){
+    showToast('error','من فضلك اختر الخدمة قبل تطبيق الكوبون');
     msgEl.textContent = 'يجب اختيار الخدمة (والخدمات الإضافية إن وجدت) قبل تطبيق الكوبون.';
-    msgEl.className   = 'small mt-2 text-danger';
+    msgEl.className = 'small mt-2 text-danger';
     return;
   }
 
-  const customer =
-    itiPhone && itiPhone.getNumber
-      ? itiPhone.getNumber().replace(/^\+/, '')
-      : '';
+  const customer = itiPhone && itiPhone.getNumber ? itiPhone.getNumber().replace(/^\+/, '') : '';
 
   msgEl.textContent = 'جاري التحقق من الكوبون…';
-  msgEl.className   = 'small mt-2 text-muted';
+  msgEl.className = 'small mt-2 text-muted';
 
   btn.disabled = true;
   const originalText = btn.dataset.originalText || btn.textContent;
@@ -149,11 +134,11 @@ async function validateCouponAndApply() {
   try {
     const result = await validateCouponOnServer(code, subtotal, customer);
 
-    if (!result || result.ok === false) {
-      couponCodeApplied    = '';
+    if (!result || result.ok === false){
+      couponCodeApplied = '';
       couponDiscountAmount = 0;
-      couponMeta           = null;
-      nForm.couponCode     = '';
+      couponMeta = null;
+      nForm.couponCode = '';
 
       updateFooterTotal();
 
@@ -161,41 +146,39 @@ async function validateCouponAndApply() {
         ? result.message
         : 'الكوبون غير صالح أو منتهي الصلاحية.';
       msgEl.textContent = msg;
-      msgEl.className   = 'small mt-2 text-danger';
+      msgEl.className = 'small mt-2 text-danger';
       showToast('error', msg);
       renderSummary('page5');
       return;
     }
 
-    couponCodeApplied    = code;
+    couponCodeApplied = code;
     couponDiscountAmount = Number(result.discountAmount || 0);
-    couponMeta           = result;
-    nForm.couponCode     = code;
+    couponMeta = result;
+    nForm.couponCode = code;
 
     updateFooterTotal();
     renderSummary('page5');
 
     const successMsg = result.message || 'تم تطبيق الكوبون بنجاح على إجمالي الطلب.';
     msgEl.textContent = successMsg;
-    msgEl.className   = 'small mt-2 text-success';
+    msgEl.className = 'small mt-2 text-success';
     showToast('success', successMsg);
-  } catch (err) {
+
+  } catch (err){
     console.error('validateCouponAndApply error:', err);
     msgEl.textContent = 'تعذر التحقق من الكوبون الآن. حاول مرة أخرى لاحقًا.';
-    msgEl.className   = 'small mt-2 text-danger';
-    showToast('error', 'تعذر التحقق من الكوبون الآن.');
+    msgEl.className = 'small mt-2 text-danger';
+    showToast('error','تعذر التحقق من الكوبون الآن.');
   } finally {
-    btn.disabled  = false;
+    btn.disabled = false;
     btn.textContent = btn.dataset.originalText || 'تطبيق الكوبون';
   }
 }
 
-/* ─────────────────────────────
- *  Dynamic Payment Methods Loader
- * ────────────────────────────*/
-
+// 🔹 Dynamic Payment Methods Loader
 async function loadPaymentMethods() {
-  const wrap   = document.getElementById('payGroup');
+  const wrap = document.getElementById('payGroup');
   const errPay = document.getElementById('err-pay');
   if (!wrap) return;
 
@@ -213,10 +196,9 @@ async function loadPaymentMethods() {
     const data = await res.json();
 
     const methods =
-      Array.isArray(data.methods)        ? data.methods :
-      Array.isArray(data.items)          ? data.items   :
-      Array.isArray(data.paymentMethods) ? data.paymentMethods :
-                                           [];
+      Array.isArray(data.methods) ? data.methods :
+      Array.isArray(data.items)   ? data.items   :
+      Array.isArray(data.paymentMethods) ? data.paymentMethods : [];
 
     if (!methods.length) {
       wrap.innerHTML = `
@@ -233,14 +215,12 @@ async function loadPaymentMethods() {
     wrap.innerHTML = '';
     methods.forEach((m, idx) => {
       const methodId = m.methodId || m.id || '';
-      const nameAr   = m.nameAr  || m.NameAr || '';
-      const nameEn   = m.nameEn  || m.NameEn || '';
-      const logo     = m.logoUrl || m.LogoUrl || '';
-      const type     = (m.type || '').toLowerCase();
+      const nameAr  = m.nameAr || m.NameAr || '';
+      const nameEn  = m.nameEn || m.NameEn || '';
+      const logo    = m.logoUrl || m.LogoUrl || '';
+      const type    = (m.type || '').toLowerCase();
 
-      const label = isEnglishLocale()
-        ? (nameEn || nameAr || methodId)
-        : (nameAr || nameEn || methodId);
+      const label = isEnglishLocale() ? (nameEn || nameAr || methodId) : (nameAr || nameEn || methodId);
 
       const card = document.createElement('label');
       card.className = 'pay-card';
@@ -249,22 +229,22 @@ async function loadPaymentMethods() {
       card.setAttribute('aria-checked', 'false');
 
       const input = document.createElement('input');
-      input.type  = 'radio';
-      input.name  = 'payingMethod';
+      input.type = 'radio';
+      input.name = 'payingMethod';
       input.value = methodId;
       input.className = 'visually-hidden';
 
       const content = document.createElement('div');
-      content.style.display     = 'flex';
-      content.style.alignItems  = 'center';
-      content.style.gap         = '12px';
+      content.style.display = 'flex';
+      content.style.alignItems = 'center';
+      content.style.gap = '12px';
 
       if (logo) {
         const img = document.createElement('img');
-        img.src   = logo;
-        img.alt   = label;
+        img.src = logo;
+        img.alt = label;
         img.style.maxWidth = '120px';
-        img.style.height   = 'auto';
+        img.style.height = 'auto';
         content.appendChild(img);
       } else {
         const span = document.createElement('strong');
@@ -315,13 +295,10 @@ async function loadPaymentMethods() {
   }
 }
 
-/* ─────────────────────────────
- *  Offers popup (from /api/offers)
- * ────────────────────────────*/
-
-let offersLoaded     = false;
-let offersCache      = [];
-let offersFilterAll  = true;
+/* 🎁 Offers / Ads popup (from Apps Script /api/offers) */
+let offersLoaded = false;
+let offersCache  = [];
+let offersFilterAll = true;
 let offersFilterTypes = { image: true, text: true, coupon: true };
 
 function normalizeOfferType(raw) {
@@ -335,16 +312,13 @@ function normalizeOfferType(raw) {
 function formatOfferDateRange(startRaw, endRaw) {
   const isEn = isEnglishLocale();
   if (!startRaw && !endRaw) return '';
-
   const fmt = (iso) => {
     const d = DateTime.fromISO(String(iso).slice(0, 10));
     if (!d.isValid) return String(iso);
     return d.toFormat(isEn ? 'dd LLL yyyy' : 'd LLL yyyy');
   };
-
   const fromTxt = startRaw ? fmt(startRaw) : '';
   const toTxt   = endRaw   ? fmt(endRaw)   : '';
-
   if (fromTxt && toTxt) {
     return isEn
       ? `Valid ${fromTxt} → ${toTxt}`
@@ -422,8 +396,8 @@ function getFilteredOffers() {
       // 🔹 قراءة Show On Pages من rawKeys
       const rk = o.rawKeys || o.RawKeys || {};
       const showOnPagesRaw =
-        o.showOnPages   ||
-        o.ShowOnPages   ||
+        o.showOnPages ||
+        o.ShowOnPages ||
         o.show_on_pages ||
         rk['Show On Pages'] ||
         rk['showOnPages'] ||
@@ -457,8 +431,12 @@ function getFilteredOffers() {
         o.imageUrl || o.ImageUrl || o.image || rk['Image URL'] || rk['Image'] || '';
 
       const couponCode =
-        o.couponCode || o.CouponCode || o.coupon || o.code ||
-        rk['Coupon Code'] || rk['Coupon'];
+        o.couponCode ||
+        o.CouponCode ||
+        o.coupon ||
+        o.code ||
+        rk['Coupon Code'] ||
+        rk['Coupon'];
 
       return {
         raw: o,
@@ -613,59 +591,55 @@ async function ensureOffersLoaded() {
   }
 }
 
-function openOffersModal() {
+function openOffersModal(){
   const modal = document.getElementById('offersModal');
   if (!modal) return;
   modal.classList.add('show');
-  modal.setAttribute('aria-hidden', 'false');
+  modal.setAttribute('aria-hidden','false');
   document.body.classList.add('offers-open');
   ensureOffersLoaded();
 }
 
-function closeOffersModal() {
+function closeOffersModal(){
   const modal = document.getElementById('offersModal');
   if (!modal) return;
   modal.classList.remove('show');
-  modal.setAttribute('aria-hidden', 'true');
+  modal.setAttribute('aria-hidden','true');
   document.body.classList.remove('offers-open');
 }
 
-function applyOfferCouponFromOffer(o) {
+function applyOfferCouponFromOffer(o){
   const code = o.couponCode;
-  if (!code) return;
-
+  if (!code){
+    return;
+  }
   const input = document.getElementById('couponCode');
-  if (input) {
+  if (input){
     input.value = code;
   }
   closeOffersModal();
-  if (typeof validateCouponAndApply === 'function') {
+  if (typeof validateCouponAndApply === 'function'){
     validateCouponAndApply();
-  } else if (typeof showToast === 'function') {
+  }else if (typeof showToast === 'function'){
     showToast('success', isEnglishLocale()
       ? `Coupon ${code} copied, you can apply it from payment step.`
       : `تم نسخ الكوبون ${code}، يمكنك تطبيقه من خطوة الدفع.`);
   }
 }
 
-function initOffersFilters() {
+function initOffersFilters(){
   const wrap = document.getElementById('offersFilters');
   if (!wrap) return;
-
   wrap.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-type]');
     if (!btn) return;
     const t = btn.dataset.type;
-
-    if (t === 'all') {
+    if (t === 'all'){
       offersFilterAll = true;
-      offersFilterTypes = { image: true, text: true, coupon: true };
+      offersFilterTypes = { image:true, text:true, coupon:true };
       wrap.querySelectorAll('[data-type]').forEach(el => {
         const type = el.dataset.type;
-        el.classList.toggle(
-          'active',
-          type === 'all' || type === 'image' || type === 'text' || type === 'coupon'
-        );
+        el.classList.toggle('active', type === 'all' || type === 'image' || type === 'text' || type === 'coupon');
       });
     } else {
       offersFilterAll = false;
@@ -678,26 +652,26 @@ function initOffersFilters() {
   });
 }
 
-function wireOffersUI() {
-  const btn      = document.getElementById('btnShowOffers');
-  const modal    = document.getElementById('offersModal');
+function wireOffersUI(){
+  const btn = document.getElementById('btnShowOffers');
+  const modal = document.getElementById('offersModal');
   const closeBtn = modal ? modal.querySelector('.offers-close') : null;
   const backdrop = modal ? modal.querySelector('.offers-backdrop') : null;
 
-  if (btn) {
+  if (btn){
     btn.addEventListener('click', () => {
       openOffersModal();
     });
   }
-  if (closeBtn) {
+  if (closeBtn){
     closeBtn.addEventListener('click', () => closeOffersModal());
   }
-  if (backdrop) {
+  if (backdrop){
     backdrop.addEventListener('click', () => closeOffersModal());
   }
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (modal && modal.classList.contains('show')) {
+    if (e.key === 'Escape'){
+      if (modal && modal.classList.contains('show')){
         closeOffersModal();
       }
     }
