@@ -291,29 +291,20 @@
               <div class="col-12 col-md-6">
                 <label for="giftReceiverMobile" class="form-label">جوال المستلم</label>
                 <div class="input-group">
-                  <select id="giftReceiverCountryCode"
-                          class="form-select"
-                          style="max-width:120px;flex:0 0 auto;">
-                    <option value="966" selected>+966 SA</option>
-                    <option value="971">+971 AE</option>
-                    <option value="973">+973 BH</option>
-                    <option value="965">+965 KW</option>
-                    <option value="968">+968 OM</option>
-                    <option value="974">+974 QA</option>
+                  <select id="giftReceiverCountry" class="form-select" style="max-width:140px;">
+                    <option value="966" selected>+966 السعودية</option>
+                    <option value="971">+971 الإمارات</option>
+                    <option value="973">+973 البحرين</option>
+                    <option value="974">+974 قطر</option>
+                    <option value="965">+965 الكويت</option>
+                    <option value="968">+968 عُمان</option>
                   </select>
-                  <input id="giftReceiverMobile"
-                         type="tel"
-                         class="form-control"
-                         placeholder="مثال: 5XXXXXXXX"
-                         autocomplete="off"
-                         inputmode="tel"/>
+                  <input id="giftReceiverMobile" type="tel" class="form-control" placeholder="5XXXXXXXX" autocomplete="off"/>
                 </div>
-                <small class="text-muted small d-block mt-1">
-                  أدخل رقم المستلم بدون صفر البداية، مثل 5XXXXXXXX
+                <small class="text-muted d-block mt-1">
+                  سيتم إرسال الهدية لهذا الرقم عبر واتساب.
                 </small>
-                <div class="field-error" id="err-giftReceiverMobile" style="display:none;">
-                  يرجى إدخال جوال المستلم بشكل صحيح
-                </div>
+                <div class="field-error" id="err-giftReceiverMobile" style="display:none;">يرجى إدخال جوال المستلم</div>
               </div>
               <div class="col-12">
                 <label for="giftMessage" class="form-label">رسالة مرافقة للهدية (اختياري)</label>
@@ -323,8 +314,8 @@
             </div>
           </div>
 
-          <!-- ✅ Car info wrapper (hidden in gift mode) -->
-          <section id="carInfoSection">
+          <!-- 🚗 Car Info section (hidden in gift mode via JS) -->
+          <section id="carInfoSection" aria-label="معلومات المركبة">
             <h1 class="mt-4">معلومات المركبة</h1>
             <div class="card">
               <div class="row g-3">
