@@ -109,12 +109,17 @@ async function postReservation(payload){
 
 function showToast(type='info', msg=''){
   const wrap=document.getElementById('toastWrap');
+  if(!wrap){
+    alert(msg);
+    return;
+  }
   const div=document.createElement('div');
   div.style.minWidth='260px';
   div.style.color='#fff';
   div.style.padding='10px 14px';
   div.style.borderRadius='10px';
   div.style.boxShadow='0 10px 28px rgba(11,38,48,.14)';
+  div.style.transition='opacity 180ms ease, transform 180ms ease';
   div.style.background =
     type==='error'   ? '#dc2626' :
     type==='success' ? '#16a34a' :
@@ -1116,6 +1121,95 @@ async function loadPaymentMethods() {
   }
 }
 
+/* ========================================================================== */
+/* 22) TERMS & CONDITIONS MODAL                                               */
+/* ========================================================================== */
+
+function openTermsModal(){
+  const modal = document.getElementById('termsModal');
+  if (!modal){
+    console.warn('[terms] termsModal element not found');
+    return;
+  }
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+  document.body.classList.add('terms-open');
+  console.log('[terms] modal opened');
+}
+
+function closeTermsModal(){
+  const modal = document.getElementById('termsModal');
+  if (!modal) return;
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden','true');
+  document.body.classList.remove('terms-open');
+  console.log('[terms] modal closed');
+}
+
+function wireTermsModal(){
+  console.log('[terms] wiring terms modal UI…');
+  const chk = document.getElementById('termsCheckbox');
+  if (chk){
+    termsAccepted = !!chk.checked;
+    chk.addEventListener('change', () => {
+      termsAccepted = chk.checked;
+      console.log('[terms] checkbox changed:', termsAccepted);
+      updateNextAvailability();
+    });
+  }
+
+  const link = document.getElementById('termsLink');
+  if (link){
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      openTermsModal();
+    });
+  }
+
+  const modal = document.getElementById('termsModal');
+  if (!modal){
+    console.warn('[terms] no modal element, skip modal wiring');
+    return;
+  }
+
+  const closeBtn  = modal.querySelector('[data-terms-close]') || document.getElementById('termsModalClose');
+  const acceptBtn = modal.querySelector('[data-terms-accept]') || document.getElementById('termsModalAccept');
+  const backdrop  = modal.querySelector('.terms-backdrop')     || modal.querySelector('[data-terms-backdrop]');
+
+  if (closeBtn){
+    closeBtn.addEventListener('click', () => {
+      closeTermsModal();
+    });
+  }
+
+  if (backdrop){
+    backdrop.addEventListener('click', () => {
+      closeTermsModal();
+    });
+  }
+
+  if (acceptBtn){
+    acceptBtn.addEventListener('click', () => {
+      termsAccepted = true;
+      console.log('[terms] accepted via modal');
+      const mainChk = document.getElementById('termsCheckbox');
+      if (mainChk) mainChk.checked = true;
+      closeTermsModal();
+      if (typeof showToast === 'function'){
+        showToast('success', isEnglishLocale()
+          ? 'Terms & Conditions accepted.'
+          : 'تمت الموافقة على الشروط والأحكام ✅');
+      }
+      updateNextAvailability();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('show')){
+      closeTermsModal();
+    }
+  });
+}
 
 /* ========================================================================== */
 /* 23) OFFERS / ADS POPUP                                                     */
@@ -2418,7 +2512,7 @@ function updateNextAvailability(){
     enable=!!(document.querySelector('#payGroup input:checked'));
   }
   else if(i===5){
-    enable=!!positionUrl;
+    enable=!!positionUrl && !!termsAccepted;
   }
 
   nextBtn.disabled=!enable;
