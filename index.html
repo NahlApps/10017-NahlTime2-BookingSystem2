@@ -149,7 +149,7 @@
                 <div id="servicePrice"
                      class="small bg-white border rounded-3 p-3 fw-bold text-primary"
                      style="border-radius:14px;">
-                  —
+                  — 
                 </div>
               </div>
 
@@ -290,8 +290,30 @@
               </div>
               <div class="col-12 col-md-6">
                 <label for="giftReceiverMobile" class="form-label">جوال المستلم</label>
-                <input id="giftReceiverMobile" type="tel" class="form-control" placeholder="رقم جوال المستلم على واتساب" autocomplete="off"/>
-                <div class="field-error" id="err-giftReceiverMobile" style="display:none;">يرجى إدخال جوال المستلم</div>
+                <div class="input-group">
+                  <select id="giftReceiverCountryCode"
+                          class="form-select"
+                          style="max-width:120px;flex:0 0 auto;">
+                    <option value="966" selected>+966 SA</option>
+                    <option value="971">+971 AE</option>
+                    <option value="973">+973 BH</option>
+                    <option value="965">+965 KW</option>
+                    <option value="968">+968 OM</option>
+                    <option value="974">+974 QA</option>
+                  </select>
+                  <input id="giftReceiverMobile"
+                         type="tel"
+                         class="form-control"
+                         placeholder="مثال: 5XXXXXXXX"
+                         autocomplete="off"
+                         inputmode="tel"/>
+                </div>
+                <small class="text-muted small d-block mt-1">
+                  أدخل رقم المستلم بدون صفر البداية، مثل 5XXXXXXXX
+                </small>
+                <div class="field-error" id="err-giftReceiverMobile" style="display:none;">
+                  يرجى إدخال جوال المستلم بشكل صحيح
+                </div>
               </div>
               <div class="col-12">
                 <label for="giftMessage" class="form-label">رسالة مرافقة للهدية (اختياري)</label>
@@ -301,28 +323,31 @@
             </div>
           </div>
 
-          <h1 class="mt-4">معلومات المركبة</h1>
-          <div class="card">
-            <div class="row g-3">
-              <div class="col-12 col-md-4">
-                <label class="form-label" for="carBrand">ماركة السيارة 🚘</label>
-                <select id="carBrand" style="width:100%"></select>
+          <!-- ✅ Car info wrapper (hidden in gift mode) -->
+          <section id="carInfoSection">
+            <h1 class="mt-4">معلومات المركبة</h1>
+            <div class="card">
+              <div class="row g-3">
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="carBrand">ماركة السيارة 🚘</label>
+                  <select id="carBrand" style="width:100%"></select>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="carName">اسم السيارة</label>
+                  <input id="carName" type="text" class="form-control" placeholder="الموديل/الفئة — مثال: S-Class، LX 570" autocomplete="off"/>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="plateNumber">رقم اللوحة (اختياري)</label>
+                  <input id="plateNumber" type="text" inputmode="numeric" class="form-control" placeholder="أرقام اللوحة — اختياري" autocomplete="off"/>
+                  <small id="plateHelp" class="text-muted d-block mt-1" style="opacity:.9">
+                    اختياري — يساعد فريقنا على التعرف على مركبتك بسرعة
+                  </small>
+                  <div class="field-error" id="err-plate" style="display:none"></div>
+                </div>
+                <input id="locationDescription" type="text" hidden/>
               </div>
-              <div class="col-12 col-md-4">
-                <label class="form-label" for="carName">اسم السيارة</label>
-                <input id="carName" type="text" class="form-control" placeholder="الموديل/الفئة — مثال: S-Class، LX 570" autocomplete="off"/>
-              </div>
-              <div class="col-12 col-md-4">
-                <label class="form-label" for="plateNumber">رقم اللوحة (اختياري)</label>
-                <input id="plateNumber" type="text" inputmode="numeric" class="form-control" placeholder="أرقام اللوحة — اختياري" autocomplete="off"/>
-                <small id="plateHelp" class="text-muted d-block mt-1" style="opacity:.9">
-                  اختياري — يساعد فريقنا على التعرف على مركبتك بسرعة
-                </small>
-                <div class="field-error" id="err-plate" style="display:none"></div>
-              </div>
-              <input id="locationDescription" type="text" hidden/>
             </div>
-          </div>
+          </section>
         </section>
 
         <!-- 5) Payment + Coupon -->
