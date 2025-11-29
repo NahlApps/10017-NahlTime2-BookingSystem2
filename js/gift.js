@@ -1,4 +1,3 @@
-// js/gift.js
 // 🎁 NahlTime Gift Workflow (frontend)
 // - Gift flow is processed by a separated backend on nahl-platform.vercel.app
 // - This file hooks into the existing booking UI without changing core app.js logic
@@ -21,10 +20,10 @@
   /* 2) LOCAL STATE                                                         */
   /* ====================================================================== */
 
-  let giftMode = false; // true when user toggles "Send as gift"
-  let receiverPhoneDigits = ''; // simple numeric receiver phone
+  let giftMode = false;           // true when user toggles "Send as gift"
+  let receiverPhoneDigits = '';   // simple numeric receiver phone
 
-  // helpers to access globals defined in app.js
+  // helpers to access luxon if needed
   const DateTime = window.luxon ? window.luxon.DateTime : null;
 
   function isGiftFlowActive() {
@@ -44,9 +43,9 @@
       card.style.display = giftMode ? 'block' : 'none';
     }
 
-    // You may store flag in form model if you like
-    if (window.nForm) {
-      window.nForm.isGift = giftMode;
+    // Store flag in form model if present
+    if (typeof nForm !== 'undefined') {
+      nForm.isGift = giftMode;
     }
 
     // Refresh summary + buttons
@@ -81,16 +80,17 @@
     const nameVal = ($('#name').val() || '').trim();
     const nameOk = nameVal.length > 0;
     const phoneOk =
-      window.itiPhone && window.itiPhone.isValidNumber
-        ? window.itiPhone.isValidNumber()
+      typeof itiPhone !== 'undefined' &&
+      itiPhone &&
+      typeof itiPhone.isValidNumber === 'function'
+        ? itiPhone.isValidNumber()
         : false;
 
-    document.getElementById('err-name').style.display = nameOk
-      ? 'none'
-      : 'block';
-    document.getElementById('err-mobile').style.display = phoneOk
-      ? 'none'
-      : 'block';
+    const errNameEl   = document.getElementById('err-name');
+    const errMobileEl = document.getElementById('err-mobile');
+
+    if (errNameEl)   errNameEl.style.display   = nameOk ? 'none' : 'block';
+    if (errMobileEl) errMobileEl.style.display = phoneOk ? 'none' : 'block';
 
     if (!nameOk || !phoneOk) {
       if (window.showToast) {
@@ -99,7 +99,11 @@
       return false;
     }
 
-    if (window.OTP_ENABLED && !window.otpVerified) {
+    // OTP check (re-use globals from app.js)
+    if (typeof OTP_ENABLED !== 'undefined' &&
+        OTP_ENABLED &&
+        typeof otpVerified !== 'undefined' &&
+        !otpVerified) {
       const errOtp = document.getElementById('err-otp');
       if (errOtp) {
         errOtp.textContent =
@@ -116,10 +120,9 @@
     }
 
     // Update base form model
-    if (window.nForm && window.itiPhone) {
-      window.nForm.customerN = nameVal;
-      window.nForm.customerM =
-        window.itiPhone.getNumber().replace(/^\+/, '');
+    if (typeof nForm !== 'undefined' && itiPhone) {
+      nForm.customerN = nameVal;
+      nForm.customerM = itiPhone.getNumber().replace(/^\+/, '');
     }
 
     return true;
@@ -168,38 +171,45 @@
   /* ====================================================================== */
 
   function buildGiftPayload() {
-    const appId = window.APP_ID || '';
+    const appId =
+      (typeof APP_ID !== 'undefined' && APP_ID) ? APP_ID : '';
 
-    const loc = $('#area').val();
+    const loc  = $('#area').val();
     const svcC = $('#serviceCat').val();
-    const svc = $('#service').val();
-    const cnt = $('#serviceCount').val() || '1';
+    const svc  = $('#service').val();
+    const cnt  = $('#serviceCount').val() || '1';
 
     const senderName = ($('#name').val() || '').trim();
     const senderPhone =
-      window.itiPhone && window.itiPhone.getNumber
-        ? window.itiPhone.getNumber().replace(/^\+/, '')
+      itiPhone && itiPhone.getNumber
+        ? itiPhone.getNumber().replace(/^\+/, '')
         : '';
 
     const receiverName = ($('#receiverName').val() || '').trim();
-    const giftMessage = ($('#giftMessage').val() || '').trim();
+    const giftMessage  = ($('#giftMessage').val() || '').trim();
 
     const locale =
-      (window.isEnglishLocale && window.isEnglishLocale()) ||
-      (document.documentElement.lang || 'ar').toLowerCase().startsWith('en')
+      (typeof window.isEnglishLocale === 'function' &&
+        window.isEnglishLocale()) ||
+      (document.documentElement.lang || 'ar')
+        .toLowerCase()
+        .startsWith('en')
         ? 'en'
         : 'ar';
 
     const additionalServices =
-      (window.nForm && window.nForm.additionalServicesIds) || [];
-    const couponCode = window.couponCodeApplied || '';
-    const couponDiscountAmount = window.couponDiscountAmount || 0;
+      (typeof nForm !== 'undefined' && nForm.additionalServicesIds) || [];
+    const couponCode =
+      (typeof couponCodeApplied !== 'undefined' && couponCodeApplied) || '';
+    const couponDiscountAmount =
+      (typeof couponDiscountAmount !== 'undefined' && couponDiscountAmount) || 0;
 
     // This payload is designed for Code.gs → NAHL Platform gift workflow
     return {
       appId: appId,
       isGift: true,
       flowType: 'GIFT',
+
       // selected service
       location: loc ? String(loc) : '',
       serviceCat: svcC ? String(svcC) : '',
@@ -240,16 +250,23 @@
   async function sendGiftRequest() {
     if (!isGiftFlowActive()) return;
 
-    if (!window.nForm) window.nForm = {};
+    if (typeof nForm === 'undefined') {
+      console.error('[gift] nForm is not defined; aborting gift request.');
+      return;
+    }
+
     // Build gift payload
     const payload = buildGiftPayload();
+    const locale  = payload.locale || 'ar';
 
     const nextBtn = document.getElementById('footer-next');
     const prevBtn = document.getElementById('footer-prev');
     const waitDiv = document.getElementById('footer-wait');
 
-    if (window.isSubmitting) return;
-    window.isSubmitting = true;
+    if (typeof isSubmitting !== 'undefined' && isSubmitting) return;
+    if (typeof isSubmitting !== 'undefined') {
+      isSubmitting = true;
+    }
 
     if (waitDiv) waitDiv.classList.add('show');
     if (nextBtn) nextBtn.style.display = 'none';
@@ -286,11 +303,13 @@
           'تعذر إرسال طلب الهدية حاليًا، حاول مرة أخرى.';
 
         if (window.showToast) window.showToast('error', msg);
-        // Let user try again (show buttons)
+
         if (nextBtn) nextBtn.style.display = '';
         if (prevBtn) prevBtn.style.display = '';
         if (waitDiv) waitDiv.classList.remove('show');
-        window.isSubmitting = false;
+        if (typeof isSubmitting !== 'undefined') {
+          isSubmitting = false;
+        }
         return;
       }
 
@@ -305,23 +324,25 @@
       // Fill final summary (Page 7)
       const areaTxt =
         $('#area').find(':selected').text() ||
-        (window.isEnglishLocale && window.isEnglishLocale()
+        (typeof window.isEnglishLocale === 'function' &&
+        window.isEnglishLocale()
           ? 'Area'
           : 'المنطقة');
       const srvTxt =
         $('#service').find(':selected').text() ||
-        (window.isEnglishLocale && window.isEnglishLocale()
+        (typeof window.isEnglishLocale === 'function' &&
+        window.isEnglishLocale()
           ? 'Service'
           : 'الخدمة');
 
-      const tsArea = document.getElementById('ts-area');
-      const tsService = document.getElementById('ts-service');
-      const tsDt = document.getElementById('ts-dt');
-      const tsPay = document.getElementById('ts-pay');
-      const tsWa = document.getElementById('ts-whatsapp');
+      const tsArea   = document.getElementById('ts-area');
+      const tsService= document.getElementById('ts-service');
+      const tsDt     = document.getElementById('ts-dt');
+      const tsPay    = document.getElementById('ts-pay');
+      const tsWa     = document.getElementById('ts-whatsapp');
 
-      if (tsArea) tsArea.textContent = areaTxt || '—';
-      if (tsService) tsService.textContent = srvTxt || '—';
+      if (tsArea)   tsArea.textContent   = areaTxt || '—';
+      if (tsService)tsService.textContent= srvTxt || '—';
 
       const dtText =
         locale === 'en'
@@ -331,7 +352,7 @@
       if (tsDt) tsDt.textContent = dtText;
 
       const payMethod =
-        (window.nForm && window.nForm.paymentMethod) || '';
+        (typeof nForm !== 'undefined' && nForm.paymentMethod) || '';
       if (tsPay)
         tsPay.textContent = payMethod
           ? payMethod.toUpperCase()
@@ -365,21 +386,28 @@
       if (prevBtn) prevBtn.style.display = '';
     } finally {
       if (waitDiv) waitDiv.classList.remove('show');
-      window.isSubmitting = false;
+      if (typeof isSubmitting !== 'undefined') {
+        isSubmitting = false;
+      }
     }
   }
 
   /* ====================================================================== */
-  /* 7) PATCH NEXT/PREV BUTTON LOGIC TO SUPPORT GIFT FLOW                   */
+  /* 7) GIFT-AWARE NEXT FLOW (OVERRIDES ORIGINAL BUTTON HANDLER)            */
   /* ====================================================================== */
 
   function giftAwareGotoNextFactory() {
-    // We essentially re-implement gotoNext but add gift-specific branches.
+    // Re-implements gotoNext with gift-specific branches.
     return async function giftAwareGotoNext() {
-      if (!window.orderedPages || !window.getActiveIndex) return;
+      if (typeof orderedPages === 'undefined' ||
+          typeof getActiveIndex !== 'function') return;
 
-      const i = window.getActiveIndex();
-      const id = window.orderedPages[i];
+      const i  = getActiveIndex();
+      const id = orderedPages[i];
+
+      const nextBtn = document.getElementById('footer-next');
+      const prevBtn = document.getElementById('footer-prev');
+      const waitDiv = document.getElementById('footer-wait');
 
       // PAGE 1 → same behavior
       if (id === 'page1') {
@@ -395,18 +423,16 @@
       // PAGE 2: area/service validation + skip time if gift
       if (id === 'page2') {
         const areaOk = !!$('#area').val();
-        const catOk = !!$('#serviceCat').val();
-        const svcOk = !!$('#service').val();
+        const catOk  = !!$('#serviceCat').val();
+        const svcOk  = !!$('#service').val();
 
-        document.getElementById('err-area').style.display = areaOk
-          ? 'none'
-          : 'block';
-        document.getElementById('err-serviceCat').style.display = catOk
-          ? 'none'
-          : 'block';
-        document.getElementById('err-service').style.display = svcOk
-          ? 'none'
-          : 'block';
+        const errArea   = document.getElementById('err-area');
+        const errCat    = document.getElementById('err-serviceCat');
+        const errSvc    = document.getElementById('err-service');
+
+        if (errArea) errArea.style.display = areaOk ? 'none' : 'block';
+        if (errCat)  errCat.style.display  = catOk  ? 'none' : 'block';
+        if (errSvc)  errSvc.style.display  = svcOk  ? 'none' : 'block';
 
         if (!areaOk || !catOk || !svcOk) {
           if (window.showToast) {
@@ -421,10 +447,12 @@
         // Gift? → skip time (page3) and go to contact (page4)
         if (isGiftFlowActive()) {
           // Clear any selected time
-          window.selectedTime = null;
-          if (window.nForm) {
-            window.nForm.date = '';
-            window.nForm.time = '';
+          if (typeof selectedTime !== 'undefined') {
+            selectedTime = null;
+          }
+          if (typeof nForm !== 'undefined') {
+            nForm.date = '';
+            nForm.time = '';
           }
           if (typeof window.showPage === 'function') {
             window.showPage(3); // page4
@@ -456,7 +484,7 @@
           return;
         }
 
-        if (!window.selectedTime) {
+        if (typeof selectedTime === 'undefined' || !selectedTime) {
           if (window.showToast) {
             window.showToast('error', 'الرجاء اختيار وقت');
           }
@@ -477,11 +505,11 @@
         if (isGiftFlowActive() && !validateReceiverForGift()) return;
 
         // car details -> locationDescription
-        if (window.nForm) {
-          const carBrand = $('#carBrand').val() || '';
-          const carName = $('#carName').val() || '';
+        if (typeof nForm !== 'undefined') {
+          const carBrand    = $('#carBrand').val() || '';
+          const carName     = $('#carName').val() || '';
           const plateNumber = $('#plateNumber').val() || '';
-          window.nForm.locationDescription = [carBrand, carName, plateNumber]
+          nForm.locationDescription = [carBrand, carName, plateNumber]
             .filter(Boolean)
             .join(', ');
         }
@@ -502,19 +530,23 @@
 
       // PAGE 5: payment
       if (id === 'page5') {
-        if (!window.nForm || !window.nForm.paymentMethod) {
-          document.getElementById('err-pay').style.display = 'block';
+        if (typeof nForm === 'undefined') return;
+
+        if (!nForm.paymentMethod) {
+          const errPay = document.getElementById('err-pay');
+          if (errPay) errPay.style.display = 'block';
           if (window.showToast) {
             window.showToast('error', 'اختر طريقة الدفع');
           }
           return;
         }
-        document.getElementById('err-pay').style.display = 'none';
+        const errPay = document.getElementById('err-pay');
+        if (errPay) errPay.style.display = 'none';
 
         // Gift flow: send gift to separated workflow instead of going to map
         if (isGiftFlowActive()) {
           // ✅ Terms check before sending gift
-          if (window.termsAccepted === false) {
+          if (typeof termsAccepted !== 'undefined' && !termsAccepted) {
             if (typeof window.openTermsModal === 'function') {
               window.openTermsModal();
             }
@@ -538,10 +570,9 @@
         return;
       }
 
-      // PAGE 6: map + final booking (unchanged, handled in app.js originally)
+      // PAGE 6: map + final booking (normal bookings only)
       if (id === 'page6') {
-        // we keep original logic here for normal bookings.
-        // For safety, if gift is ON we just prevent this step.
+        // Gift flow should never reach here
         if (isGiftFlowActive()) {
           if (window.showToast) {
             window.showToast(
@@ -552,20 +583,160 @@
           return;
         }
 
-        // Defer to original booking logic in app.js
-        if (typeof window.originalGotoNext === 'function') {
-          return window.originalGotoNext();
+        // ✅ Terms & Conditions check before final submit
+        if (typeof termsAccepted !== 'undefined' && !termsAccepted) {
+          if (typeof window.openTermsModal === 'function') {
+            window.openTermsModal();
+          }
+          if (window.showToast) {
+            window.showToast(
+              'info',
+              'من فضلك اقرأ ووافق على الشروط والأحكام قبل إكمال الحجز'
+            );
+          }
+          return;
         }
+
+        if (typeof positionUrl === 'undefined' || !positionUrl) {
+          const errMap = document.getElementById('err-map');
+          if (errMap) errMap.style.display = 'block';
+          if (window.showToast) {
+            window.showToast('error', 'الرجاء تحديد الموقع');
+          }
+          return;
+        }
+        const errMap = document.getElementById('err-map');
+        if (errMap) errMap.style.display = 'none';
+
+        if (typeof nForm !== 'undefined') {
+          nForm.urlLocation = positionUrl;
+        }
+
+        if (typeof isSubmitting !== 'undefined' && isSubmitting) return;
+        if (typeof isSubmitting !== 'undefined') {
+          isSubmitting = true;
+        }
+
+        if (nextBtn) nextBtn.style.display = 'none';
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (waitDiv) waitDiv.classList.add('show');
+
+        const payload = (typeof buildPayload === 'function')
+          ? buildPayload()
+          : {};
+        console.log('[booking] Sending reservation payload', payload);
+
+        try {
+          const r = (typeof postReservation === 'function')
+            ? await postReservation(payload)
+            : { ok: false, status: 0 };
+
+          console.log('[booking] Reservation response:', r);
+
+          if (r.ok && r.data?.success) {
+            if (window.showToast) {
+              window.showToast('success', 'تم إنشاء الحجز');
+            }
+
+            const bookingId =
+              (r.data.bookingId ??
+               r.data.bookingID ??
+               r.data.id ??
+               r.data.BookingId ??
+               r.data.BookingID) || null;
+
+            console.log('[booking] Derived bookingId for review:', bookingId);
+
+            // ⭐ REVIEW: schedule sending review form after N minutes via backend
+            if (typeof scheduleReviewForBooking === 'function') {
+              scheduleReviewForBooking(bookingId);
+            }
+
+            const tsArea    = document.getElementById('ts-area');
+            const tsService = document.getElementById('ts-service');
+            const tsDt      = document.getElementById('ts-dt');
+            const tsPay     = document.getElementById('ts-pay');
+            const tsWa      = document.getElementById('ts-whatsapp');
+
+            if (tsArea)
+              tsArea.textContent =
+                $('#area').find(':selected').text() || '—';
+            if (tsService)
+              tsService.textContent =
+                $('#service').find(':selected').text() || '—';
+            if (tsDt) {
+              const dtTxt =
+                (nForm.date
+                  ? DateTime.fromISO(nForm.date).toFormat('d LLL yyyy')
+                  : '') +
+                (nForm.time ? ' • ' + nForm.time : '');
+              tsDt.textContent = dtTxt;
+            }
+            if (tsPay) {
+              tsPay.textContent =
+                (nForm.paymentMethod || '').toUpperCase() || '—';
+            }
+
+            const waMsg = encodeURIComponent(
+              `تم إرسال طلب حجز: \n` +
+              `الخدمة: ${$('#service').find(':selected').text()}\n` +
+              `التاريخ: ${nForm.date} ${nForm.time}\n` +
+              `الرابط: ${location.href}`
+            );
+            if (tsWa) {
+              tsWa.href = `https://wa.me/?text=${waMsg}`;
+            }
+
+            if (waitDiv) waitDiv.classList.remove('show');
+            if (typeof isSubmitting !== 'undefined') {
+              isSubmitting = false;
+            }
+            if (typeof window.showPage === 'function') {
+              window.showPage(6);
+            }
+          } else {
+            const msg =
+              r?.data?.msgAR ||
+              (r.status === 404
+                ? 'المسار غير موجود'
+                : 'تعذر إنشاء الحجز');
+            if (window.showToast) {
+              window.showToast('error', msg);
+            }
+            if (waitDiv) waitDiv.classList.remove('show');
+            if (nextBtn) nextBtn.style.display = '';
+            if (prevBtn) prevBtn.style.display = '';
+            if (typeof isSubmitting !== 'undefined') {
+              isSubmitting = false;
+            }
+          }
+        } catch (err) {
+          console.error('[booking] Reservation error:', err);
+          if (window.showToast) {
+            window.showToast('error', 'تعذر إنشاء الحجز');
+          }
+          if (waitDiv) waitDiv.classList.remove('show');
+          if (nextBtn) nextBtn.style.display = '';
+          if (prevBtn) prevBtn.style.display = '';
+          if (typeof isSubmitting !== 'undefined') {
+            isSubmitting = false;
+          }
+        }
+        return;
       }
 
       // Fallback: go to next page index
       if (typeof window.showPage === 'function') {
         window.showPage(
-          Math.min(i + 1, window.orderedPages.length - 1)
+          Math.min(i + 1, orderedPages.length - 1)
         );
       }
     };
   }
+
+  /* ====================================================================== */
+  /* 8) PATCH PREV/NEXT BUTTONS                                             */
+  /* ====================================================================== */
 
   function patchPrevButton() {
     const prev = document.getElementById('footer-prev');
@@ -574,9 +745,11 @@
     prev.parentNode.replaceChild(cloned, prev);
 
     cloned.addEventListener('click', function () {
-      if (!window.orderedPages || !window.getActiveIndex) return;
-      const i = window.getActiveIndex();
-      const id = window.orderedPages[i];
+      if (typeof orderedPages === 'undefined' ||
+          typeof getActiveIndex !== 'function') return;
+
+      const i  = getActiveIndex();
+      const id = orderedPages[i];
 
       // Special case: in gift flow from page4 go back to page2 (skip time)
       if (isGiftFlowActive() && id === 'page4') {
@@ -605,7 +778,7 @@
   }
 
   /* ====================================================================== */
-  /* 8) INIT: WIRE TOGGLE + PATCH BUTTONS                                   */
+  /* 9) INIT: WIRE TOGGLE + PATCH BUTTONS                                   */
   /* ====================================================================== */
 
   $(function () {
@@ -626,7 +799,7 @@
   });
 
   /* ====================================================================== */
-  /* 9) PUBLIC API (OPTIONAL)                                               */
+  /* 10) PUBLIC API (OPTIONAL)                                              */
   /* ====================================================================== */
 
   window.nahlGift = {
