@@ -1,41 +1,28 @@
 // 🎁 NahlTime Gift Workflow (frontend)
-// - Gift flow is processed by a *separate* Google Apps Script backend
-// - Normal booking still uses the existing workflow (RESERVE_URL_* in app.js)
-// - This file hooks into the existing booking UI without changing core app.js logic
+// - Gift flow is handled by separated backend on nahl-platform.vercel.app
+//   (this then talks to Google Apps Script gift backend)
 
 (function (window, $) {
   'use strict';
 
   /* ====================================================================== */
-  /* 1) CONFIG: SEPARATE GIFT WEBAPP (GOOGLE APPS SCRIPT)                   */
+  /* 1) CONFIG                                                              */
   /* ====================================================================== */
 
-  /**
-   * 🔗 Google Apps Script WebApp URL for Gift Workflow ONLY
-   * - Deploy your gift Code.gs as a WebApp and paste the URL below.
-   * - Example: https://script.google.com/macros/s/XXXXXXX/exec
-   */
-  const GIFT_GAS_WEBAPP_URL = 'https://script.google.com/macros/s/YOUR_GIFT_WEBAPP_ID/exec';
-
-  // Endpoint that will receive gift requests and orchestrate:
-  // Request → Admin approval → Auto-create coupon → Notify sender → Send gift to receiver
-  const GIFT_REQUEST_URL = GIFT_GAS_WEBAPP_URL; // we POST JSON to doPost(e)
-
+  const GIFT_WORKFLOW_BASE = 'https://nahl-platform.vercel.app';
+  const GIFT_REQUEST_URL   = `${GIFT_WORKFLOW_BASE}/api/gift/request`;
 
   /* ====================================================================== */
   /* 2) LOCAL STATE                                                         */
   /* ====================================================================== */
 
-  let giftMode = false;             // true when user toggles "Send as gift"
-  let receiverPhoneDigits = '';     // numeric receiver phone (no +, no spaces)
-
-  // Access some globals defined in app.js
-  const DateTime = window.luxon ? window.luxon.DateTime : null;
+  let giftMode            = false;
+  let receiverPhoneDigits = '';
+  const DateTime          = window.luxon ? window.luxon.DateTime : null;
 
   function isGiftFlowActive() {
     return !!giftMode;
   }
-
 
   /* ====================================================================== */
   /* 3) UI HELPERS                                                          */
@@ -44,18 +31,29 @@
   function toggleGiftUI(on) {
     giftMode = !!on;
 
+    // Show / hide receiver card
     const card = document.getElementById('giftReceiverCard');
-    if (card) {
-      card.style.display = giftMode ? 'block' : 'none';
-    }
+    if (card) card.style.display = giftMode ? 'block' : 'none';
 
+    // Show / hide car info
+    const carInfoSection = document.getElementById('carInfoSection');
+    if (carInfoSection) carInfoSection.style.display = giftMode ? 'none' : 'block';
+
+    // mark on form model
     if (window.nForm) {
       window.nForm.isGift = giftMode;
+      if (giftMode) {
+        window.nForm.date = '';
+        window.nForm.time = '';
+      }
+    }
+    if (giftMode) {
+      window.selectedTime = null;
     }
 
-    // Refresh summary + next button state
     if (typeof window.renderSummary === 'function') {
-      const activeId = document.querySelector('.page.active')?.id || 'page1';
+      const activeId =
+        document.querySelector('.page.active')?.id || 'page1';
       window.renderSummary(activeId);
     }
     if (typeof window.updateNextAvailability === 'function') {
@@ -76,21 +74,19 @@
     el.style.display = 'none';
   }
 
-
   /* ====================================================================== */
-  /* 4) VALIDATION FOR SENDER & RECEIVER (GIFT FLOW)                        */
+  /* 4) VALIDATION                                                          */
   /* ====================================================================== */
 
-  // ✅ Same sender validation as core flow (page 4 in app.js) but reusable
   function validateSenderBase() {
     const nameVal = ($('#name').val() || '').trim();
-    const nameOk = nameVal.length > 0;
+    const nameOk  = nameVal.length > 0;
     const phoneOk =
       window.itiPhone && window.itiPhone.isValidNumber
         ? window.itiPhone.isValidNumber()
         : false;
 
-    document.getElementById('err-name').style.display = nameOk ? 'none' : 'block';
+    document.getElementById('err-name').style.display   = nameOk  ? 'none' : 'block';
     document.getElementById('err-mobile').style.display = phoneOk ? 'none' : 'block';
 
     if (!nameOk || !phoneOk) {
@@ -100,67 +96,76 @@
       return false;
     }
 
-    // OTP requirement if enabled
     if (window.OTP_ENABLED && !window.otpVerified) {
       const errOtp = document.getElementById('err-otp');
       if (errOtp) {
-        errOtp.textContent = 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة.';
+        errOtp.textContent =
+          'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة.';
         errOtp.style.display = 'block';
       }
       if (window.showToast) {
-        window.showToast('error', 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة');
+        window.showToast(
+          'error',
+          'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة'
+        );
       }
       return false;
     }
 
-    const errOtp = document.getElementById('err-otp');
-    if (errOtp) errOtp.style.display = 'none';
-
-    // Update base nForm
     if (window.nForm && window.itiPhone) {
       window.nForm.customerN = nameVal;
-      window.nForm.customerM = window.itiPhone.getNumber().replace(/^\+/, '');
+      window.nForm.customerM =
+        window.itiPhone.getNumber().replace(/^\+/, '');
     }
 
     return true;
   }
 
   function validateReceiverForGift() {
-    // ❗ Only validate receiver if GIFT is enabled
     if (!isGiftFlowActive()) return true;
 
-    const receiverName = ($('#receiverName').val() || '').trim();
-    const receiverMobileRaw = ($('#receiverMobile').val() || '').trim();
-    const digits = receiverMobileRaw.replace(/\D/g, '');
+    const receiverName = ($('#giftReceiverName').val() || '').trim();
+    const mobileRaw    = ($('#giftReceiverMobile').val() || '').trim();
+    const cc           = ($('#giftReceiverCountryCode').val() || '966')
+                          .replace(/\D/g, '');
+    const digitsOnly   = mobileRaw.replace(/\D/g, '');
 
     let ok = true;
 
     if (!receiverName) {
-      showFieldError('err-receiverName', 'يرجى إدخال اسم المستلم');
+      showFieldError('err-giftReceiverName', 'يرجى إدخال اسم المستلم');
       ok = false;
     } else {
-      hideFieldError('err-receiverName');
+      hideFieldError('err-giftReceiverName');
     }
 
-    if (!digits || digits.length < 8) {
-      showFieldError('err-receiverMobile', 'يرجى إدخال رقم جوال المستلم بشكل صحيح');
+    if (!digitsOnly || digitsOnly.length < 8) {
+      showFieldError(
+        'err-giftReceiverMobile',
+        'يرجى إدخال رقم جوال المستلم بشكل صحيح'
+      );
       ok = false;
     } else {
-      hideFieldError('err-receiverMobile');
+      hideFieldError('err-giftReceiverMobile');
     }
 
-    receiverPhoneDigits = digits;
-
-    if (!ok && window.showToast) {
-      window.showToast('error', 'يرجى استكمال بيانات المستلم قبل المتابعة');
+    if (!ok) {
+      receiverPhoneDigits = '';
+      if (window.showToast) {
+        window.showToast(
+          'error',
+          'يرجى استكمال بيانات المستلم قبل المتابعة'
+        );
+      }
+      return false;
     }
 
-    return ok;
+    receiverPhoneDigits = cc + digitsOnly;
+    return true;
   }
 
-
   /* ====================================================================== */
-  /* 5) BUILD GIFT PAYLOAD                                                  */
+  /* 5) BUILD PAYLOAD                                                       */
   /* ====================================================================== */
 
   function buildGiftPayload() {
@@ -177,8 +182,8 @@
         ? window.itiPhone.getNumber().replace(/^\+/, '')
         : '';
 
-    const receiverName   = ($('#receiverName').val() || '').trim();
-    const giftMessage    = ($('#giftMessage').val() || '').trim();
+    const receiverName = ($('#giftReceiverName').val() || '').trim();
+    const giftMessage  = ($('#giftMessage').val() || '').trim();
 
     const locale =
       (window.isEnglishLocale && window.isEnglishLocale()) ||
@@ -191,65 +196,57 @@
     const couponCode           = window.couponCodeApplied || '';
     const couponDiscountAmount = window.couponDiscountAmount || 0;
 
-    // 📌 Send pricing hints to backend so it can generate a correct gift coupon
-    const subtotal = typeof window.getOrderSubtotal === 'function'
-      ? window.getOrderSubtotal()
-      : 0;
-    const discount = couponDiscountAmount || 0;
-    const totalAmount = Math.max(0, subtotal - discount);
+    if (!receiverPhoneDigits) {
+      validateReceiverForGift();
+    }
+
+    const cc = ($('#giftReceiverCountryCode').val() || '966').replace(/\D/g, '');
 
     return {
-      action: 'gift.request',  // for Code.gs routing
-      
-      appId: appId,
+      appId,
       isGift: true,
       flowType: 'GIFT',
 
-      // Selected service
-      location:    loc ? String(loc) : '',
-      serviceCat:  svcC ? String(svcC) : '',
-      service:     svc ? String(svc) : '',
-      serviceCount:String(cnt || '1'),
+      // service
+      location:     loc  ? String(loc)  : '',
+      serviceCat:   svcC ? String(svcC) : '',
+      service:      svc  ? String(svc)  : '',
+      serviceCount: String(cnt || '1'),
 
-      // Sender
+      // sender
       senderName,
       senderPhone,
 
-      // Receiver
+      // receiver
       receiverName,
       receiverPhone: receiverPhoneDigits,
+      receiverCountryCode: cc,
       giftMessage,
 
-      // Gift has no date/time yet → receiver will choose later
+      // booking data (gift chooses later)
       date: '',
       time: '',
       locale,
 
-      // Extra
       additionalServices: additionalServices.join(','),
       couponCode,
       couponDiscountAmount,
 
-      // Pricing hints for gift-coupon creation
-      subtotal,
-      discountAmount: discount,
-      totalAmount,
-
-      // meta
       clientUrl:
-        typeof window.location !== 'undefined' ? window.location.href : '',
+        typeof window.location !== 'undefined'
+          ? window.location.href
+          : '',
     };
   }
 
-
   /* ====================================================================== */
-  /* 6) SEND GIFT REQUEST TO GIFT WEBAPP                                    */
+  /* 6) SEND GIFT REQUEST                                                   */
   /* ====================================================================== */
 
   async function sendGiftRequest() {
     if (!isGiftFlowActive()) return;
 
-    if (!window.nForm) window.nForm = {};
+    if (!validateSenderBase() || !validateReceiverForGift()) return;
 
     const payload = buildGiftPayload();
 
@@ -264,10 +261,7 @@
     if (nextBtn) nextBtn.style.display = 'none';
     if (prevBtn) prevBtn.style.display = 'none';
 
-    console.log('[gift] Sending gift request to GAS backend:', {
-      url: GIFT_REQUEST_URL,
-      payload,
-    });
+    console.log('[gift] Sending gift request:', { url: GIFT_REQUEST_URL, payload });
 
     try {
       const res = await fetch(GIFT_REQUEST_URL, {
@@ -293,9 +287,7 @@
           data.message ||
           data.error ||
           'تعذر إرسال طلب الهدية حاليًا، حاول مرة أخرى.';
-
         if (window.showToast) window.showToast('error', msg);
-
         if (nextBtn) nextBtn.style.display = '';
         if (prevBtn) prevBtn.style.display = '';
         if (waitDiv) waitDiv.classList.remove('show');
@@ -311,17 +303,13 @@
         );
       }
 
-      // Fill final summary (Page 7)
+      const isEn   = (payload.locale || '').toLowerCase() === 'en';
       const areaTxt =
         $('#area').find(':selected').text() ||
-        (window.isEnglishLocale && window.isEnglishLocale()
-          ? 'Area'
-          : 'المنطقة');
+        (isEn ? 'Area' : 'المنطقة');
       const srvTxt =
         $('#service').find(':selected').text() ||
-        (window.isEnglishLocale && window.isEnglishLocale()
-          ? 'Service'
-          : 'الخدمة');
+        (isEn ? 'Service' : 'الخدمة');
 
       const tsArea    = document.getElementById('ts-area');
       const tsService = document.getElementById('ts-service');
@@ -330,33 +318,28 @@
       const tsWa      = document.getElementById('ts-whatsapp');
 
       if (tsArea)    tsArea.textContent    = areaTxt || '—';
-      if (tsService) tsService.textContent = srvTxt || '—';
+      if (tsService) tsService.textContent = srvTxt  || '—';
 
-      const dtText =
-        payload.locale === 'en'
-          ? 'Gift request – receiver will choose the date.'
-          : 'طلب هدية — سيقوم المستلم باختيار الموعد المناسب.';
-
+      const dtText = isEn
+        ? 'Gift request – receiver will choose the date.'
+        : 'طلب هدية — سيقوم المستلم باختيار الموعد المناسب.';
       if (tsDt) tsDt.textContent = dtText;
 
-      const payMethod = (window.nForm && window.nForm.paymentMethod) || '';
+      const payMethod =
+        (window.nForm && window.nForm.paymentMethod) || '';
       if (tsPay) tsPay.textContent = payMethod ? payMethod.toUpperCase() : '—';
 
-      // WhatsApp share message for sender
       const waMsg = encodeURIComponent(
         `تم إرسال هدية غسيل سيارة:\n` +
           `المستلم: ${payload.receiverName}\n` +
           `الخدمة: ${srvTxt}\n` +
           `سيصله رابط الحجز وكوبون الهدية بعد الموافقة من المتجر.\n\n` +
-          `رقم المتابعة: ${data.giftId || data.id || '—'}`
+          `رقم المتابعة (إن وجد): ${data.giftId || data.id || '—'}`
       );
-      if (tsWa) {
-        tsWa.href = `https://wa.me/?text=${waMsg}`;
-      }
+      if (tsWa) tsWa.href = `https://wa.me/?text=${waMsg}`;
 
-      // Go to "thank you" page (page7 → index 6 in orderedPages)
       if (typeof window.showPage === 'function') {
-        window.showPage(6);
+        window.showPage(6); // page7
       }
     } catch (err) {
       console.error('[gift] sendGiftRequest error:', err);
@@ -374,30 +357,24 @@
     }
   }
 
-
   /* ====================================================================== */
-  /* 7) GIFT-AWARE NEXT/PREV BUTTON LOGIC                                   */
+  /* 7) GIFT-AWARE NEXT/PREV                                                */
   /* ====================================================================== */
 
   function giftAwareGotoNextFactory() {
-    // Re-implements gotoNext from app.js, but adds gift branches
     return async function giftAwareGotoNext() {
       if (!window.orderedPages || !window.getActiveIndex) return;
 
       const i  = window.getActiveIndex();
       const id = window.orderedPages[i];
 
-      const nextBtn = document.getElementById('footer-next');
-      const prevBtn = document.getElementById('footer-prev');
-      const waitDiv = document.getElementById('footer-wait');
-
-      // PAGE 1: welcome
+      // PAGE 1
       if (id === 'page1') {
         if (typeof window.stopWelcomeDeck === 'function') {
           window.stopWelcomeDeck();
         }
         if (typeof window.showPage === 'function') {
-          window.showPage(1); // → page2
+          window.showPage(1); // page2
         }
         return;
       }
@@ -414,12 +391,14 @@
 
         if (!areaOk || !catOk || !svcOk) {
           if (window.showToast) {
-            window.showToast('error', 'يرجى إكمال اختيار المنطقة/التصنيف/الخدمة');
+            window.showToast(
+              'error',
+              'يرجى إكمال اختيار المنطقة/التصنيف/الخدمة'
+            );
           }
           return;
         }
 
-        // 🎁 Gift: skip time page (page3) → directly to contact (page4)
         if (isGiftFlowActive()) {
           window.selectedTime = null;
           if (window.nForm) {
@@ -427,7 +406,7 @@
             window.nForm.time = '';
           }
           if (typeof window.showPage === 'function') {
-            window.showPage(3); // index 3 → page4
+            window.showPage(3); // page4
           }
           if (typeof window.updateNextAvailability === 'function') {
             window.updateNextAvailability();
@@ -435,20 +414,16 @@
           return;
         }
 
-        // Normal booking: go to time page (page3)
         if (typeof window.showPage === 'function') {
-          window.showPage(2); // index 2 → page3
+          window.showPage(2); // page3
         }
         const dateEl = document.getElementById('date');
-        if (dateEl) {
-          dateEl.dispatchEvent(new Event('change'));
-        }
+        if (dateEl) dateEl.dispatchEvent(new Event('change'));
         return;
       }
 
-      // PAGE 3: time
+      // PAGE 3: time (only normal booking)
       if (id === 'page3') {
-        // In gift flow we don't really use this page, but if user reached here:
         if (isGiftFlowActive()) {
           if (typeof window.showPage === 'function') {
             window.showPage(3); // page4
@@ -463,20 +438,16 @@
           return;
         }
         if (typeof window.showPage === 'function') {
-          window.showPage(3); // → page4
+          window.showPage(3); // page4
         }
         return;
       }
 
-      // PAGE 4: contact (sender + car + gift receiver)
+      // PAGE 4: contact + gift receiver
       if (id === 'page4') {
-        // 1) Sender validation (same as core)
         if (!validateSenderBase()) return;
-
-        // 2) Gift receiver validation ONLY if giftMode
         if (isGiftFlowActive() && !validateReceiverForGift()) return;
 
-        // 3) Car details → locationDescription
         if (window.nForm) {
           const carBrand    = $('#carBrand').val() || '';
           const carName     = $('#carName').val() || '';
@@ -493,27 +464,22 @@
           window.updateNextAvailability();
         }
 
-        // Move to payment (page5)
         if (typeof window.showPage === 'function') {
-          window.showPage(4);
+          window.showPage(4); // page5
         }
         return;
       }
 
-      // PAGE 5: payment + coupons
+      // PAGE 5: payment
       if (id === 'page5') {
         if (!window.nForm || !window.nForm.paymentMethod) {
           document.getElementById('err-pay').style.display = 'block';
-          if (window.showToast) {
-            window.showToast('error', 'اختر طريقة الدفع');
-          }
+          if (window.showToast) window.showToast('error', 'اختر طريقة الدفع');
           return;
         }
         document.getElementById('err-pay').style.display = 'none';
 
-        // 🎁 Gift flow: send gift request instead of going to map
         if (isGiftFlowActive()) {
-          // Terms must be accepted BEFORE sending gift
           if (window.termsAccepted === false) {
             if (typeof window.openTermsModal === 'function') {
               window.openTermsModal();
@@ -526,21 +492,18 @@
             }
             return;
           }
-
           await sendGiftRequest();
           return;
         }
 
-        // Normal booking → go to map (page6)
         if (typeof window.showPage === 'function') {
-          window.showPage(5);
+          window.showPage(5); // page6
         }
         return;
       }
 
-      // PAGE 6: map + final CONFIRMATION (normal bookings ONLY)
+      // PAGE 6: keep original behavior for normal booking
       if (id === 'page6') {
-        // Gift flow should never reach here
         if (isGiftFlowActive()) {
           if (window.showToast) {
             window.showToast(
@@ -550,128 +513,11 @@
           }
           return;
         }
-
-        // ✅ Terms check (same as app.js)
-        if (window.termsAccepted === false) {
-          if (typeof window.openTermsModal === 'function') {
-            window.openTermsModal();
-          }
-          if (window.showToast) {
-            window.showToast(
-              'info',
-              'من فضلك اقرأ ووافق على الشروط والأحكام قبل إكمال الحجز'
-            );
-          }
-          return;
+        if (typeof window.originalGotoNext === 'function') {
+          return window.originalGotoNext();
         }
-
-        if (!window.positionUrl) {
-          document.getElementById('err-map').style.display = 'block';
-          if (window.showToast) {
-            window.showToast('error', 'الرجاء تحديد الموقع');
-          }
-          return;
-        }
-        document.getElementById('err-map').style.display = 'none';
-        window.nForm.urlLocation = window.positionUrl;
-
-        if (window.isSubmitting) return;
-        window.isSubmitting = true;
-
-        if (nextBtn) nextBtn.style.display = 'none';
-        if (prevBtn) prevBtn.style.display = 'none';
-        if (waitDiv) waitDiv.classList.add('show');
-
-        const payload = typeof window.buildPayload === 'function'
-          ? window.buildPayload()
-          : {};
-        console.log('[booking] Sending reservation payload', payload);
-
-        try {
-          const r = await window.postReservation(payload);
-          console.log('[booking] Reservation response:', r);
-
-          if (r.ok && r.data?.success) {
-            if (window.showToast) window.showToast('success', 'تم إنشاء الحجز');
-
-            const bookingId =
-              (r.data.bookingId ??
-                r.data.bookingID ??
-                r.data.id ??
-                r.data.BookingId ??
-                r.data.BookingID) || null;
-
-            console.log('[booking] Derived bookingId for review:', bookingId);
-
-            // ⭐ Review scheduling (same as core)
-            if (typeof window.scheduleReviewForBooking === 'function') {
-              window.scheduleReviewForBooking(bookingId);
-            }
-
-            const $service = $('#service').find(':selected').text() || '—';
-
-            const tsArea    = document.getElementById('ts-area');
-            const tsService = document.getElementById('ts-service');
-            const tsDt      = document.getElementById('ts-dt');
-            const tsPay     = document.getElementById('ts-pay');
-            const tsWa      = document.getElementById('ts-whatsapp');
-
-            if (tsArea) {
-              tsArea.textContent =
-                $('#area').find(':selected').text() || '—';
-            }
-            if (tsService) tsService.textContent = $service;
-
-            if (tsDt && DateTime && window.nForm) {
-              tsDt.textContent =
-                (window.nForm.date
-                  ? DateTime.fromISO(window.nForm.date).toFormat('d LLL yyyy')
-                  : '') +
-                (window.nForm.time ? ' • ' + window.nForm.time : '');
-            }
-
-            if (tsPay) {
-              const payMethod = (window.nForm.paymentMethod || '').toUpperCase();
-              tsPay.textContent = payMethod || '—';
-            }
-
-            const waMsg = encodeURIComponent(
-              `تم إرسال طلب حجز: \nالخدمة: ${$service}\nالتاريخ: ${window.nForm.date} ${window.nForm.time}\nالرابط: ${location.href}`
-            );
-            if (tsWa) {
-              tsWa.href = `https://wa.me/?text=${waMsg}`;
-            }
-
-            if (waitDiv) waitDiv.classList.remove('show');
-            window.isSubmitting = false;
-            if (typeof window.showPage === 'function') {
-              window.showPage(6); // page7
-            }
-          } else {
-            const msg =
-              r?.data?.msgAR ||
-              (r.status === 404 ? 'المسار غير موجود' : 'تعذر إنشاء الحجز');
-            if (window.showToast) window.showToast('error', msg);
-            window.isSubmitting = false;
-            if (waitDiv) waitDiv.classList.remove('show');
-            if (nextBtn) nextBtn.style.display = '';
-            if (prevBtn) prevBtn.style.display = '';
-          }
-        } catch (err) {
-          console.error('[booking] Error in booking flow:', err);
-          if (window.showToast) {
-            window.showToast('error', 'حدث خطأ أثناء إنشاء الحجز');
-          }
-          window.isSubmitting = false;
-          if (waitDiv) waitDiv.classList.remove('show');
-          if (nextBtn) nextBtn.style.display = '';
-          if (prevBtn) prevBtn.style.display = '';
-        }
-
-        return;
       }
 
-      // Fallback: next index
       if (typeof window.showPage === 'function') {
         window.showPage(Math.min(i + 1, window.orderedPages.length - 1));
       }
@@ -681,6 +527,7 @@
   function patchPrevButton() {
     const prev = document.getElementById('footer-prev');
     if (!prev) return;
+
     const cloned = prev.cloneNode(true);
     prev.parentNode.replaceChild(cloned, prev);
 
@@ -689,10 +536,10 @@
       const i  = window.getActiveIndex();
       const id = window.orderedPages[i];
 
-      // 🎁 Special case: in gift flow from page4 back → page2 (skip time)
+      // Special: in gift flow from page4 go back to page2 (skip time)
       if (isGiftFlowActive() && id === 'page4') {
         if (typeof window.showPage === 'function') {
-          window.showPage(1); // index 1 → page2
+          window.showPage(1); // page2
         }
         if (typeof window.updateNextAvailability === 'function') {
           window.updateNextAvailability();
@@ -700,7 +547,6 @@
         return;
       }
 
-      // Default behavior
       if (typeof window.showPage === 'function') {
         window.showPage(Math.max(i - 1, 0));
       }
@@ -710,36 +556,30 @@
   function patchNextButton(giftAwareGotoNext) {
     const next = document.getElementById('footer-next');
     if (!next) return;
+
     const cloned = next.cloneNode(true);
     next.parentNode.replaceChild(cloned, next);
     cloned.addEventListener('click', giftAwareGotoNext);
   }
 
-
   /* ====================================================================== */
-  /* 8) INIT: WIRE TOGGLE + PATCH BUTTONS                                   */
+  /* 8) INIT                                                                */
   /* ====================================================================== */
 
   $(function () {
-    // Gift toggle
     $('#isGiftToggle').on('change', function () {
       toggleGiftUI(this.checked);
     });
 
-    // Patch Next & Prev after app.js has initialized
     const giftAwareNext = giftAwareGotoNextFactory();
     patchNextButton(giftAwareNext);
     patchPrevButton();
 
-    console.log(
-      '[gift] Gift workflow initialized with GAS backend:',
-      GIFT_REQUEST_URL
-    );
+    console.log('[gift] Gift workflow initialized:', { GIFT_REQUEST_URL });
   });
 
-
   /* ====================================================================== */
-  /* 9) PUBLIC API (OPTIONAL)                                               */
+  /* 9) PUBLIC API                                                          */
   /* ====================================================================== */
 
   window.nahlGift = {
