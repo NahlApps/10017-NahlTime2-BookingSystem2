@@ -2,578 +2,544 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-  <title>حجوزات المواعيد - NahlTime</title>
+  <title>حجوزات المواعيد</title>
 
-  <!-- ✅ PWA Manifest -->
-  <link rel="manifest" href="manifest.webmanifest"/>
-
+  <!-- ✅ PWA Manifest (relative path for subfolder) -->
+  <link rel="manifest" href="manifest.webmanifest">
+  
   <!-- Browser / Taskbar color -->
-  <meta name="theme-color" content="#01657A"/>
+  <meta name="theme-color" content="#01657A">
 
   <!-- 🔹 Favicon -->
   <link rel="icon" type="image/png" sizes="32x32"
-        href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png"/>
+        href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png" />
   <link rel="shortcut icon"
-        href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png"/>
+        href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png" />
+  <link rel="apple-touch-icon"
+        href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png" />
 
-  <!-- Fonts & Icons -->
+  <!-- UI libs -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
-
-  <!-- CSS libs -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/css/intlTelInput.css" rel="stylesheet"/>
 
-  <!-- NahlTime main style (all custom styles moved here) -->
-  <link href="style.css" rel="stylesheet"/>
+  <!-- iOS PWA support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NahlTime">
+  <link rel="apple-touch-icon"
+        href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png">
+
+  <!-- Main app styles (all styles are inside style.css) -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- 🔔 Toast container -->
+  <div id="toastWrap"
+       style="position:fixed;top:10px;left:50%;transform:translateX(-50%);
+              z-index:1050;display:flex;flex-direction:column;gap:8px"></div>
 
-<!-- optional toast container (styled via JS or extra CSS if needed) -->
-<div id="toastWrap"></div>
+  <!-- ========================= -->
+  <!--  Header                   -->
+  <!-- ========================= -->
+  <header id="siteHeader">
+    <div class="header-inner">
+      <div class="brand">
+        <img id="brandLogo"
+             alt="Nahl Time"
+             src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png"
+             onerror="handleLogoError(this)" />
+      </div>
 
-<header>
-  <div class="header-inner">
-    <div class="brand">
-      <img
-        src="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png"
-        alt="NahlTime"
-        onerror="if (window.handleLogoError) handleLogoError(this);"
-      />
-      <div>
-        <div class="fw-bold" style="font-size:1rem;">NahlTime Pro</div>
-        <div class="text-white-50" style="font-size:.85rem;">حجوزات العناية الفاخرة للسيارات</div>
+      <div class="header-right">
+        <div class="mini-progress" aria-hidden="true">
+          <div class="bar"><span id="miniBarFill" style="width:0%"></span></div>
+          <div class="step" id="miniStepTitle">الترحيب</div>
+        </div>
+        <div id="summaryChips" class="summary-chips" aria-live="polite"></div>
       </div>
     </div>
+  </header>
 
-    <div class="header-right">
-      <div class="mini-progress">
-        <div class="step" id="miniStepTitle">الترحيب</div>
-        <div class="bar">
-          <span id="miniBarFill"></span>
-        </div>
-      </div>
+  <!-- ========================= -->
+  <!--  Main App                 -->
+  <!-- ========================= -->
+  <main>
+    <div id="app">
+      <div class="stage">
+        <!-- 1) Welcome -->
+        <section id="page1" class="page active" aria-label="الترحيب">
+          <h1>✨ غسيل بدون طوابير</h1>
 
-      <div id="summaryChips" class="summary-chips">
-        <!-- dynamic chips (area, service, time, payment, gift, …) -->
-      </div>
-    </div>
-  </div>
-</header>
-
-<main>
-  <div id="app">
-    <div class="stage">
-
-      <!-- ============================= -->
-      <!-- Page 1: Welcome / Intro      -->
-      <!-- ============================= -->
-      <section id="page1" class="page active">
-        <h1>مرحبا بك في تجربة غسيل فاخرة ✨</h1>
-
-        <div class="ppt-deck">
-          <div class="ppt-slide is-active">
-            <div class="slide-card">
-              <h2 class="h5 fw-bold mb-2">ابدأ حجز خدمتك بخطوات بسيطة</h2>
-              <p class="mb-2">
-                اختر الخدمة والمنطقة، ثم حدد الموعد أو أرسلها كهدية 🎁، وأكمل الدفع والتأكيد عبر واتساب.
-              </p>
-              <ul class="mb-0 small text-muted">
-                <li>اختيار الخدمة والمنطقة</li>
-                <li>تحديد الموعد أو إرسالها كهدية</li>
-                <li>الدفع الآمن وتأكيد الحجز</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="ppt-slide">
-            <div class="slide-card">
-              <h2 class="h5 fw-bold mb-2">خدمة متنقلة بجودة المعرض 🚗</h2>
-              <p class="mb-0">
-                فريق متخصص يصل إلى موقعك مع تجهيزات كاملة، مع اهتمام عالٍ بالتفاصيل الداخلية والخارجية.
-              </p>
-            </div>
-          </div>
-
-          <div class="ppt-slide">
-            <div class="slide-card">
-              <h2 class="h5 fw-bold mb-2">هدايا مميزة لأحبابك 🎁</h2>
-              <p class="mb-0">
-                يمكنك الآن إرسال الخدمة كهدية لصديق أو قريب، وسيتم إرسال رابط الحجز وكوبون الهدية للمستلم بعد موافقة المتجر.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="ppt-dots" id="pptDots">
-          <!-- dots rendered by JS -->
-        </div>
-
-        <div class="mt-3 d-flex justify-content-between align-items-center w-100" style="max-width:920px;">
-          <button id="btnShowOffers" type="button" class="btn-offers-pill">
-            <i class="fa-solid fa-gift"></i>
-            <span>عرض العروض الحالية</span>
-          </button>
-          <div class="text-white-50 small">
-            يمكنك البدء مباشرة بالضغط على <span class="fw-bold text-white">التالي</span> من الأسفل.
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================= -->
-      <!-- Page 2: Service selection     -->
-      <!-- ============================= -->
-      <section id="page2" class="page">
-        <h1>اختيار الخدمة والمنطقة</h1>
-
-        <div class="card position-relative">
-          <div class="load-overlay" id="servicesLoadingOverlay">
-            <div class="spinner-border text-info" role="status"></div>
-            <span class="fw-semibold">جاري تحميل المناطق والخدمات…</span>
-          </div>
-
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <label for="area" class="form-label">المنطقة</label>
-              <select id="area" class="form-select"></select>
-              <div class="field-error" id="err-area">يرجى اختيار المنطقة</div>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <label for="serviceCat" class="form-label">فئة الخدمة</label>
-              <select id="serviceCat" class="form-select"></select>
-              <div class="field-error" id="err-serviceCat">يرجى اختيار فئة الخدمة</div>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <label for="service" class="form-label">الباقة</label>
-              <select id="service" class="form-select"></select>
-              <div class="field-error" id="err-service">يرجى اختيار الباقة</div>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <label for="serviceCount" class="form-label">عدد السيارات</label>
-              <select id="serviceCount" class="form-select">
-                <option value="1" selected>1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-              </select>
-            </div>
-
-            <div class="col-12 col-lg-6">
-              <label class="form-label d-block">تفاصيل الخدمة</label>
-              <div id="serviceDetails" class="small text-muted">
-                يتم عرض تفاصيل الخدمة المختارة هنا.
+          <div id="pptDeck" class="ppt-deck">
+            <div class="ppt-slide is-active">
+              <div class="slide-card">
+                <h3 class="mb-2">نجيك لين باب بيتك</h3>
+                <p class="m-0">حجز سريع • خدمة متنقلة • احترافية في كل تفصيل</p>
               </div>
             </div>
+            <div class="ppt-slide">
+              <div class="slide-card">
+                <h3 class="mb-2">مواد فاخرة</h3>
+                <p class="m-0">منتجات آمنة على الطلاء والداخلية مع عناية دقيقة</p>
+              </div>
+            </div>
+            <div class="ppt-slide">
+              <div class="slide-card">
+                <h3 class="mb-2">موعدك على راحتك</h3>
+                <p class="m-0">حدد المنطقة والخدمة والوقت المناسب — والباقي علينا</p>
+              </div>
+            </div>
+          </div>
+          <div id="pptDots" class="ppt-dots" aria-hidden="true"></div>
 
-            <div class="col-12 col-lg-6">
-              <label class="form-label d-block">سعر الخدمة (شامل الضريبة)</label>
-              <div id="servicePrice" class="fw-bold">
-                —
+          <!-- 🎁 عروض اليوم (زر يفتح البوب أب) -->
+          <div class="mt-3" style="display:flex;justify-content:center;">
+            <button id="btnShowOffers" type="button" class="btn-offers-pill">
+              <i class="fa-solid fa-gift"></i>
+              <span>عروض اليوم</span>
+            </button>
+          </div>
+
+          <div class="card text-center" style="max-width:860px">
+            <p class="mb-0" style="color:#224652">
+              انطلق — الخطوة التالية لاختيار المنطقة والخدمة
+            </p>
+          </div>
+        </section>
+
+        <!-- 2) Service & Location (+ Gift toggle) -->
+        <section id="page2" class="page" aria-label="اختيار المنطقة والخدمة">
+          <h1>وين تحب نجيك؟</h1>
+
+          <div class="card position-relative" id="servicesCard">
+            <label class="form-label">اختيار المنطقة</label>
+            <select id="area" style="width:100%"></select>
+            <div class="field-error" id="err-area">يرجى اختيار المنطقة</div>
+
+            <div class="row g-3 mt-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label">التصنيف</label>
+                <select id="serviceCat" style="width:100%"></select>
+                <div class="field-error" id="err-serviceCat">يرجى اختيار التصنيف</div>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">الخدمة</label>
+                <select id="service" style="width:100%"></select>
+                <div class="field-error" id="err-service">يرجى اختيار الخدمة</div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label" id="serviceDetailsLabel">تفاصيل الخدمة</label>
+                <div id="serviceDetails"
+                     class="small text-muted bg-white border rounded-3 p-3"
+                     style="border-radius:14px;">
+                  سيتم عرض تفاصيل الخدمة المختارة هنا.
+                </div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label" id="servicePriceLabel">سعر الخدمة (شامل الضريبة)</label>
+                <div id="servicePrice"
+                     class="small bg-white border rounded-3 p-3 fw-bold text-primary"
+                     style="border-radius:14px;">
+                  —
+                </div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">عدد السيارات</label>
+                <select id="serviceCount" class="form-select">
+                  <option value="1" selected>1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                </select>
               </div>
             </div>
 
             <!-- 🎁 Gift toggle -->
-            <div class="col-12 mt-2">
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="isGiftToggle">
-                <label class="form-check-label fw-semibold" for="isGiftToggle">
-                  إرسال الخدمة كهدية لصديق / قريب 🎁
-                </label>
-              </div>
-              <small class="text-muted d-block mt-1">
-                عند اختيارها كهدية، لن يتم تحديد الوقت الآن. سيتم إرسال رابط الحجز وكوبون الهدية للمستلم بعد موافقة المتجر.
-              </small>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2 class="h6 fw-bold mb-2">خدمات إضافية</h2>
-          <div id="additionalServicesWrap" class="small text-muted">
-            يتم تحميل الخدمات الإضافية حسب المنطقة والخدمة المختارة…
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================= -->
-      <!-- Page 3: Time selection        -->
-      <!-- ============================= -->
-      <section id="page3" class="page">
-        <h1>اختيار الموعد</h1>
-
-        <div class="card">
-          <div class="time-toolbar">
-            <div>
-              <label for="date" class="form-label">اليوم</label>
-              <input id="date" type="date" class="form-control"/>
-            </div>
-            <div>
-              <label for="timeFilter" class="form-label">الفترة</label>
-              <select id="timeFilter" class="form-select">
-                <option value="all" selected>كل الأوقات</option>
-                <option value="morning">الصباح</option>
-                <option value="afternoon">الظهر</option>
-                <option value="evening">المساء</option>
-                <option value="night">الليل</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="position-relative">
-            <div class="load-overlay" id="timeLoadingOverlay">
-              <div class="spinner-border text-info" role="status"></div>
-              <span class="fw-semibold">جاري تحميل المواعيد المتاحة…</span>
-            </div>
-
-            <div id="time-container" class="time-grid">
-              <div class="text-muted small" style="grid-column:1/-1; text-align:center;">
-                اختر المنطقة والخدمة أولاً لعرض الأوقات المتاحة.
+            <hr class="mt-4 mb-3"/>
+            <div class="mt-2">
+              <label class="form-label">هل ترغب بإرسال الخدمة كـ هدية؟</label>
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" role="switch" id="isGiftToggle">
+                  <label class="form-check-label" for="isGiftToggle">
+                    نعم، أريد إرسالها كهدية لصديق
+                  </label>
+                </div>
+                <small class="text-muted">
+                  عند اختيار الهدية، نستلم بياناتك وبيانات المستلم، وتصل له رسالة خاصة مع رابط الحجز وكوبون الهدية.
+                </small>
               </div>
             </div>
-          </div>
 
-          <div class="field-error" id="err-time">يرجى اختيار موعد مناسب</div>
-        </div>
-      </section>
-
-      <!-- ============================= -->
-      <!-- Page 4: Contact & Gift info   -->
-      <!-- ============================= -->
-      <section id="page4" class="page">
-        <h1>معلومات الاتصال</h1>
-
-        <!-- Sender info -->
-        <div class="card">
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <label for="name" class="form-label">الاسم</label>
-              <input id="name" type="text" class="form-control"
-                     placeholder="الاسم كما سيظهر في الفاتورة"/>
-              <div class="field-error" id="err-name">يرجى إدخال الاسم</div>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <label for="mobile" class="form-label">رقم الجوال</label>
-              <input id="mobile" type="tel" class="form-control"
-                     placeholder="مثال: 5XXXXXXXX"/>
-              <div class="field-error" id="err-mobile">يرجى إدخال رقم جوال صحيح</div>
-            </div>
-
-            <!-- 🔐 OTP -->
-            <div class="col-12">
-              <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2">
-                <button type="button" id="btnSendOtp" class="btn btn-sm btn-outline-primary fw-bold">
-                  إرسال كود على واتساب
-                </button>
-                <span id="otpStatus" class="small text-muted">
-                  سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.
-                </span>
+            <!-- Additional Services UI -->
+            <hr class="mt-4 mb-3"/>
+            <div class="mt-2">
+              <label class="form-label">خدمات إضافية (اختياري)</label>
+              <div id="additionalServicesWrap">
+                <div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>
               </div>
+              <div class="field-error" id="err-additionalServices" style="display:none"></div>
+            </div>
 
-              <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
-                <input id="otpCode" type="text" inputmode="numeric" class="form-control"
-                       style="max-width:160px;" placeholder="كود التحقق (4 أرقام)"/>
-                <button type="button" id="btnVerifyOtp" class="btn btn-sm btn-success fw-bold">
-                  تأكيد
-                </button>
+            <div id="servicesLoading" class="load-overlay" aria-hidden="true">
+              <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
+              <strong>جاري تحميل الخدمات…</strong>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3) Time (normal booking only; skipped for gift) -->
+        <section id="page3" class="page" aria-label="اختيار الموعد">
+          <h1>متى تحب نجيك؟</h1>
+          <div class="card position-relative" id="timeCard">
+            <div class="row g-3">
+              <div class="col-12 col-md-5">
+                <label class="form-label" for="date">التاريخ</label>
+                <input id="date" type="date" class="form-control"/>
+                <div class="field-error" id="err-date">يرجى اختيار تاريخ صحيح</div>
               </div>
+            </div>
 
-              <div class="field-error" id="err-otp">يرجى إدخال كود التحقق الصحيح</div>
+            <div class="time-toolbar mt-3">
+              <div>
+                <label class="form-label" for="timeFilter">فلترة الوقت</label>
+                <select id="timeFilter" class="form-select">
+                  <option value="all" selected>كل الأوقات المتاحة</option>
+                  <option value="morning">الصباح (06:00–11:00)</option>
+                  <option value="afternoon">الظهيرة (11:00–16:00)</option>
+                  <option value="evening">المساء (16:00–21:00)</option>
+                  <option value="night">ليلًا (21:00–23:59)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="position-relative mt-3">
+              <div id="time-container" class="time-grid" role="radiogroup" aria-label="اختيار الوقت"></div>
+              <div id="timeLoading" class="load-overlay">
+                <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
+                <strong>جاري جلب المواعيد…</strong>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- 🎁 Gift receiver info (only when isGiftToggle = true) -->
-        <div id="giftReceiverCard" class="card" style="display:none;">
-          <h2 class="h6 fw-bold mb-3">معلومات المستلم (الهدية)</h2>
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <label for="receiverName" class="form-label">اسم المستلم</label>
-              <input id="receiverName" type="text" class="form-control"
-                     placeholder="اسم الشخص الذي سيستلم الهدية"/>
-              <div class="field-error" id="err-receiverName">يرجى إدخال اسم المستلم</div>
-            </div>
-            <div class="col-12 col-md-6">
-              <label for="receiverMobile" class="form-label">جوال المستلم</label>
-              <input id="receiverMobile" type="tel" class="form-control"
-                     placeholder="مثال: 5XXXXXXXX"/>
-              <div class="field-error" id="err-receiverMobile">يرجى إدخال رقم جوال المستلم</div>
-            </div>
-            <div class="col-12">
-              <label for="giftMessage" class="form-label">رسالة مع الهدية (اختياري)</label>
-              <textarea id="giftMessage" class="form-control" rows="2"
-                        placeholder="اكتب رسالة قصيرة تُرسل مع رابط الهدية (اختياري)"></textarea>
-            </div>
-          </div>
-        </div>
+        <!-- 4) Contact (Sender) + Gift Receiver -->
+        <section id="page4" class="page" aria-label="معلومات الاتصال">
+          <h1>معلومات الاتصال</h1>
 
-        <!-- Car details -->
-        <div class="card">
-          <h2 class="h6 fw-bold mb-3">معلومات المركبة</h2>
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <label for="carBrand" class="form-label">ماركة المركبة</label>
-              <select id="carBrand" class="form-select"></select>
-            </div>
-            <div class="col-12 col-md-6">
-              <label for="carName" class="form-label">الموديل / الفئة</label>
-              <input id="carName" type="text" class="form-control"
-                     placeholder="مثال: S-Class ، LX 570"/>
-            </div>
-            <div class="col-12 col-md-6">
-              <label for="plateNumber" class="form-label">أرقام اللوحة (اختياري)</label>
-              <input id="plateNumber" type="text" class="form-control"
-                     placeholder="أرقام اللوحة — اختياري"/>
-              <div class="field-error" id="err-plate">يرجى التحقق من رقم اللوحة</div>
-            </div>
-          </div>
-        </div>
-      </section>
+          <!-- Sender info (المُرسِل) -->
+          <div class="card">
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label for="name" class="form-label">الاسم</label>
+                <input id="name" type="text" class="form-control" placeholder="الاسم كما سيظهر في الفاتورة" autocomplete="name"/>
+                <div class="field-error" id="err-name">يرجى إدخال الاسم</div>
+              </div>
+              <div class="col-12 col-md-6">
+                <label for="mobile" class="form-label">رقم الجوال</label>
+                <input id="mobile" type="tel" class="form-control" placeholder="رقم التواصل الخاص — مثال 5XXXXXXXX" autocomplete="tel"/>
+                <div class="field-error" id="err-mobile">الرجاء إدخال رقم جوال صحيح</div>
 
-      <!-- ============================= -->
-      <!-- Page 5: Payment               -->
-      <!-- ============================= -->
-      <section id="page5" class="page">
-        <h1>طريقة الدفع</h1>
+                <!-- 🔐 OTP Controls (send + status) -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-2" id="otpControls" style="display:none;">
+                  <button id="btnSendOtp" type="button" class="btn btn-sm btn-outline-primary" style="border-radius:999px; min-height:38px;">
+                    إرسال كود على واتساب
+                  </button>
+                  <span id="otpStatus" class="small text-muted">
+                    سيتم إرسال كود من 4 أرقام للتحقق من رقمك عبر واتساب.
+                  </span>
+                </div>
 
-        <div class="card">
-          <h2 class="h6 fw-bold mb-3">اختر طريقة الدفع المناسبة</h2>
-
-          <div class="position-relative">
-            <div class="load-overlay" id="payLoadingOverlay">
-              <div class="spinner-border text-info" role="status"></div>
-              <span class="fw-semibold">جاري تحميل طرق الدفع…</span>
-            </div>
-
-            <div class="pay-grid" id="payGroup">
-              <!-- pay cards (Mada / Apple Pay / STC Pay / Cash…) -->
+                <!-- 🔢 OTP Input + Verify -->
+                <div class="row g-2 mt-2" id="otpVerifyRow" style="display:none;">
+                  <div class="col-8 col-sm-6">
+                    <input id="otpCode" type="tel" inputmode="numeric" maxlength="4"
+                           class="form-control"
+                           placeholder="أدخل كود التحقق (4 أرقام)"/>
+                  </div>
+                  <div class="col-4 col-sm-3 d-grid">
+                    <button id="btnVerifyOtp" type="button" class="btn btn-success btn-sm" style="min-height:40px;">
+                      تأكيد
+                    </button>
+                  </div>
+                </div>
+                <div class="field-error" id="err-otp" style="display:none;">يرجى إدخال كود التحقق الصحيح</div>
+              </div>
             </div>
           </div>
 
-          <div class="field-error" id="err-pay">يرجى اختيار طريقة الدفع</div>
-        </div>
-
-        <div class="card">
-          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-            <h2 class="h6 fw-bold mb-0">كود الخصم</h2>
-            <button id="btnShowOffers2" type="button" class="btn-offers-pill">
-              <i class="fa-solid fa-gift"></i>
-              <span>عرض العروض</span>
-            </button>
-          </div>
-          <div class="row g-2 align-items-center">
-            <div class="col-12 col-md-6">
-              <input id="couponCode" type="text" class="form-control"
-                     placeholder="أدخل كود الخصم إن وجد"/>
+          <!-- 🎁 Gift receiver info (only used when isGiftToggle is ON) -->
+          <div class="card mt-3" id="giftReceiverCard" style="display:none;">
+            <h2 class="h5 mb-3" style="font-weight:800;">بيانات المستلم (الهدية)</h2>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label for="giftReceiverName" class="form-label">اسم المستلم</label>
+                <input id="giftReceiverName" type="text" class="form-control" placeholder="اسم الشخص الذي ستصل له الهدية" autocomplete="off"/>
+                <div class="field-error" id="err-giftReceiverName" style="display:none;">يرجى إدخال اسم المستلم</div>
+              </div>
+              <div class="col-12 col-md-6">
+                <label for="giftReceiverMobile" class="form-label">جوال المستلم</label>
+                <input id="giftReceiverMobile" type="tel" class="form-control" placeholder="رقم جوال المستلم على واتساب" autocomplete="off"/>
+                <div class="field-error" id="err-giftReceiverMobile" style="display:none;">يرجى إدخال جوال المستلم</div>
+              </div>
+              <div class="col-12">
+                <label for="giftMessage" class="form-label">رسالة مرافقة للهدية (اختياري)</label>
+                <textarea id="giftMessage" rows="3" class="form-control"
+                          placeholder="أكتب رسالة لطيفة تظهر للمستلم مع رابط الحجز وكوبون الهدية"></textarea>
+              </div>
             </div>
-            <div class="col-12 col-md-3 d-grid d-md-block">
-              <button id="applyCouponBtn" type="button" class="btn btn-primary w-100 fw-bold">
+          </div>
+
+          <h1 class="mt-4">معلومات المركبة</h1>
+          <div class="card">
+            <div class="row g-3">
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="carBrand">ماركة السيارة 🚘</label>
+                <select id="carBrand" style="width:100%"></select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="carName">اسم السيارة</label>
+                <input id="carName" type="text" class="form-control" placeholder="الموديل/الفئة — مثال: S-Class، LX 570" autocomplete="off"/>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="plateNumber">رقم اللوحة (اختياري)</label>
+                <input id="plateNumber" type="text" inputmode="numeric" class="form-control" placeholder="أرقام اللوحة — اختياري" autocomplete="off"/>
+                <small id="plateHelp" class="text-muted d-block mt-1" style="opacity:.9">
+                  اختياري — يساعد فريقنا على التعرف على مركبتك بسرعة
+                </small>
+                <div class="field-error" id="err-plate" style="display:none"></div>
+              </div>
+              <input id="locationDescription" type="text" hidden/>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5) Payment + Coupon -->
+        <section id="page5" class="page" aria-label="طريقة الدفع">
+          <h1>طريقة الدفع</h1>
+
+          <!-- Dynamic payment methods will be injected here -->
+          <div class="pay-grid" role="radiogroup" aria-label="طريقة الدفع" id="payGroup"></div>
+          <div class="field-error" id="err-pay" style="text-align:center">يرجى اختيار طريقة الدفع</div>
+
+          <!-- Coupon block -->
+          <div class="card mt-4" id="couponCard">
+            <label for="couponCode" class="form-label">كود الخصم (اختياري)</label>
+            <div class="input-group">
+              <input id="couponCode" type="text" class="form-control" placeholder="مثال: WELCOME10" autocomplete="off"/>
+              <button id="applyCouponBtn" type="button" class="btn btn-outline-primary" style="min-width:120px">
                 تطبيق الكوبون
               </button>
             </div>
-          </div>
-          <div id="couponMessage" class="small text-muted mt-2">
-            إن كان لديك كوبون خصم يمكنك إدخاله وتطبيقه على قيمة الطلب.
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================= -->
-      <!-- Page 6: Location / map        -->
-      <!-- ============================= -->
-      <section id="page6" class="page">
-        <h1>تحديد موقع الخدمة</h1>
-
-        <div class="card">
-          <div class="map-search">
-            <label for="mapSearch" class="form-label">ابحث عن موقعك</label>
-            <input id="mapSearch" type="text" class="form-control"
-                   placeholder="اكتب اسم الحي أو الموقع ثم اختر من الاقتراحات"/>
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </div>
-
-          <div id="googleMap"></div>
-
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
-            <button id="show-my-location" type="button" class="btn btn-outline-primary fw-bold">
-              <i class="fa-solid fa-location-crosshairs"></i>
-              تحديد موقعي الحالي
-            </button>
-            <div class="small text-muted">
-              اضغط على الخريطة أو اسحب المؤشر لتحديد موقع الخدمة بدقة.
+            <div id="couponMessage" class="small mt-2 text-muted">
+              يمكنك إدخال كوبون خصم إن وجد، وسيتم تطبيقه على إجمالي الطلب.
             </div>
           </div>
+        </section>
 
-          <div class="field-error" id="err-map">يرجى تحديد موقع الخدمة على الخريطة</div>
-        </div>
-      </section>
-
-      <!-- ============================= -->
-      <!-- Page 7: Thank you             -->
-      <!-- ============================= -->
-      <section id="page7" class="page">
-        <h1>تم استلام طلبك 🤍</h1>
-
-        <div class="card text-center">
-          <p class="text-muted mb-3">
-            تم استلام طلبك بنجاح، وسيصلك تأكيد نهائي عبر واتساب قريبًا.
-          </p>
-
-          <div class="row g-2 justify-content-center mb-3 text-start">
-            <div class="col-12 col-md-6">
-              <div class="small text-muted">المنطقة</div>
-              <div id="ts-area" class="fw-bold">—</div>
+        <!-- 6) Map (normal booking only; gift skips location) -->
+        <section id="page6" class="page" aria-label="اختيار الموقع">
+          <h1>الموقع على خريطة قوقل</h1>
+          <div class="card">
+            <div class="map-search">
+              <input id="mapSearch" class="form-control" type="text" placeholder="ابحث عن برج، حي، أو عنوان داخل السعودية"/>
+              <i class="fa-solid fa-magnifying-glass"></i>
             </div>
-            <div class="col-12 col-md-6">
-              <div class="small text-muted">الخدمة</div>
-              <div id="ts-service" class="fw-bold">—</div>
+            <div id="googleMap"></div>
+          </div>
+          <div class="card text-center">
+            <button id="show-my-location" class="btn btn-outline-primary" type="button">إظهار موقعي</button>
+          </div>
+          <small id="mapHint" class="text-muted d-block mt-2" style="text-align:center">
+            اضغط على الخريطة أو اسحب العلامة لتحديد موقعك
+          </small>
+          <div class="field-error" id="err-map" style="text-align:center">الرجاء تحديد الموقع على الخريطة</div>
+        </section>
+
+        <!-- 7) Done -->
+        <section id="page7" class="page" aria-label="تم الحجز">
+          <h1>شكراً لكم 🌟</h1>
+          <div class="card text-center" style="max-width:720px">
+            <p class="mb-3" style="color:#224652">
+              تم استلام طلبكم، وسنؤكد الموعد على واتساب قريبًا.
+            </p>
+
+            <div id="thanks-summary" class="text-start mx-auto" style="max-width:520px">
+              <div class="d-flex justify-content-between py-2 border-bottom">
+                <span>المنطقة</span><strong id="ts-area">—</strong>
+              </div>
+              <div class="d-flex justify-content-between py-2 border-bottom">
+                <span>الخدمة</span><strong id="ts-service">—</strong>
+              </div>
+              <div class="d-flex justify-content-between py-2 border-bottom">
+                <span>الموعد</span><strong id="ts-dt">—</strong>
+              </div>
+              <div class="d-flex justify-content-between py-2">
+                <span>طريقة الدفع</span><strong id="ts-pay">—</strong>
+              </div>
             </div>
-            <div class="col-12 col-md-6">
-              <div class="small text-muted">الموعد</div>
-              <div id="ts-dt" class="fw-bold">—</div>
-            </div>
-            <div class="col-12 col-md-6">
-              <div class="small text-muted">طريقة الدفع</div>
-              <div id="ts-pay" class="fw-bold">—</div>
+
+            <div class="d-flex gap-2 justify-content-center mt-3 flex-wrap">
+              <a id="ts-whatsapp" class="btn btn-success" target="_blank" rel="noopener">
+                <i class="fa-brands fa-whatsapp"></i> مشاركة عبر واتساب
+              </a>
+              <button id="rebook" class="btn btn-primary" type="button"
+                      style="min-height:52px;font-weight:800;border-radius:12px;padding:12px 18px">
+                🔁 حجز جديد
+              </button>
             </div>
           </div>
-
-          <div class="d-flex flex-column flex-md-row justify-content-center gap-2 mb-3">
-            <a id="ts-whatsapp" href="#" target="_blank" class="btn btn-success fw-bold">
-              <i class="fa-brands fa-whatsapp"></i>
-              مشاركة تفاصيل الحجز
-            </a>
-            <button id="rebook" type="button" class="btn btn-outline-secondary fw-bold">
-              حجز جديد
-            </button>
-          </div>
-
-          <p class="small text-muted mb-0">
-            في حال وجود أي استفسار يمكنك الرد على رسالة التأكيد في واتساب مباشرة.
-          </p>
-        </div>
-      </section>
-
+        </section>
+      </div>
     </div>
-  </div>
-</main>
+  </main>
 
-<!-- ============================= -->
-<!-- Footer navigation             -->
-<!-- ============================= -->
-<footer class="sticky-nav">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <span>مدعوم بواسطة</span>
-      <a href="https://nahl.app" target="_blank" rel="noopener noreferrer">NahlTime</a>
-    </div>
-
-    <div class="footer-actions">
-      <button id="footer-prev" type="button" class="btn-footer">
-        <i class="fa-solid fa-chevron-right ms-1"></i>
-        <span>السابق</span>
-      </button>
-
-      <button id="footer-next" type="button" class="btn-footer primary">
-        <span>التالي</span>
-        <i class="fa-solid fa-chevron-left me-1"></i>
-      </button>
-    </div>
-
-    <div class="footer-total">
-      <span class="footer-total-label">إجمالي الطلب:</span>
-      <span class="footer-total-value" id="footer-total-value">—</span>
-      <div id="footer-wait">
-        <div class="spinner-border spinner-border-sm text-light" role="status"></div>
-        <span>جاري معالجة الطلب…</span>
+  <!-- 🎁 Offers Modal Markup -->
+  <div id="offersModal" class="offers-modal" aria-hidden="true">
+    <div class="offers-backdrop"></div>
+    <div class="offers-dialog" role="dialog" aria-modal="true" aria-labelledby="offersTitle">
+      <div class="offers-header">
+        <h2 id="offersTitle" class="offers-title">عروض اليوم</h2>
+        <button type="button" class="offers-close" aria-label="إغلاق العروض">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="offersFilters" class="offers-filters">
+        <button type="button" class="offers-filter-chip active" data-type="all">الكل</button>
+        <button type="button" class="offers-filter-chip active" data-type="image">صور</button>
+        <button type="button" class="offers-filter-chip active" data-type="text">نصوص</button>
+        <button type="button" class="offers-filter-chip active" data-type="coupon">كوبونات</button>
+      </div>
+      <div id="offersList" class="offers-list">
+        <div class="offers-empty text-muted small">جاري تحميل العروض…</div>
       </div>
     </div>
   </div>
-</footer>
 
-<!-- 🎁 Offers Modal -->
-<div id="offersModal" class="offers-modal" aria-hidden="true">
-  <div class="offers-backdrop"></div>
-  <div class="offers-dialog">
-    <div class="offers-header">
-      <h2 class="offers-title">
-        عروض اليوم
-      </h2>
-      <button type="button" class="offers-close" id="offersCloseBtn">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
+  <!-- 📃 Terms & Conditions Modal (dynamic from Google Sheet via js/terms-modal.js) -->
+  <div id="termsModal" class="offers-modal" aria-hidden="true" data-terms-app-id="21eddbf5-efe5-4a5d-9134-b581717b17ff">
+    <div class="offers-backdrop"></div>
+    <div class="offers-dialog" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+      <div class="offers-header">
+        <h2 id="termsTitle" class="offers-title">الشروط والأحكام</h2>
+        <button type="button" class="offers-close" data-terms-dismiss="1" aria-label="إغلاق الشروط">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
 
-    <div class="offers-filters">
-      <button type="button" class="offers-filter-chip active" data-type="all">الكل</button>
-      <button type="button" class="offers-filter-chip active" data-type="image">صور</button>
-      <button type="button" class="offers-filter-chip active" data-type="text">نصية</button>
-      <button type="button" class="offers-filter-chip active" data-type="coupon">كوبونات</button>
-    </div>
+      <!-- سيتم تعبئة المحتوى من js/terms-modal.js -->
+      <div id="termsBody" class="offers-list" style="font-size:.85rem;line-height:1.7;">
+        <p class="text-muted mb-0">جاري تحميل الشروط والأحكام…</p>
+      </div>
 
-    <div class="offers-list" id="offersList">
-      <div class="small text-muted">
-        جاري تحميل العروض…
+      <div id="termsMeta" class="terms-meta small text-muted" style="margin-top:6px;display:none;">
+        <!-- مثال: آخر تحديث: 2025-11-28 -->
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+        <button type="button"
+                class="btn btn-light"
+                data-terms-dismiss="1">
+          إلغاء
+        </button>
+        <button type="button"
+                class="btn btn-primary"
+                id="btnAcceptTerms">
+          أوافق على الشروط
+        </button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- 📄 Terms Modal (reuse offers modal styling) -->
-<div id="termsModal" class="offers-modal" aria-hidden="true">
-  <div class="offers-backdrop"></div>
-  <div class="offers-dialog">
-    <div class="offers-header">
-      <h2 class="offers-title" id="termsTitle">الشروط والأحكام</h2>
-      <button type="button" class="offers-close" id="termsCloseBtn">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
+  <!-- ========================= -->
+  <!--  Footer / Navigation      -->
+  <!-- ========================= -->
+  <footer id="siteFooter" class="sticky-nav" aria-label="التنقل بين الخطوات">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span>نحل • <a href="https://nahl.app" target="_blank" rel="noopener">Nahl.app</a></span>
+        <div class="footer-social">
+          <a href="https://wa.me/966509027172" target="_blank" aria-label="WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i>
+          </a>
+          <a href="https://www.instagram.com/nahl.app?igsh=ZmljaXNncGtudjJ2" target="_blank" aria-label="Instagram">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+          <a href="https://www.tiktok.com/@nahl.app?_t=ZS-8zgmzEQTSQW&_r=1" target="_blank" aria-label="TikTok">
+            <i class="fa-brands fa-tiktok"></i>
+          </a>
+        </div>
+      </div>
 
-    <div class="offers-list" id="termsBody">
-      <div class="small text-muted">
-        يتم تحميل الشروط والأحكام من النظام، يرجى الانتظار…
+      <div class="footer-total">
+        <span class="footer-total-label" id="footer-total-label">إجمالي الطلب:</span>
+        <span class="footer-total-value" id="footer-total-value">—</span>
+      </div>
+
+      <div class="footer-actions">
+        <button id="footer-prev" type="button" class="btn-footer hidden">السابق</button>
+        <button id="footer-next" type="button" class="btn-footer primary disabled" disabled>تخطي العرض</button>
+      
+        <!-- زر تحميل التطبيق من الفوتر -->
+        <button id="footer-install-btn" type="button" class="btn-footer" style="display:none;">
+          📲 تحميل التطبيق
+        </button>
+      
+        <div id="footer-wait" class="">
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <span>يتم إرسال الطلب…</span>
+        </div>
       </div>
     </div>
 
-    <div class="mt-2 d-flex justify-content-between gap-2 flex-wrap">
-      <button id="termsRejectBtn" type="button" class="btn btn-outline-secondary btn-sm">
-        أرفض الشروط
-      </button>
-      <button id="termsAcceptBtn" type="button" class="btn btn-primary btn-sm">
-        أوافق على الشروط والأحكام
-      </button>
-    </div>
-  </div>
-</div>
+    <!-- زر PWA عائم للايفون/أندرويد -->
+    <button id="installPwaBtn"
+      style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+             z-index:9999; padding:10px 18px; border-radius:999px;
+             border:none; background:#027A93; color:#fff; font-weight:800;
+             box-shadow:0 6px 18px rgba(0,0,0,.25);">
+      📲 تثبيت تطبيق NahlTime
+    </button>
+  </footer>
 
-<!-- JS libs -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/intlTelInput.min.js"></script>
+  <!-- ========================= -->
+  <!--  JS: Core Libraries       -->
+  <!-- ========================= -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/intlTelInput.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
 
-<!-- Main booking / core logic (connects to API proxy + Code.gs) -->
-<script src="app.js"></script>
+  <!-- ========================= -->
+  <!--  JS: App Logic (core)     -->
+  <!-- ========================= -->
+  <script src="app.js"></script>
 
-<!-- 🎁 Gift workflow logic (separate file as requested) -->
-<script src="js/gift.js"></script>
+  <!-- ========================= -->
+  <!--  JS: Gift Workflow (separate file, calls /api/gifts and nahl-platform workflow) -->
+  <!-- ========================= -->
+  <script src="js/gift.js"></script>
 
-<!-- Terms modal logic (connects via /api/terms → Code.gs) -->
-<script src="js/terms-modal.js"></script>
+  <!-- ========================= -->
+  <!--  JS: Terms Modal (dynamic from GAS via proxy) -->
+  <!-- ========================= -->
+  <script src="js/terms-modal.js"></script>
 
-<!-- Google Maps API (replace YOUR_KEY with real key) -->
-<script async
-        defer
-        src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&libraries=places,geometry&callback=initMap"></script>
+  <!-- Google Maps (after initMap is defined in app.js) -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBHLoO038vsCovHN-SLUgAXqexlA2v0_4&libraries=places,geometry&callback=initMap"
+    defer
+  ></script>
 </body>
 </html>
