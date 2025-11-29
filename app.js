@@ -2612,7 +2612,7 @@ function handleLogoError(img){
     "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/spong&Soap%20-%20logo.png",
     "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/spong%26Soap%20-%20logo.png",
     "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/logo.png",
-    "https://dummyimage.com/180x54/027A93/ffffff.png&text=Sponge+%26+Soap"
+
   ];
   const i = Number(img.dataset.fidx || 0);
   if (i < fallbacks.length){
