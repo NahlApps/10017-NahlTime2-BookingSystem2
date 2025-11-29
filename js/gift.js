@@ -12,7 +12,7 @@
   // 🔗 Backend responsible for GIFT workflow (NOT nahl-platform.vercel.app)
   // Make sure this URL matches your deployed WebApp (latest deployment)
   const GIFT_GAS_BASE =
-    'https://script.google.com/macros/s/AKfycbzdn5KpXRD3n3B4GA0-HEN9z_Vkp40ESUhVbn_nb3J5MS-4w1nNRF_uH-0NzKqYBYZKhw/exec';
+    'https://script.google.com/macros/s/AKfycbz2SdbVMp9usLde3cXDCelVPe_XppR_RzPrk7xwOTUt7WXht5KjktJ4f3CAwuGogTbT0g/exec';
 
   // Endpoint that will receive gift requests:
   // Frontend always calls with POST → doPost() in Code.gs
