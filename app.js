@@ -3,6 +3,7 @@
 /* ========================================================================== */
 
 const APP_ID = '21eddbf5-efe5-4a5d-9134-b581717b17ff';
+window.APP_ID = APP_ID; // expose for other scripts (gift.js, etc.)
 
 const defaultLink2          = `https://b0sk44sswgc4kcswoo8sk0og.nahls.app/api/app/AM/general/${APP_ID}/form`;
 const RESERVE_URL_PRIMARY  = `${defaultLink2}/reserveAppointment`;
@@ -36,6 +37,11 @@ const OTP_VERIFY_URL     = `${API_BASE}/api/otp/verify`;
 const OTP_ENABLED        = true;   // 🟢 true = require OTP verify, 🔴 false = skip OTP
 const OTP_CODE_LENGTH    = 4;
 const OTP_RESEND_SECONDS = 60;
+
+// expose OTP config on window (used in gift.js and other scripts)
+window.OTP_ENABLED        = OTP_ENABLED;
+window.OTP_CODE_LENGTH    = OTP_CODE_LENGTH;
+window.OTP_RESEND_SECONDS = OTP_RESEND_SECONDS;
 
 /* ========================================================================== */
 /*  4) CORE NETWORK HELPERS (Supabase / Backend Calls)                        */
@@ -110,7 +116,7 @@ async function postReservation(payload){
 function showToast(type='info', msg=''){
   const wrap=document.getElementById('toastWrap');
   if(!wrap){
-    alert(msg);
+    console.log(`[toast][${type}]`, msg);
     return;
   }
   const div=document.createElement('div');
@@ -119,7 +125,6 @@ function showToast(type='info', msg=''){
   div.style.padding='10px 14px';
   div.style.borderRadius='10px';
   div.style.boxShadow='0 10px 28px rgba(11,38,48,.14)';
-  div.style.transition='opacity 180ms ease, transform 180ms ease';
   div.style.background =
     type==='error'   ? '#dc2626' :
     type==='success' ? '#16a34a' :
@@ -132,6 +137,8 @@ function showToast(type='info', msg=''){
     setTimeout(()=>div.remove(), 180);
   }, 2400);
 }
+// expose
+window.showToast = showToast;
 
 /* ========================================================================== */
 /*  6) GLOBALS: STEPS / BACKGROUNDS / STATE                                   */
@@ -141,6 +148,10 @@ const DateTime       = luxon.DateTime;
 const orderedPages   = ["page1","page2","page3","page4","page5","page6","page7"];
 const STEPS_LABELS   = ["الترحيب","الخدمة","الوقت","البيانات","الدفع","الموقع","تم"];
 const STEPS_LABELS_EN= ["Welcome","Service","Time","Details","Payment","Location","Done"];
+
+window.orderedPages    = orderedPages;
+window.STEPS_LABELS    = STEPS_LABELS;
+window.STEPS_LABELS_EN = STEPS_LABELS_EN;
 
 const PAGE_BACKGROUNDS={
   page1:"https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimeProFrom/NahlDemoBG1.jpg",
@@ -168,8 +179,10 @@ let categoriesCache   = null;
 let itiPhone          = null;
 let positionUrl       = "";
 let lastSelectedISO   = "";
-let isSubmitting      = false;
 let currentTimeFilter = 'all';
+
+// expose booking state on window where needed
+window.selectedTime = selectedTime;
 
 /* Additional Services & Pricing State */
 let additionalServicesList  = [];
@@ -180,15 +193,20 @@ let additionalServicesTotal = 0;
 let couponCodeApplied    = '';
 let couponDiscountAmount = 0;
 let couponMeta           = null;
+window.couponCodeApplied    = couponCodeApplied;
+window.couponDiscountAmount = couponDiscountAmount;
 
-/* 🔐 OTP state */
-let otpRequested       = false;
-let otpVerified        = false;
-let otpLastSentAt      = null;
-let otpCountdownTimer  = null;
+/* 🔐 OTP state – kept directly on window for shared access (gift.js) */
+window.otpRequested      = window.otpRequested      || false;
+window.otpVerified       = window.otpVerified       || false;
+window.otpLastSentAt     = window.otpLastSentAt     || null;
+window.otpCountdownTimer = window.otpCountdownTimer || null;
 
-/* 📃 Terms & Conditions state */
-let termsAccepted = false;
+/* 📃 Terms & Conditions state – shared for gift & normal booking */
+window.termsAccepted = window.termsAccepted || false;
+
+/* Submission flag (used for booking flow and gift flow) */
+window.isSubmitting = window.isSubmitting || false;
 
 /* ========================================================================== */
 /*  7) FORM MODEL                                                              */
@@ -209,8 +227,10 @@ const nForm={
   locale:'ar',
   additionalServicesIds:[],
   additionalServicesLabels:[],
-  couponCode:''
+  couponCode:'',
+  isGift:false
 };
+window.nForm = nForm;
 
 /* ========================================================================== */
 /*  8) LOCALIZATION & TEXT HELPERS                                            */
@@ -239,6 +259,7 @@ function isEnglishLocale(){
   const localeRaw = (nForm.locale || document.documentElement.lang || 'ar').toLowerCase();
   return localeRaw.startsWith('en');
 }
+window.isEnglishLocale = isEnglishLocale;
 
 function getServiceDescription(s) {
   const isEnglish = isEnglishLocale();
@@ -351,11 +372,13 @@ function showPage(idx){
     requestAreaBoundsForCurrentArea();
   }
 }
+window.showPage = showPage;
 
 function getActiveIndex(){
   const id = document.querySelector('.page.active')?.id;
   return Math.max(0, orderedPages.indexOf(id));
 }
+window.getActiveIndex = getActiveIndex;
 
 function syncProgress(i){
   const pct = ((i+1)/orderedPages.length)*100;
@@ -463,6 +486,7 @@ function renderSummary(currentId){
       wrap.appendChild(el);
     });
 }
+window.renderSummary = renderSummary;
 
 /* ========================================================================== */
 /* 13) WELCOME DECK (SLIDESHOW)                                              */
@@ -512,12 +536,14 @@ function startWelcomeDeck(){
   };
   schedule();
 }
+window.startWelcomeDeck = startWelcomeDeck;
 
 function stopWelcomeDeck(){
   deckRunning=false;
   deckTimers.forEach(clearTimeout);
   deckTimers=[];
 }
+window.stopWelcomeDeck = stopWelcomeDeck;
 
 /* ========================================================================== */
 /* 14) TIME PARSING & AVAILABILITY FILTER                                     */
@@ -689,7 +715,6 @@ function installResizeObservers(){
 /* 17) REVIEW FEATURE: BOOKING ID GENERATOR & SCHEDULER                       */
 /* ========================================================================== */
 
-/* ⭐⭐ REVIEW FEATURE: BookingId generator (reviews-only) */
 function generateReviewBookingId(){
   const now = new Date();
   const pad = (n)=>String(n).padStart(2,'0');
@@ -703,7 +728,6 @@ function generateReviewBookingId(){
   return `R-${datePart}-${rand}`;
 }
 
-/* ⭐⭐ REVIEW FEATURE: helper to schedule sending review form via WhatsApp after booking */
 async function scheduleReviewForBooking(bookingIdFromReservation){
   try{
     const reviewBookingId = bookingIdFromReservation || generateReviewBookingId();
@@ -721,9 +745,9 @@ async function scheduleReviewForBooking(bookingIdFromReservation){
     const payload = {
       action:        'scheduleReview',
       appId:         APP_ID,
-      bookingId:     reviewBookingId,         // 🔹 BookingId خاص بالتقييم (أو القادم من الحجز)
-      customerPhone: phoneDigits,            // للـ proxy /api/review.js
-      mobile:        phoneDigits,            // لو استُخدم الاتصال مباشرة مع GAS
+      bookingId:     reviewBookingId,
+      customerPhone: phoneDigits,
+      mobile:        phoneDigits,
       delayMinutes:  REVIEW_DELAY_MINUTES,
       locale:        isEnglishLocale() ? 'en' : 'ar'
     };
@@ -977,6 +1001,9 @@ async function validateCouponAndApply(){
     couponMeta            = result;
     nForm.couponCode      = code;
 
+    window.couponCodeApplied    = couponCodeApplied;
+    window.couponDiscountAmount = couponDiscountAmount;
+
     updateFooterTotal();
     renderSummary('page5');
 
@@ -1122,100 +1149,9 @@ async function loadPaymentMethods() {
 }
 
 /* ========================================================================== */
-/* 22) TERMS & CONDITIONS MODAL                                               */
-/* ========================================================================== */
-
-function openTermsModal(){
-  const modal = document.getElementById('termsModal');
-  if (!modal){
-    console.warn('[terms] termsModal element not found');
-    return;
-  }
-  modal.classList.add('show');
-  modal.setAttribute('aria-hidden','false');
-  document.body.classList.add('terms-open');
-  console.log('[terms] modal opened');
-}
-
-function closeTermsModal(){
-  const modal = document.getElementById('termsModal');
-  if (!modal) return;
-  modal.classList.remove('show');
-  modal.setAttribute('aria-hidden','true');
-  document.body.classList.remove('terms-open');
-  console.log('[terms] modal closed');
-}
-
-function wireTermsModal(){
-  console.log('[terms] wiring terms modal UI…');
-  const chk = document.getElementById('termsCheckbox');
-  if (chk){
-    termsAccepted = !!chk.checked;
-    chk.addEventListener('change', () => {
-      termsAccepted = chk.checked;
-      console.log('[terms] checkbox changed:', termsAccepted);
-      updateNextAvailability();
-    });
-  }
-
-  const link = document.getElementById('termsLink');
-  if (link){
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      openTermsModal();
-    });
-  }
-
-  const modal = document.getElementById('termsModal');
-  if (!modal){
-    console.warn('[terms] no modal element, skip modal wiring');
-    return;
-  }
-
-  const closeBtn  = modal.querySelector('[data-terms-close]') || document.getElementById('termsModalClose');
-  const acceptBtn = modal.querySelector('[data-terms-accept]') || document.getElementById('termsModalAccept');
-  const backdrop  = modal.querySelector('.terms-backdrop')     || modal.querySelector('[data-terms-backdrop]');
-
-  if (closeBtn){
-    closeBtn.addEventListener('click', () => {
-      closeTermsModal();
-    });
-  }
-
-  if (backdrop){
-    backdrop.addEventListener('click', () => {
-      closeTermsModal();
-    });
-  }
-
-  if (acceptBtn){
-    acceptBtn.addEventListener('click', () => {
-      termsAccepted = true;
-      console.log('[terms] accepted via modal');
-      const mainChk = document.getElementById('termsCheckbox');
-      if (mainChk) mainChk.checked = true;
-      closeTermsModal();
-      if (typeof showToast === 'function'){
-        showToast('success', isEnglishLocale()
-          ? 'Terms & Conditions accepted.'
-          : 'تمت الموافقة على الشروط والأحكام ✅');
-      }
-      updateNextAvailability();
-    });
-  }
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal.classList.contains('show')){
-      closeTermsModal();
-    }
-  });
-}
-
-/* ========================================================================== */
 /* 23) OFFERS / ADS POPUP                                                     */
 /* ========================================================================== */
 
-/* 🎁 Offers / Ads popup (from Apps Script /api/offers) */
 let offersLoaded      = false;
 let offersCache       = [];
 let offersFilterAll   = true;
@@ -1250,7 +1186,6 @@ function formatOfferDateRange(startRaw, endRaw) {
   return isEn ? `Until ${toTxt}` : `ساري حتى ${toTxt}`;
 }
 
-// 🔹 تحميل العروض من الـ backend
 async function fetchOffersFromServer() {
   const todayIso = DateTime.now().toISODate();
   const params = new URLSearchParams({
@@ -1284,7 +1219,6 @@ async function fetchOffersFromServer() {
   console.log('[offers] cached items:', offersCache);
 }
 
-// 🔹 تحويل بيانات العرض مع دعم rawKeys (Body AR/EN + Show On Pages)
 function getFilteredOffers() {
   if (!offersCache || !offersCache.length) return [];
 
@@ -1313,7 +1247,6 @@ function getFilteredOffers() {
         if (d.isValid) toOk = todayDt <= d;
       }
 
-      // 🔹 قراءة Show On Pages من rawKeys
       const rk = o.rawKeys || o.RawKeys || {};
       const showOnPagesRaw =
         o.showOnPages ||
@@ -1328,11 +1261,9 @@ function getFilteredOffers() {
         .map((p) => p.trim())
         .filter(Boolean);
 
-      // نعتبر أننا الآن في الصفحة 1 (الترحيب)
       const showOnWelcome =
         !pages.length || pages.includes('page1') || pages.includes('all');
 
-      // 🔹 نصوص العنوان/الوصف من rawKeys إذا لم تكن موجودة مباشرة
       const title =
         o.title ||
         o.Title ||
@@ -1384,7 +1315,6 @@ function getFilteredOffers() {
     .sort((a, b) => b.priority - a.priority);
 }
 
-// 🔹 رسم العروض في البوب أب
 function renderOffersList() {
   const listEl = document.getElementById('offersList');
   if (!listEl) return;
@@ -1490,7 +1420,6 @@ function renderOffersList() {
   });
 }
 
-// 🔹 تأكد من تحميل العروض مرة واحدة فقط
 async function ensureOffersLoaded() {
   try {
     if (!offersLoaded) {
@@ -1607,12 +1536,12 @@ function wireOffersUI(){
 
 function resetOtpState(fullReset){
   if(!OTP_ENABLED) return;
-  otpRequested   = false;
-  otpVerified    = false;
-  otpLastSentAt  = null;
-  if(otpCountdownTimer){
-    clearInterval(otpCountdownTimer);
-    otpCountdownTimer = null;
+  window.otpRequested   = false;
+  window.otpVerified    = false;
+  window.otpLastSentAt  = null;
+  if(window.otpCountdownTimer){
+    clearInterval(window.otpCountdownTimer);
+    window.otpCountdownTimer = null;
   }
   const statusEl = document.getElementById('otpStatus');
   const errEl    = document.getElementById('err-otp');
@@ -1645,9 +1574,9 @@ function startOtpCountdown(){
   const statusEl = document.getElementById('otpStatus');
   if(!sendBtn || !statusEl) return;
 
-  otpRequested   = true;
-  otpVerified    = false;
-  otpLastSentAt  = Date.now();
+  window.otpRequested   = true;
+  window.otpVerified    = false;
+  window.otpLastSentAt  = Date.now();
   let remaining  = OTP_RESEND_SECONDS;
 
   statusEl.className = 'small text-muted';
@@ -1655,14 +1584,14 @@ function startOtpCountdown(){
   sendBtn.disabled = true;
   sendBtn.textContent = `إعادة الإرسال (${remaining})`;
 
-  if(otpCountdownTimer){
-    clearInterval(otpCountdownTimer);
+  if(window.otpCountdownTimer){
+    clearInterval(window.otpCountdownTimer);
   }
-  otpCountdownTimer = setInterval(()=>{
+  window.otpCountdownTimer = setInterval(()=>{
     remaining--;
     if(remaining <= 0){
-      clearInterval(otpCountdownTimer);
-      otpCountdownTimer = null;
+      clearInterval(window.otpCountdownTimer);
+      window.otpCountdownTimer = null;
       sendBtn.disabled = false;
       sendBtn.textContent = 'إعادة إرسال الكود';
       statusEl.textContent = 'إذا لم يصلك الكود خلال دقيقة، اضغط "إعادة إرسال الكود".';
@@ -1800,12 +1729,12 @@ async function verifyOtpCode(){
         statusEl.textContent = msg;
       }
       showToast('error', msg);
-      otpVerified = false;
+      window.otpVerified = false;
       updateNextAvailability();
       return;
     }
 
-    otpVerified = true;
+    window.otpVerified = true;
     if(statusEl){
       statusEl.className = 'small text-success';
       statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅ يمكنك المتابعة لإكمال الحجز.';
@@ -1819,9 +1748,9 @@ async function verifyOtpCode(){
       sendBtn.disabled = true;
       sendBtn.textContent = 'تم التحقق';
     }
-    if(otpCountdownTimer){
-      clearInterval(otpCountdownTimer);
-      otpCountdownTimer = null;
+    if(window.otpCountdownTimer){
+      clearInterval(window.otpCountdownTimer);
+      window.otpCountdownTimer = null;
     }
     showToast('success','تم التحقق من رقم جوالك');
     updateNextAvailability();
@@ -1833,7 +1762,7 @@ async function verifyOtpCode(){
     }
     showToast('error','حدث خطأ أثناء التحقق من الكود');
   }finally{
-    if(btn && !otpVerified){
+    if(btn && !window.otpVerified){
       btn.disabled=false;
       btn.textContent='تأكيد';
     }
@@ -1844,7 +1773,6 @@ async function verifyOtpCode(){
 /* 25) MAP / GOOGLE MAPS INTEGRATION                                         */
 /* ========================================================================== */
 
-/* Map globals */
 let map, marker, autocomplete, areaPolygon, pendingAreaForBounds=null, currentAreaBounds;
 let lastValidLatLng = null;
 const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
@@ -2293,7 +2221,7 @@ $(function(){
         return;
       }
 
-      if(OTP_ENABLED && !otpVerified){
+      if(OTP_ENABLED && !window.otpVerified){
         const errOtp = document.getElementById('err-otp');
         if(errOtp){
           errOtp.textContent = 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة.';
@@ -2333,8 +2261,10 @@ $(function(){
     if(id==='page6'){
 
       // ✅ Terms & Conditions check before final submit
-      if (!termsAccepted){
-        openTermsModal();
+      if (window.termsAccepted === false){
+        if (typeof openTermsModal === 'function') {
+          openTermsModal();
+        }
         if (typeof showToast === 'function'){
           showToast('info', 'من فضلك اقرأ ووافق على الشروط والأحكام قبل إكمال الحجز');
         }
@@ -2349,8 +2279,8 @@ $(function(){
       document.getElementById('err-map').style.display='none';
       nForm.urlLocation=positionUrl;
 
-      if(isSubmitting) return;
-      isSubmitting=true;
+      if(window.isSubmitting) return;
+      window.isSubmitting=true;
       $next.style.display='none';
       $prev.style.display='none';
       $wait.classList.add('show');
@@ -2373,7 +2303,6 @@ $(function(){
 
         console.log('[booking] Derived bookingId for review:', bookingId);
 
-        // ⭐ REVIEW: schedule sending review form after N minutes via backend
         scheduleReviewForBooking(bookingId);
 
         document.getElementById('ts-area').textContent   = $('#area').find(':selected').text()||'—';
@@ -2390,12 +2319,12 @@ $(function(){
         document.getElementById('ts-whatsapp').href = `https://wa.me/?text=${waMsg}`;
 
         $wait.classList.remove('show');
-        isSubmitting=false;
+        window.isSubmitting=false;
         showPage(6);
       } else {
         const msg=r?.data?.msgAR || (r.status===404?'المسار غير موجود':'تعذر إنشاء الحجز');
         showToast('error',msg);
-        isSubmitting=false;
+        window.isSubmitting=false;
         $wait.classList.remove('show');
         $next.style.display='';
         $prev.style.display='';
@@ -2406,6 +2335,9 @@ $(function(){
 
     showPage(Math.min(i+1, orderedPages.length-1));
   }
+
+  // expose original gotoNext so gift.js can delegate to it for normal bookings
+  window.originalGotoNext = gotoNext;
 
   document.getElementById('footer-next').addEventListener('click', gotoNext);
   document.getElementById('footer-prev').addEventListener('click', ()=>{
@@ -2449,7 +2381,9 @@ $(function(){
   loadAdditionalServices();
   loadPaymentMethods();
   wireOffersUI();
-  wireTermsModal();
+  if (typeof wireTermsModal === 'function') {
+    wireTermsModal();
+  }
 
   setPageBackground('page1');
   renderSummary('page1');
@@ -2491,6 +2425,7 @@ $(function(){
 function updateNextAvailability(){
   const i       = getActiveIndex();
   const nextBtn = document.getElementById('footer-next');
+  if(!nextBtn) return;
   let enable    = true;
 
   if(i===0){
@@ -2505,19 +2440,20 @@ function updateNextAvailability(){
   else if(i===3){
     const nameOk  = ($('#name').val()||'').trim().length>0;
     const phoneOk = (window.itiPhone ? itiPhone.isValidNumber() : true);
-    const otpOk   = (!OTP_ENABLED) || otpVerified;
+    const otpOk   = (!OTP_ENABLED) || window.otpVerified;
     enable = nameOk && phoneOk && otpOk;
   }
   else if(i===4){
     enable=!!(document.querySelector('#payGroup input:checked'));
   }
   else if(i===5){
-    enable=!!positionUrl && !!termsAccepted;
+    enable=!!positionUrl;
   }
 
   nextBtn.disabled=!enable;
   nextBtn.classList.toggle('disabled',!enable);
 }
+window.updateNextAvailability = updateNextAvailability;
 
 /* ========================================================================== */
 /* 28) PWA SERVICE WORKER + INSTALL LOGIC                                     */
@@ -2621,7 +2557,6 @@ window.addEventListener('load', () => {
       floatingInstallBtn.textContent   = '📲 تثبيت تطبيق NahlTime';
     }
 
-    // 🔔 إشعار بسيط عند الفتح يشرح طريقة التثبيت
     if (typeof showToast === 'function') {
       setTimeout(() => {
         showToast(
@@ -2631,7 +2566,6 @@ window.addEventListener('load', () => {
       }, 2500);
     }
   } else if (!isInStandaloneMode()) {
-    // لأغلب المتصفحات على أندرويد/ديسكتوب: توست توعوي بسيط
     if (typeof showToast === 'function') {
       setTimeout(() => {
         showToast(
