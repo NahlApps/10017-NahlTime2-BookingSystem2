@@ -36,7 +36,7 @@
   <link rel="apple-touch-icon"
         href="https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/NahlTimePro/NahlTimeNewLOGO%20(2).png">
 
-  <!-- Main app styles (all styles are inside style.css) -->
+  <!-- Main app styles -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -551,6 +551,54 @@
   <!--  JS: Terms Modal (dynamic) -->
   <!-- ========================= -->
   <script src="js/terms-modal.js"></script>
+
+  <!-- ✅ Fix: Page 2 "Next" button should NOT depend on gift being "No" -->
+  <script>
+    $(function () {
+      const $area       = $('#area');
+      const $serviceCat = $('#serviceCat');
+      const $service    = $('#service');
+      const $giftToggle = $('#isGiftToggle');
+      const $nextBtn    = $('#footer-next');
+
+      function refreshPage2Next() {
+        // فقط طبّق المنطق إذا صفحة 2 هي المعروضة حاليًا
+        if (!$('#page2').hasClass('active') || !$nextBtn.length) return;
+
+        const areaOk   = !!$area.val();
+        const catOk    = !!$serviceCat.val();
+        const serviceOk= !!$service.val();
+
+        // 🎯 ملاحظة مهمة:
+        // خيار الهدية (تشغيل/إيقاف) لا يؤثر على تمكين الزر
+        const enable = areaOk && catOk && serviceOk;
+
+        $nextBtn.prop('disabled', !enable);
+        $nextBtn.toggleClass('disabled', !enable);
+
+        // لو عندك دالة عامة في app.js لإعادة حساب الحالة، نستدعيها بهدوء
+        if (typeof window.updateNextAvailability === 'function') {
+          try { window.updateNextAvailability(); } catch (e) { /* ignore */ }
+        }
+      }
+
+      // حدّث الزر عند تغيير الحقول الرئيسية في صفحة 2
+      $area.on('change', refreshPage2Next);
+      $serviceCat.on('change', refreshPage2Next);
+      $service.on('change', refreshPage2Next);
+
+      // تغيير وضع الهدية لا يمنع التالي، فقط نعيد الحساب (للأمان)
+      $giftToggle.on('change', function () {
+        if (typeof window.onGiftToggleChange === 'function') {
+          window.onGiftToggleChange(this.checked);
+        }
+        refreshPage2Next();
+      });
+
+      // تشغيل مبدئي
+      refreshPage2Next();
+    });
+  </script>
 
   <!-- Google Maps (after initMap is defined in app.js) -->
   <script
