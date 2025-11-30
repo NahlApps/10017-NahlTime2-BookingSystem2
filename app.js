@@ -228,7 +228,13 @@ const nForm={
   additionalServicesIds:[],
   additionalServicesLabels:[],
   couponCode:'',
-  isGift:false
+  isGift:false,
+  // gift-specific (populated when gift mode ON)
+  giftReceiverName:'',
+  giftReceiverCountry:'',
+  giftReceiverMobileLocal:'',
+  giftReceiverPhoneFull:'',
+  giftMessage:''
 };
 window.nForm = nForm;
 
@@ -379,6 +385,13 @@ function getActiveIndex(){
   return Math.max(0, orderedPages.indexOf(id));
 }
 window.getActiveIndex = getActiveIndex;
+
+/* 🎁 Gift mode helper */
+function isGiftMode(){
+  const toggle = document.getElementById('isGiftToggle');
+  return !!(toggle && toggle.checked);
+}
+window.isGiftMode = isGiftMode;
 
 function syncProgress(i){
   const pct = ((i+1)/orderedPages.length)*100;
@@ -831,7 +844,8 @@ function buildPayload(){
     locale:isEnglishLocale() ? 'en' : 'ar',
     additionalServices:(nForm.additionalServicesIds||[]).join(','),
     couponCode: couponCodeApplied || '',
-    couponDiscountAmount: couponDiscountAmount || 0
+    couponDiscountAmount: couponDiscountAmount || 0,
+    isGift: !!nForm.isGift
   };
 }
 
@@ -1971,6 +1985,23 @@ window.initMap=initMap;
 /* 26) DOCUMENT READY: WIRING & FLOW                                         */
 /* ========================================================================== */
 
+/* 🎁 Gift UI sync (called on toggle + startup) */
+function syncGiftUIState(){
+  const giftOn    = isGiftMode();
+  const giftCard  = document.getElementById('giftReceiverCard');
+  const carSection= document.getElementById('carInfoSection');
+
+  if(giftCard){
+    giftCard.style.display = giftOn ? '' : 'none';
+  }
+  if(carSection){
+    carSection.style.display = giftOn ? 'none' : '';
+  }
+
+  nForm.isGift = !!giftOn;
+  updateNextAvailability();
+}
+
 $(function(){
   /* --- Layout & Preload --- */
   installResizeObservers();
@@ -1984,6 +2015,13 @@ $(function(){
   $('#area, #serviceCat, #service, #carBrand').on('select2:open', ()=>{
     $('.select2-search__field').attr('dir','rtl');
   });
+
+  /* 🎁 Gift toggle wiring */
+  $('#isGiftToggle').on('change', function(){
+    syncGiftUIState();
+    renderSummary('page2');
+  });
+  syncGiftUIState();
 
   /* --- Phone input (intlTelInput) --- */
   itiPhone=window.intlTelInput(document.querySelector('#mobile'),{
@@ -2170,6 +2208,12 @@ $(function(){
     renderSelectedDateTimes(lastSelectedISO);
   });
 
+  // 🎁 Gift receiver fields: re-check Next availability when typing
+  $('#giftReceiverName, #giftReceiverMobile, #giftReceiverCountry, #giftMessage')
+    .on('input change', function(){
+      updateNextAvailability();
+  });
+
   /* --- Footer controls: next/prev --- */
   const $prev=document.getElementById('footer-prev');
   const $next=document.getElementById('footer-next');
@@ -2178,6 +2222,8 @@ $(function(){
   async function gotoNext(){
     const i = getActiveIndex();
     const id= orderedPages[i];
+    const giftOn = isGiftMode();
+    nForm.isGift = !!giftOn;
 
     if(id==='page1'){
       stopWelcomeDeck();
@@ -2196,12 +2242,19 @@ $(function(){
         showToast('error','يرجى إكمال اختيار المنطقة/التصنيف/الخدمة');
         return;
       }
-      showPage(2);
-      document.getElementById('date').dispatchEvent(new Event('change'));
+
+      // 🎁 Gift flow: skip time step (page3) → go directly to contact (page4)
+      if(giftOn){
+        showPage(3); // index 3 → page4
+      }else{
+        showPage(2); // index 2 → page3
+        document.getElementById('date').dispatchEvent(new Event('change'));
+      }
       return;
     }
 
     if(id==='page3'){
+      // Time step – only for normal bookings
       if(!selectedTime){
         showToast('error','الرجاء اختيار وقت');
         return;
@@ -2243,7 +2296,34 @@ $(function(){
         $('#plateNumber').val()||''
       ].filter(Boolean).join(', ');
 
-      showPage(4);
+      // 🎁 Additional validation when gift mode ON
+      if(giftOn){
+        const rName  = ($('#giftReceiverName').val()||'').trim();
+        const rLocal = ($('#giftReceiverMobile').val()||'').trim();
+        const rCode  = $('#giftReceiverCountry').val() || '';
+        const errNameEl  = document.getElementById('err-giftReceiverName');
+        const errPhoneEl = document.getElementById('err-giftReceiverMobile');
+
+        const rNameOk  = rName.length>0;
+        const digits   = rLocal.replace(/\D/g,'');
+        const rPhoneOk = digits.length >= 6; // بسيط، التحقق من الطول فقط
+
+        if(errNameEl)  errNameEl.style.display  = rNameOk  ? 'none' : 'block';
+        if(errPhoneEl) errPhoneEl.style.display = rPhoneOk ? 'none' : 'block';
+
+        if(!rNameOk || !rPhoneOk){
+          showToast('error','يرجى إدخال اسم المستلم وجواله بشكل صحيح');
+          return;
+        }
+
+        nForm.giftReceiverName        = rName;
+        nForm.giftReceiverCountry     = rCode;
+        nForm.giftReceiverMobileLocal = rLocal;
+        nForm.giftReceiverPhoneFull   = `+${rCode}${digits}`;
+        nForm.giftMessage             = ($('#giftMessage').val()||'').trim();
+      }
+
+      showPage(4); // index 4 → page5 (payment)
       return;
     }
 
@@ -2254,7 +2334,22 @@ $(function(){
         return;
       }
       document.getElementById('err-pay').style.display='none';
-      showPage(5);
+
+      // 🎁 Gift flow: at payment step we finalize gift instead of going to map
+      if(giftOn){
+        if(typeof window.handleGiftSubmitFromPayment === 'function'){
+          // gift.js should handle API call + navigation to thanks
+          window.handleGiftSubmitFromPayment();
+        }else{
+          // fallback: just show thanks page
+          showToast('info','تم حفظ بيانات الهدية، سيتم استكمال المعالجة من قبل المتجر.');
+          showPage(6); // index 6 → page7
+        }
+        return;
+      }
+
+      // Normal booking → go to map
+      showPage(5); // index 5 → page6
       return;
     }
 
@@ -2295,11 +2390,7 @@ $(function(){
         showToast('success','تم إنشاء الحجز');
 
         const bookingId =
-          (r.data.bookingId ??
-           r.data.bookingID ??
-           r.data.id ??
-           r.data.BookingId ??
-           r.data.BookingID) || null;
+          (r.data.bookingId ?? r.data.bookingID ?? r.data.id ?? r.data.BookingId ?? r.data.BookingID) || null;
 
         console.log('[booking] Derived bookingId for review:', bookingId);
 
@@ -2333,6 +2424,7 @@ $(function(){
       return;
     }
 
+    // Default: just advance by index
     showPage(Math.min(i+1, orderedPages.length-1));
   }
 
@@ -2427,26 +2519,38 @@ function updateNextAvailability(){
   const nextBtn = document.getElementById('footer-next');
   if(!nextBtn) return;
   let enable    = true;
+  const giftOn  = isGiftMode();
 
   if(i===0){
     enable=true;
   }
   else if(i===1){
+    // Page2: just need area + service (gift or not)
     enable=!!($('#area').val()&&$('#service').val());
   }
   else if(i===2){
+    // Page3 (time) – only matters for normal flow
     enable=!!selectedTime;
   }
   else if(i===3){
+    // Page4: contact + (optional gift receiver)
     const nameOk  = ($('#name').val()||'').trim().length>0;
     const phoneOk = (window.itiPhone ? itiPhone.isValidNumber() : true);
     const otpOk   = (!OTP_ENABLED) || window.otpVerified;
     enable = nameOk && phoneOk && otpOk;
+
+    if(giftOn){
+      const recNameOk   = ($('#giftReceiverName').val()||'').trim().length>0;
+      const recMobileOk = ($('#giftReceiverMobile').val()||'').trim().length>0;
+      enable = enable && recNameOk && recMobileOk;
+    }
   }
   else if(i===4){
+    // Page5: payment
     enable=!!(document.querySelector('#payGroup input:checked'));
   }
   else if(i===5){
+    // Page6: map (normal booking only)
     enable=!!positionUrl;
   }
 
@@ -2612,7 +2716,6 @@ function handleLogoError(img){
     "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/spong&Soap%20-%20logo.png",
     "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/spong%26Soap%20-%20logo.png",
     "https://pdnmghkpepvsfaiqlafk.supabase.co/storage/v1/object/public/nahl%20assets/Sponge%20%26%20%20Soap/logo.png",
-
   ];
   const i = Number(img.dataset.fidx || 0);
   if (i < fallbacks.length){
