@@ -2431,11 +2431,18 @@ $(function(){
   // expose original gotoNext so gift.js can delegate to it for normal bookings
   window.originalGotoNext = gotoNext;
 
-  document.getElementById('footer-next').addEventListener('click', gotoNext);
-  document.getElementById('footer-prev').addEventListener('click', ()=>{
-    const i=getActiveIndex();
-    showPage(Math.max(i-1,0));
-  });
+  // نحفظ الهاندلرز الأصلية عشان gift.js يقدر يلف حوالينها
+  window.originalGotoNext = gotoNext;
+  window.originalPrevHandler = function () {
+    const i = getActiveIndex();
+    showPage(Math.max(i - 1, 0));
+  };
+
+  document.getElementById('footer-next')
+    .addEventListener('click', window.originalGotoNext);
+  document.getElementById('footer-prev')
+    .addEventListener('click', window.originalPrevHandler);
+
 
   // ✅ إصلاح حجز جديد: يرجع دائماً لنفس index.html بدل الروت /
   $('#rebook').on('click', ()=>{
