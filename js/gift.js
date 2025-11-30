@@ -1,293 +1,416 @@
-/* ========================================================================== */
-/*  GIFT MODE (NahlTime) – js/gift.js                                         */
-/* ========================================================================== */
+// js/gift.js
+// 🎁 NahlTime – Gift Workflow (front-end)
+
 /* 
-  This file adds a “Gift Booking” mode on top of the main booking flow
-  implemented in app.js. It is designed to be **additive** and safe:
-
-  - Uses the same pages / steps from app.js.
-  - Only toggles UI and sets nForm.isGift for the backend.
-  - Never breaks normal booking if gift UI elements are not present.
-  
-  How to use in HTML (examples – optional, adapt to your design):
-
-    <button id="btnGiftModeOn" type="button">🎁 حجز كهدية</button>
-    <button id="btnGiftModeOff" type="button" class="d-none">⬅️ رجوع لحجز عادي</button>
-
-    <!-- Example switch -->
-    <label class="gift-switch">
-      <input id="giftToggle" type="checkbox">
-      <span>حجز كهدية</span>
-    </label>
-
-    <!-- Elements visible only in gift mode -->
-    <div data-visible-when="gift">
-      <!-- Gift-only inputs: receiver name, note, etc. -->
-    </div>
-
-    <!-- Elements visible only in normal (non-gift) mode -->
-    <div data-visible-when="normal">
-      <!-- Normal-only content -->
-    </div>
-
-  The backend can check nForm.isGift === true to treat the booking as a gift.
+  Depends on globals from app.js:
+  - APP_ID
+  - nForm
+  - isEnglishLocale()
+  - buildPayload()
+  - showToast()
+  - orderedPages
+  - getActiveIndex()
+  - showPage(idx)
+  - updateNextAvailability()
+  - window.originalGotoNext (set in app.js)
+  - window.termsAccepted (from terms-modal.js)
+  - openTermsModal() (from terms-modal.js)
 */
-/* ========================================================================== */
 
 (function () {
   'use strict';
 
-  /* ------------------------------------------------------------------------ */
-  /*  1) INTERNAL STATE                                                       */
-  /* ------------------------------------------------------------------------ */
+  // Simple state object for gift mode
+  const giftState = {
+    isGiftMode: false
+  };
+  window.giftState = giftState; // expose for debugging
 
-  // Main toggle (accessible through helpers below)
-  let giftMode = false;
+  function logGift(...args) {
+    console.log('[gift]', ...args);
+  }
 
-  // Safeguard nForm global
-  if (!window.nForm) {
-    // Ensure nForm exists so we can safely extend it
-    window.nForm = {
-      isGift: false
+  /* ================================================================
+   * 1) UI SYNC: TOGGLE GIFT MODE
+   * ================================================================ */
+
+  function syncGiftUI() {
+    const toggle = document.getElementById('isGiftToggle');
+    const giftReceiverCard = document.getElementById('giftReceiverCard');
+    const carInfoSection   = document.getElementById('carInfoSection');
+
+    const isOn = !!(toggle && toggle.checked);
+    giftState.isGiftMode = isOn;
+    nForm.isGift = isOn;
+
+    if (giftReceiverCard) {
+      giftReceiverCard.style.display = isOn ? '' : 'none';
+    }
+    if (carInfoSection) {
+      // في وضع الهدية لا نحتاج بيانات السيارة
+      carInfoSection.style.display = isOn ? 'none' : '';
+    }
+
+    logGift('Gift mode =', isOn);
+    updateNextAvailability();
+  }
+
+  function installGiftToggleHandler() {
+    const toggle = document.getElementById('isGiftToggle');
+    if (!toggle) return;
+    toggle.addEventListener('change', syncGiftUI);
+    syncGiftUI(); // initial
+  }
+
+  /* ================================================================
+   * 2) VALIDATION HELPERS – SENDER & RECEIVER
+   * ================================================================ */
+
+  function validateSenderFields() {
+    const nameInput   = document.getElementById('name');
+    const mobileErr   = document.getElementById('err-mobile');
+    const nameErr     = document.getElementById('err-name');
+    const otpErr      = document.getElementById('err-otp');
+
+    const nameValue   = (nameInput?.value || '').trim();
+    const nameOk      = nameValue.length > 0;
+    const phoneOk     = window.itiPhone ? window.itiPhone.isValidNumber() : true;
+    const otpOk       = (!window.OTP_ENABLED) || !!window.otpVerified;
+
+    if (nameErr)   nameErr.style.display   = nameOk  ? 'none' : 'block';
+    if (mobileErr) mobileErr.style.display = phoneOk ? 'none' : 'block';
+
+    if (window.OTP_ENABLED && !otpOk && otpErr) {
+      otpErr.textContent   = 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل المتابعة.';
+      otpErr.style.display = 'block';
+    } else if (otpErr) {
+      otpErr.style.display = 'none';
+    }
+
+    if (!nameOk || !phoneOk || !otpOk) {
+      showToast('error', 'يرجى التحقق من الاسم، رقم الجوال، وكود التحقق قبل المتابعة');
+      return false;
+    }
+
+    // sync form model
+    nForm.customerN = nameValue;
+    if (window.itiPhone && typeof window.itiPhone.getNumber === 'function') {
+      nForm.customerM = window.itiPhone.getNumber().replace(/^\+/, '');
+    }
+
+    return true;
+  }
+
+  function validateGiftReceiverFields() {
+    const nameInput    = document.getElementById('giftReceiverName');
+    const mobileInput  = document.getElementById('giftReceiverMobile');
+    const countryInput = document.getElementById('giftReceiverCountry');
+
+    const nameErr   = document.getElementById('err-giftReceiverName');
+    const mobileErr = document.getElementById('err-giftReceiverMobile');
+
+    const name  = (nameInput?.value || '').trim();
+    const local = (mobileInput?.value || '').trim();
+    const cc    = (countryInput?.value || '').trim();
+
+    const nameOk  = name.length > 0;
+    const phoneOk = local.length >= 8; // simple check (5XXXXXXXX)
+
+    if (nameErr)   nameErr.style.display   = nameOk  ? 'none' : 'block';
+    if (mobileErr) mobileErr.style.display = phoneOk ? 'none' : 'block';
+
+    if (!nameOk || !phoneOk) {
+      showToast('error', 'يرجى إدخال اسم وجوال المستلم بشكل صحيح');
+      return false;
+    }
+
+    return true;
+  }
+
+  /* ================================================================
+   * 3) BUILD GIFT PAYLOAD (WHAT WE SEND TO /api/gift/request)
+   * ================================================================ */
+
+  function buildGiftPayload() {
+    const base = buildPayload(); // from app.js (location, service, serviceCat, customer, etc.)
+
+    const receiverNameInput   = document.getElementById('giftReceiverName');
+    const receiverMobileInput = document.getElementById('giftReceiverMobile');
+    const receiverCountrySel  = document.getElementById('giftReceiverCountry');
+    const giftMsgInput        = document.getElementById('giftMessage');
+
+    const receiverName   = (receiverNameInput?.value || '').trim();
+    const receiverLocal  = (receiverMobileInput?.value || '').trim();
+    const receiverCC     = (receiverCountrySel?.value || '').trim() || '966';
+    const receiverPhone  = receiverCC + receiverLocal.replace(/^0+/, '');
+    const giftMessage    = (giftMsgInput?.value || '').trim();
+
+    const isEn           = isEnglishLocale();
+
+    const payload = {
+      // core
+      appId:              APP_ID,
+      isGift:             true,
+      flowType:           'gift-only',
+      // from base payload / app.js
+      location:           base.location || nForm.location || '',
+      serviceCat:         base.serviceCat || nForm.serviceCat || '',
+      service:            base.service   || nForm.service   || '',
+      serviceCount:       base.serviceCount || nForm.serviceCount || '1',
+      // sender
+      senderName:         nForm.customerN || '',
+      senderPhone:        base.customerM || nForm.customerM || '',
+      // receiver
+      receiverName:             receiverName,
+      receiverPhone:            receiverPhone,
+      receiverPhoneCountryCode: receiverCC,
+      receiverPhoneLocal:       receiverLocal,
+      giftMessage:              giftMessage,
+      // time / date (optional for gift, but we pass anyway in case you want it later)
+      date:               nForm.date || '',
+      time:               nForm.time || '',
+      // locale
+      locale:             isEn ? 'en' : 'ar',
+      // extra meta
+      additionalServices: base.additionalServices || '',
+      couponCode:         base.couponCode || '',
+      couponDiscountAmount: base.couponDiscountAmount || 0,
+      clientUrl:          window.location.href
     };
-  } else if (typeof window.nForm.isGift === 'undefined') {
-    window.nForm.isGift = false;
+
+    logGift('Gift payload built:', payload);
+    return payload;
   }
 
-  // Helper: Are we in English?
-  function isEnglishLocaleSafe() {
-    if (typeof window.isEnglishLocale === 'function') {
-      try {
-        return !!window.isEnglishLocale();
-      } catch (e) {}
-    }
-    const raw = (document.documentElement.lang || 'ar').toLowerCase();
-    return raw.startsWith('en');
-  }
+  /* ================================================================
+   * 4) SUBMIT GIFT REQUEST (CALL /api/gift/request)
+   * ================================================================ */
 
-  /* ------------------------------------------------------------------------ */
-  /*  2) GIFT SUMMARY CHIP (PATCH renderSummary)                              */
-  /* ------------------------------------------------------------------------ */
-
-  function renderGiftSummaryAddon() {
-    const wrap = document.getElementById('summaryChips');
-    if (!wrap) return;
-
-    // Clean any old gift chip(s)
-    wrap.querySelectorAll('.gift-chip').forEach((el) => el.remove());
-
-    if (!window.nForm || !window.nForm.isGift) {
+  async function submitGiftRequestFromPage4() {
+    if (window.isSubmitting) {
+      logGift('Already submitting, ignore click.');
       return;
     }
 
-    const isEn = isEnglishLocaleSafe();
+    // 1) Validate sender + receiver
+    if (!validateSenderFields()) return;
+    if (!validateGiftReceiverFields()) return;
 
-    const chip = document.createElement('div');
-    chip.className = 'chip gift-chip current';
-    chip.innerHTML = `
-      <i class="fa-solid fa-gift"></i>
-      <span class="title">${isEn ? 'Type' : 'نوع الحجز'}:</span>
-      <span class="value">${isEn ? 'Gift booking' : 'حجز كهدية'}</span>
-    `;
-    wrap.appendChild(chip);
-  }
-
-  // Monkey-patch renderSummary once app.js has defined it
-  function patchRenderSummary() {
-    const base = window.renderSummary;
-    if (typeof base !== 'function') return;
-
-    if (base.__giftPatched) {
-      // Already patched
+    // 2) Terms (same requirement as normal booking)
+    if (window.termsAccepted === false) {
+      if (typeof window.openTermsModal === 'function') {
+        window.openTermsModal();
+      }
+      showToast('info', 'من فضلك اقرأ ووافق على الشروط والأحكام قبل إرسال طلب الهدية');
       return;
     }
 
-    function wrappedRenderSummary(currentId) {
-      base(currentId);
-      try {
-        renderGiftSummaryAddon();
-      } catch (e) {
-        console.warn('[gift] renderGiftSummaryAddon error:', e);
-      }
-    }
-    wrappedRenderSummary.__giftPatched = true;
-    window.renderSummary = wrappedRenderSummary;
-  }
+    // 3) UI: show loading state (same style as normal submit)
+    const nextBtn = document.getElementById('footer-next');
+    const prevBtn = document.getElementById('footer-prev');
+    const waitBox = document.getElementById('footer-wait');
 
-  /* ------------------------------------------------------------------------ */
-  /*  3) APPLY GIFT MODE TO UI                                               */
-  /* ------------------------------------------------------------------------ */
+    window.isSubmitting = true;
+    if (nextBtn) nextBtn.style.display = 'none';
+    if (prevBtn) prevBtn.style.display = 'none';
+    if (waitBox) waitBox.classList.add('show');
 
-  function applyGiftModeUI() {
-    const isEn = isEnglishLocaleSafe();
-
-    // Mark on <html> for CSS
-    document.documentElement.classList.toggle('gift-mode', giftMode);
-
-    // Store on the shared form model (read by backend)
-    window.nForm.isGift = !!giftMode;
-
-    // Optional hero titles (if exist)
-    const normalTitle = document.getElementById('heroTitleNormal');
-    const giftTitle   = document.getElementById('heroTitleGift');
-    if (normalTitle && giftTitle) {
-      normalTitle.style.display = giftMode ? 'none' : '';
-      giftTitle.style.display   = giftMode ? '' : 'none';
-    }
-
-    // Optional hero badge
-    const heroBadge = document.getElementById('giftHeroBadge');
-    if (heroBadge) {
-      heroBadge.style.display = giftMode ? 'inline-flex' : 'none';
-      heroBadge.textContent   = isEn ? 'Gift' : 'هدية';
-    }
-
-    // Toggle switch checkbox (if present)
-    const giftToggle = document.getElementById('giftToggle');
-    if (giftToggle && giftToggle.type === 'checkbox') {
-      giftToggle.checked = giftMode;
-    }
-
-    // Show/hide normal / gift blocks
-    const sections = document.querySelectorAll('[data-visible-when]');
-    sections.forEach((el) => {
-      const mode = (el.getAttribute('data-visible-when') || '').trim().toLowerCase();
-      let show   = false;
-      if (mode === 'gift') {
-        show = giftMode;
-      } else if (mode === 'normal') {
-        show = !giftMode;
-      }
-      el.style.display = show ? '' : 'none';
-    });
-
-    // Optional button text tweaks
-    const giftBtnOn  = document.getElementById('btnGiftModeOn');
-    const giftBtnOff = document.getElementById('btnGiftModeOff');
-
-    if (giftBtnOn && giftBtnOff) {
-      giftBtnOn.classList.toggle('d-none', giftMode);
-      giftBtnOff.classList.toggle('d-none', !giftMode);
-
-      giftBtnOn.textContent = isEn ? 'Book as a gift 🎁' : 'حجز كهدية 🎁';
-      giftBtnOff.textContent = isEn ? 'Back to normal booking' : 'الرجوع لحجز عادي';
-    }
-
-    // Re-render summary so the "Gift" chip appears / disappears
-    if (typeof window.renderSummary === 'function') {
-      try {
-        window.renderSummary();
-      } catch (e) {
-        console.warn('[gift] renderSummary() error:', e);
-      }
-    }
-
-    // Re-evaluate "Next" button availability if needed
-    if (typeof window.updateNextAvailability === 'function') {
-      try {
-        window.updateNextAvailability();
-      } catch (e) {
-        console.warn('[gift] updateNextAvailability() error:', e);
-      }
-    }
-
-    // Small friendly toast
-    if (typeof window.showToast === 'function') {
-      const msg = giftMode
-        ? (isEn ? 'Gift booking mode enabled.' : 'تم تفعيل وضع الحجز كهدية 🎁')
-        : (isEn ? 'Normal booking mode.' : 'تم الرجوع لوضع الحجز العادي');
-      window.showToast('info', msg);
-    }
-  }
-
-  function setGiftMode(on) {
-    giftMode = !!on;
-    applyGiftModeUI();
-  }
-
-  function toggleGiftMode() {
-    setGiftMode(!giftMode);
-  }
-
-  /* ------------------------------------------------------------------------ */
-  /*  4) INIT + URL PARAM HANDLING                                           */
-  /* ------------------------------------------------------------------------ */
-
-  function initGiftFlow() {
-    // Ensure summary patch is installed
-    patchRenderSummary();
-
-    // URL params: ?gift=1 or ?mode=gift turn ON gift mode by default
-    let defaultGift = false;
     try {
-      const params = new URLSearchParams(window.location.search || '');
-      const giftParam = (params.get('gift') || '').toLowerCase();
-      const modeParam = (params.get('mode') || '').toLowerCase();
-      if (giftParam === '1' || giftParam === 'true' || modeParam === 'gift') {
-        defaultGift = true;
+      const payload = buildGiftPayload();
+
+      logGift('Submitting gift request to /api/gift/request …', payload);
+
+      const res = await fetch('/api/gift/request', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload)
+      });
+
+      const rawText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (e) {
+        logGift('Gift API response is not JSON:', rawText);
+        data = { ok: false, error: 'Invalid JSON from gift API', raw: rawText };
       }
-    } catch (e) {
-      console.warn('[gift] URLSearchParams failed', e);
-    }
 
-    // Wire buttons / toggles
-    const giftToggle = document.getElementById('giftToggle');
-    if (giftToggle && giftToggle.type === 'checkbox') {
-      giftToggle.addEventListener('change', function (e) {
-        setGiftMode(!!e.target.checked);
-      });
-    }
+      logGift('Gift API response:', { status: res.status, ok: res.ok, body: data });
 
-    const giftBtnOn  = document.getElementById('btnGiftModeOn');
-    const giftBtnOff = document.getElementById('btnGiftModeOff');
-
-    if (giftBtnOn) {
-      giftBtnOn.addEventListener('click', function () {
-        setGiftMode(true);
-      });
-    }
-    if (giftBtnOff) {
-      giftBtnOff.addEventListener('click', function () {
-        setGiftMode(false);
-      });
-    }
-
-    // Fallback: any element with data-action="gift-on" / "gift-off" / "gift-toggle"
-    document.addEventListener('click', function (e) {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const action = (btn.getAttribute('data-action') || '').toLowerCase();
-      if (action === 'gift-on') {
-        setGiftMode(true);
-      } else if (action === 'gift-off') {
-        setGiftMode(false);
-      } else if (action === 'gift-toggle') {
-        toggleGiftMode();
+      if (!res.ok || data.ok === false) {
+        const msg = data && (data.error || data.message) 
+          ? (data.error || data.message)
+          : 'تعذر تسجيل طلب الهدية، حاول مرة أخرى.';
+        showToast('error', msg);
+        throw new Error(msg);
       }
-    });
 
-    // Initial state
-    setGiftMode(defaultGift);
+      // SUCCESS 🎉
+      const isEn = isEnglishLocale();
+      showToast(
+        'success',
+        isEn
+          ? 'Gift request registered successfully.'
+          : 'تم تسجيل طلب الهدية بنجاح ✅'
+      );
+
+      // optional: show giftId / couponCode in console for debugging
+      logGift('Gift created with:', {
+        giftId:     data.giftId,
+        couponCode: data.couponCode
+      });
+
+      // Fill thanks page
+      const areaText    = $('#area').find(':selected').text() || '—';
+      const serviceText = $('#service').find(':selected').text() || '—';
+      const receiverName = $('#giftReceiverName').val() || '';
+
+      const tsArea    = document.getElementById('ts-area');
+      const tsService = document.getElementById('ts-service');
+      const tsDt      = document.getElementById('ts-dt');
+      const tsPay     = document.getElementById('ts-pay');
+      const tsWa      = document.getElementById('ts-whatsapp');
+
+      if (tsArea)    tsArea.textContent    = areaText;
+      if (tsService) tsService.textContent = serviceText;
+
+      if (tsDt) {
+        tsDt.textContent = isEn
+          ? 'Gift – time will be arranged with the recipient'
+          : 'هدية – سيتم التنسيق على الموعد مع المستلم';
+      }
+
+      if (tsPay) {
+        tsPay.textContent = isEn ? 'Gift Coupon' : 'كوبون هدية';
+      }
+
+      if (tsWa) {
+        const msg = isEn
+          ? `A car wash gift has been requested for ${receiverName}.`
+          : `تم طلب هدية غسيل سيارة باسم ${receiverName}.`;
+        const href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+        tsWa.href = href;
+      }
+
+      // Go to final "thank you" page (index 6 = page7)
+      showPage(6);
+
+    } catch (err) {
+      console.error('[gift] submitGiftRequestFromPage4 error:', err);
+      const msg = isEnglishLocale()
+        ? 'Could not submit gift request, please try again.'
+        : 'تعذر إرسال طلب الهدية، حاول مرة أخرى.';
+      showToast('error', msg);
+
+      // restore controls
+      if (nextBtn) nextBtn.style.display = '';
+      if (prevBtn) prevBtn.style.display = '';
+      if (waitBox) waitBox.classList.remove('show');
+    } finally {
+      window.isSubmitting = false;
+    }
   }
 
-  /* ------------------------------------------------------------------------ */
-  /*  5) EXPORT PUBLIC HELPERS                                               */
-  /* ------------------------------------------------------------------------ */
+  /* ================================================================
+   * 5) OVERRIDE NEXT BUTTON FLOW (GIFT-AWARE)
+   * ================================================================ */
 
-  window.setGiftMode   = setGiftMode;
-  window.toggleGiftMode = toggleGiftMode;
-  window.initGiftFlow   = initGiftFlow;
+  function gotoNextGiftAware(e) {
+    const i  = getActiveIndex();
+    const id = orderedPages[i] || '';
 
-  /* ------------------------------------------------------------------------ */
-  /*  6) AUTO-INIT WHEN DOM READY                                            */
-  /* ------------------------------------------------------------------------ */
+    const isGift = !!giftState.isGiftMode;
+    logGift('Next click on page', id, 'giftMode?', isGift);
 
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    // Slight delay to ensure app.js initialises first
-    setTimeout(initGiftFlow, 0);
+    // If gift mode is OFF → use normal flow
+    if (!isGift) {
+      if (typeof window.originalGotoNext === 'function') {
+        return window.originalGotoNext(e);
+      }
+      return;
+    }
+
+    // --- Gift mode ON: customise a few pages ---
+
+    // PAGE 1: same as normal (skip intro)
+    if (id === 'page1') {
+      if (typeof window.originalGotoNext === 'function') {
+        return window.originalGotoNext(e);
+      }
+      return;
+    }
+
+    // PAGE 2: validate area/service but SKIP time page → go directly to contact (page4)
+    if (id === 'page2') {
+      const areaOk = !!$('#area').val();
+      const catOk  = !!$('#serviceCat').val();
+      const svcOk  = !!$('#service').val();
+
+      document.getElementById('err-area').style.display      = areaOk ? 'none' : 'block';
+      document.getElementById('err-serviceCat').style.display= catOk  ? 'none' : 'block';
+      document.getElementById('err-service').style.display   = svcOk  ? 'none' : 'block';
+
+      if (!areaOk || !catOk || !svcOk) {
+        showToast('error', 'يرجى إكمال اختيار المنطقة/التصنيف/الخدمة');
+        return;
+      }
+
+      // skip time selection (page3) → jump to page4 (index 3)
+      logGift('Skipping time step for gift flow → going to page4');
+      showPage(3);
+      return;
+    }
+
+    // PAGE 3: in theory we never reach here in gift mode; if we do, jump to page4
+    if (id === 'page3') {
+      logGift('Unexpected gift flow at page3; jumping to page4');
+      showPage(3);
+      return;
+    }
+
+    // PAGE 4: instead of going to payment/map, we SUBMIT GIFT HERE
+    if (id === 'page4') {
+      submitGiftRequestFromPage4();
+      return;
+    }
+
+    // PAGE 5 & PAGE 6 won't normally be visited in gift mode,
+    // but if the user somehow gets there, fallback to normal handler.
+    if (typeof window.originalGotoNext === 'function') {
+      return window.originalGotoNext(e);
+    }
+  }
+
+  function wireGiftAwareNextButton() {
+    const btn = document.getElementById('footer-next');
+    if (!btn) return;
+
+    // Remove the original handler (stored as window.originalGotoNext in app.js)
+    if (typeof window.originalGotoNext === 'function') {
+      btn.removeEventListener('click', window.originalGotoNext);
+    }
+
+    btn.addEventListener('click', gotoNextGiftAware);
+    logGift('Gift-aware next button wired.');
+  }
+
+  /* ================================================================
+   * 6) INIT ON DOM READY
+   * ================================================================ */
+
+  function initGiftWorkflow() {
+    try {
+      installGiftToggleHandler();
+      wireGiftAwareNextButton();
+      logGift('Gift workflow initialized.');
+    } catch (err) {
+      console.error('[gift] init error:', err);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGiftWorkflow);
   } else {
-    document.addEventListener('DOMContentLoaded', function () {
-      setTimeout(initGiftFlow, 0);
-    });
+    initGiftWorkflow();
   }
 })();
