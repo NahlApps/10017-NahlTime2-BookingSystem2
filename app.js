@@ -387,11 +387,37 @@ function getActiveIndex(){
 window.getActiveIndex = getActiveIndex;
 
 /* 🎁 Gift mode helper */
+/* 🎁 Gift mode helper */
 function isGiftMode(){
   const toggle = document.getElementById('isGiftToggle');
   return !!(toggle && toggle.checked);
 }
 window.isGiftMode = isGiftMode;
+
+/**
+ * 🎁 safeIsGiftOn
+ * - Uses isGiftMode() if it is still a function
+ * - Falls back to nForm.isGift or toggle state if someone overwrote isGiftMode
+ * - Never throws "isGiftMode is not a function"
+ */
+function safeIsGiftOn(){
+  try {
+    if (typeof isGiftMode === 'function') {
+      return !!isGiftMode();
+    }
+  } catch (e) {
+    console.warn('[gift] isGiftMode() call failed, falling back to DOM/nForm', e);
+  }
+
+  if (window.nForm && typeof window.nForm.isGift === 'boolean') {
+    return window.nForm.isGift;
+  }
+
+  const toggle = document.getElementById('isGiftToggle');
+  return !!(toggle && toggle.checked);
+}
+window.safeIsGiftOn = safeIsGiftOn;
+
 
 function syncProgress(i){
   const pct = ((i+1)/orderedPages.length)*100;
@@ -1999,20 +2025,21 @@ window.initMap=initMap;
 
 /* 🎁 Gift UI sync (called on toggle + startup) */
 function syncGiftUIState(){
-  const giftOn    = isGiftMode();
+  const giftOn    = safeIsGiftOn();
   const giftCard  = document.getElementById('giftReceiverCard');
   const carSection= document.getElementById('carInfoSection');
 
-  if(giftCard){
+  if (giftCard){
     giftCard.style.display = giftOn ? '' : 'none';
   }
-  if(carSection){
+  if (carSection){
     carSection.style.display = giftOn ? 'none' : '';
   }
 
   nForm.isGift = !!giftOn;
   updateNextAvailability();
 }
+
 
 $(function(){
   /* --- Layout & Preload --- */
@@ -2232,10 +2259,11 @@ $(function(){
   const $wait=document.getElementById('footer-wait');
 
   async function gotoNext(){
-    const i = getActiveIndex();
-    const id= orderedPages[i];
-    const giftOn = isGiftMode();
+    const i  = getActiveIndex();
+    const id = orderedPages[i];
+    const giftOn = safeIsGiftOn();
     nForm.isGift = !!giftOn;
+
 
     if(id==='page1'){
       stopWelcomeDeck();
@@ -2536,47 +2564,51 @@ $(function(){
 function updateNextAvailability(){
   const i       = getActiveIndex();
   const nextBtn = document.getElementById('footer-next');
-  if(!nextBtn) return;
-  let enable    = true;
-  const giftOn  = isGiftMode();
+  if (!nextBtn) return;
 
-  if(i===0){
-    enable=true;
+  let enable = true;
+  const giftOn = safeIsGiftOn();
+
+  if (i === 0){
+    // Intro page: always can go next
+    enable = true;
   }
-  else if(i===1){
-    // Page2: just need area + service (gift or not)
-    enable=!!($('#area').val()&&$('#service').val());
+  else if (i === 1){
+    // Page2: need area + service (gift or normal)
+    enable = !!($('#area').val() && $('#service').val());
   }
-  else if(i===2){
-    // Page3 (time) – only matters for normal flow
-    enable=!!selectedTime;
+  else if (i === 2){
+    // Page3 (time) – only used in normal booking flow
+    enable = !!selectedTime;
   }
-  else if(i===3){
-    // Page4: contact + (optional gift receiver)
-    const nameOk  = ($('#name').val()||'').trim().length>0;
+  else if (i === 3){
+    // Page4: contact info (and gift receiver if giftOn)
+    const nameOk  = ($('#name').val() || '').trim().length > 0;
     const phoneOk = (window.itiPhone ? itiPhone.isValidNumber() : true);
     const otpOk   = (!OTP_ENABLED) || window.otpVerified;
+
     enable = nameOk && phoneOk && otpOk;
 
-    if(giftOn){
-      const recNameOk   = ($('#giftReceiverName').val()||'').trim().length>0;
-      const recMobileOk = ($('#giftReceiverMobile').val()||'').trim().length>0;
+    if (giftOn){
+      const recNameOk   = ($('#giftReceiverName').val() || '').trim().length > 0;
+      const recMobileOk = ($('#giftReceiverMobile').val() || '').trim().length > 0;
       enable = enable && recNameOk && recMobileOk;
     }
   }
-  else if(i===4){
+  else if (i === 4){
     // Page5: payment
-    enable=!!(document.querySelector('#payGroup input:checked'));
+    enable = !!(document.querySelector('#payGroup input:checked'));
   }
-  else if(i===5){
+  else if (i === 5){
     // Page6: map (normal booking only)
-    enable=!!positionUrl;
+    enable = !!positionUrl;
   }
 
-  nextBtn.disabled=!enable;
-  nextBtn.classList.toggle('disabled',!enable);
+  nextBtn.disabled = !enable;
+  nextBtn.classList.toggle('disabled', !enable);
 }
 window.updateNextAvailability = updateNextAvailability;
+
 
 /* ========================================================================== */
 /* 28) PWA SERVICE WORKER + INSTALL LOGIC                                     */
