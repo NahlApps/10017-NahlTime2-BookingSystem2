@@ -1889,10 +1889,22 @@ async function loadAreaBounds(areaId){
 }
 
 function requestAreaBoundsForCurrentArea(){
-  const areaId = $('#area').val() || '';
-  if(!areaId) return;
+  // IMPORTANT:
+  // هذه الدالة تُستدعى من initMap (callback جوجل ماب)
+  // وقد تعمل قبل تحميل jQuery، لذلك لا نستخدم $ هنا.
+  const areaEl = document.getElementById('area');
+  if (!areaEl) {
+    // لو لسه القائمة ما انبنت، نخلي loadAreaBounds ينتظر
+    // وسيتم استدعاؤه لاحقاً عند change على #area
+    return;
+  }
+
+  const areaId = areaEl.value || '';
+  if (!areaId) return;
+
   loadAreaBounds(areaId);
 }
+
 
 function initMap(){
   const def={lat:24.7136,lng:46.6753};
