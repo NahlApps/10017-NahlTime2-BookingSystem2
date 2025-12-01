@@ -1742,6 +1742,7 @@ async function verifyOtpCode(){
   const mobile = itiPhone.getNumber().replace(/^\+/, '');
 
   try{
+    // ⏳ نوقف الزر أثناء التحقق
     btn.disabled = true;
     btn.textContent = 'جاري التحقق…';
     if(errEl) errEl.style.display = 'none';
@@ -1774,26 +1775,46 @@ async function verifyOtpCode(){
       return;
     }
 
+    // ✅ نجاح التحقق
     window.otpVerified = true;
+
     if(statusEl){
       statusEl.className = 'small text-success';
       statusEl.textContent = 'تم التحقق من رقم الجوال بنجاح ✅ يمكنك المتابعة لإكمال الحجز.';
     }
     if(errEl) errEl.style.display = 'none';
+
     if(codeInput){
       codeInput.setAttribute('readonly','readonly');
     }
+
+    // زر إرسال الكود
     const sendBtn = document.getElementById('btnSendOtp');
     if(sendBtn){
       sendBtn.disabled = true;
       sendBtn.textContent = 'تم التحقق';
     }
+
+    // زر التحقق نفسه: نثبته على "تم التحقق"
+    btn.disabled = true;
+    btn.textContent = 'تم التحقق';
+
+    // نوقف العدّاد إن وجد
     if(window.otpCountdownTimer){
       clearInterval(window.otpCountdownTimer);
       window.otpCountdownTimer = null;
     }
+
     showToast('success','تم التحقق من رقم جوالك');
+
+    // 🔓 تفعيل زر "التالي" بشكل صريح + تحديث المنطق العام
+    const nextBtn = document.getElementById('footer-next');
+    if(nextBtn){
+      nextBtn.disabled = false;
+      nextBtn.classList.remove('disabled');
+    }
     updateNextAvailability();
+
   }catch(err){
     console.error('verifyOtpCode error:', err);
     if(statusEl){
@@ -1801,10 +1822,13 @@ async function verifyOtpCode(){
       statusEl.textContent = 'تعذر التحقق من الكود الآن، حاول مرة أخرى.';
     }
     showToast('error','حدث خطأ أثناء التحقق من الكود');
+    window.otpVerified = false;
+    updateNextAvailability();
   }finally{
+    // لو فشل التحقق فقط نعيد الزر لحالته الأصلية
     if(btn && !window.otpVerified){
-      btn.disabled=false;
-      btn.textContent='تأكيد';
+      btn.disabled = false;
+      btn.textContent = 'تأكيد';
     }
   }
 }
