@@ -333,26 +333,51 @@ async function handleGiftSubmitFromPayment() {
 
 window.handleGiftSubmitFromPayment = handleGiftSubmitFromPayment;
 
-
 function validateGiftBeforeSubmit() {
-  const giftOn = safeIsGiftOn();
+  const giftOn = (typeof safeIsGiftOn === 'function') ? safeIsGiftOn() : false;
   if (!giftOn) return true; // لو مو هدية، نخلي الحجز العادي يكمل
 
-  const senderName  = ($('#name').val() || '').trim();
-  const senderOk    = senderName.length > 0;
-  const phoneOk     = window.itiPhone ? itiPhone.isValidNumber() : false;
-  const otpOk       = (!window.OTP_ENABLED) || !!window.otpVerified;
+  const senderName = ($('#name').val() || '').trim();
+  const senderOk   = senderName.length > 0;
 
-  const recName     = ($('#giftReceiverName').val() || '').trim();
-  const recMobile   = ($('#giftReceiverMobile').val() || '').trim();
+  // نحاول نستخدم instance أينما كانت
+  const telInstance =
+    (typeof itiPhone !== 'undefined' && itiPhone) ||
+    (window.itiPhone || null);
+
+  const phoneOk = telInstance && typeof telInstance.isValidNumber === 'function'
+    ? telInstance.isValidNumber()
+    : false;
+
+  const otpOk = (!window.OTP_ENABLED) || !!window.otpVerified;
+
+  const recName   = ($('#giftReceiverName').val() || '').trim();
+  const recMobile = ($('#giftReceiverMobile').val() || '').trim();
   const recNameOk   = recName.length > 0;
   const recMobileOk = recMobile.replace(/\D/g, '').length >= 6;
 
-  if (!senderOk || !phoneOk || !otpOk || !recNameOk || !recMobileOk) {
-    showToast(
-      'error',
-      'يرجى التأكد من إكمال بيانات المرسل والمستلم قبل إرسال الهدية.'
-    );
+  // تحديث رسائل الأخطاء البصرية
+  const errSenderName = document.getElementById('err-name');
+  const errMobile     = document.getElementById('err-mobile');
+  const errGiftName   = document.getElementById('err-giftReceiverName');
+  const errGiftMobile = document.getElementById('err-giftReceiverMobile');
+  const errOtp        = document.getElementById('err-otp');
+
+  if (errSenderName) errSenderName.style.display = senderOk    ? 'none' : 'block';
+  if (errMobile)     errMobile.style.display     = phoneOk     ? 'none' : 'block';
+  if (errGiftName)   errGiftName.style.display   = recNameOk   ? 'none' : 'block';
+  if (errGiftMobile) errGiftMobile.style.display = recMobileOk ? 'none' : 'block';
+  if (errOtp)        errOtp.style.display        = otpOk       ? 'none' : 'block';
+
+  const allOk = senderOk && phoneOk && otpOk && recNameOk && recMobileOk;
+
+  if (!allOk) {
+    console.log('[gift][validate] senderOk=', senderOk,
+                'phoneOk=', phoneOk,
+                'otpOk=', otpOk,
+                'recNameOk=', recNameOk,
+                'recMobileOk=', recMobileOk);
+    showToast('error', 'يرجى التأكد من إكمال بيانات المرسل والمستلم قبل إرسال الهدية.');
     return false;
   }
 
