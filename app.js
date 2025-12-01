@@ -400,21 +400,16 @@ window.isGiftMode = isGiftMode;
  * - Falls back to nForm.isGift or toggle state if someone overwrote isGiftMode
  * - Never throws "isGiftMode is not a function"
  */
-function safeIsGiftOn(){
+function safeIsGiftOn() {
   try {
-    if (typeof isGiftMode === 'function') {
-      return !!isGiftMode();
+    if (typeof window.isGiftMode === 'function') {
+      return !!window.isGiftMode();
     }
+    return !!window.isGiftMode;
   } catch (e) {
-    console.warn('[gift] isGiftMode() call failed, falling back to DOM/nForm', e);
+    console.warn('[gift] safeIsGiftOn error', e);
+    return false;
   }
-
-  if (window.nForm && typeof window.nForm.isGift === 'boolean') {
-    return window.nForm.isGift;
-  }
-
-  const toggle = document.getElementById('isGiftToggle');
-  return !!(toggle && toggle.checked);
 }
 window.safeIsGiftOn = safeIsGiftOn;
 
@@ -2087,13 +2082,18 @@ $(function(){
   syncGiftUIState();
 
   /* --- Phone input (intlTelInput) --- */
-  itiPhone=window.intlTelInput(document.querySelector('#mobile'),{
+  /* --- Phone input (intlTelInput) --- */
+  itiPhone = window.intlTelInput(document.querySelector('#mobile'), {
     initialCountry:'sa',
     onlyCountries:['sa','ae','bh','kw','om','qa'],
     separateDialCode:true,
     placeholderNumberType:'MOBILE',
     utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.4.0/build/js/utils.js'
   });
+
+  // ⭐ مهم: نعرّف النسخة على window عشان gift.js يقدر يستخدمها
+  window.itiPhone = itiPhone;
+
   $('#mobile')
     .attr({
       placeholder:'رقم التواصل الخاص — مثال 5XXXXXXXX',
