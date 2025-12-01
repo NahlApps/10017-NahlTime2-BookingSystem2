@@ -1,195 +1,118 @@
 // js/gift.js
 // 🎁 Gift Workflow Frontend Logic (NahlTime)
 // ----------------------------------------
-// - يعتمد على APP_ID, nForm, showPage, getActiveIndex, updateNextAvailability من app.js
-// - يضيف مسار حجز خاص بالهدايا:
-//   page1 → page2 (تفعيل الهدية) → page4 (بيانات المرسل/المستلم) → إرسال WebApp → page7
+// - يعتمد على APP_ID, nForm, showPage, orderedPages, updateNextAvailability من app.js
+// - مسار الهدية الآن:
+//   page1 → page2 (اختيار الخدمة + تفعيل الهدية) → page4 (بيانات المرسل/المستلم)
+//   → page5 (اختيار طريقة الدفع) → استدعاء sendGiftRequestAndFinish → page7
 
 (function () {
   'use strict';
 
-  // 🔁 حالة الهدية على مستوى التطبيق
-  window.isGiftMode = window.isGiftMode || false;
-
+  // -------------------------------------------------------------------
+  // 1) هل مسار الهدية فعّال حالياً؟
+  //    نعتمد على safeIsGiftOn من app.js
+  // -------------------------------------------------------------------
   function isGiftFlowActive() {
-    return !!window.isGiftMode;
+    if (typeof window.safeIsGiftOn === 'function') {
+      return !!window.safeIsGiftOn();
+    }
+    return false;
   }
 
   // -------------------------------------------------------------------
-  // 1) مزامنة واجهة الهدية (إظهار/إخفاء الأقسام)
+  // 2) بناء بيانات الهدية (payload) من الفورم
   // -------------------------------------------------------------------
-  function syncGiftToggleUI(isOn) {
-    const giftCard      = document.getElementById('giftReceiverCard');
-    const carInfo       = document.getElementById('carInfoSection');
-    const serviceCount  = document.getElementById('serviceCount');
-    const giftMsg       = document.getElementById('giftMessage');
-    const receiverName  = document.getElementById('giftReceiverName');
-    const receiverPhone = document.getElementById('giftReceiverMobile');
+  function buildGiftPayload() {
+    const giftMsgEl          = document.getElementById('giftMessage');
+    const receiverCodeEl     = document.getElementById('giftReceiverCountry');
+    const receiverPhoneLocal = document.getElementById('giftReceiverMobile');
+    const receiverNameEl     = document.getElementById('giftReceiverName');
+    const senderNameEl       = document.getElementById('name');
 
-    window.isGiftMode = !!isOn;
+    const receiverCodeRaw = (receiverCodeEl?.value || '966').trim();
+    const receiverCode    = receiverCodeRaw.replace(/^\+/, '');
 
-    if (giftCard) giftCard.style.display = isOn ? 'block' : 'none';
-    // في وضع الهدية نخفي بيانات السيارة لأنها ليست مطلوبة
-    if (carInfo)  carInfo.style.display  = isOn ? 'none'  : 'block';
+    const receiverLocalRaw = (receiverPhoneLocal?.value || '').trim();
+    const receiverDigits   = receiverLocalRaw.replace(/\D/g, '');
+    const receiverFull     = receiverCode + receiverDigits;
 
-    // في وضع الهدية، يفضّل إجمالي 1 سيارة (لكن نتركه لو حابب تعدل)
-    if (isOn && serviceCount && !serviceCount.dataset._giftLocked) {
-      serviceCount.dataset._giftLocked = '1';
-      // لو حاب تسويه دائماً 1:
-      // serviceCount.value = '1';
-      // $(serviceCount).trigger('change');
-    }
-
-    // تنظيف أخطاء الحقول
-    const errRName   = document.getElementById('err-giftReceiverName');
-    const errRMobile = document.getElementById('err-giftReceiverMobile');
-    if (!isOn) {
-      if (giftMsg)      giftMsg.value      = '';
-      if (receiverName) receiverName.value = '';
-      if (receiverPhone)receiverPhone.value= '';
-      if (errRName)     errRName.style.display   = 'none';
-      if (errRMobile)   errRMobile.style.display = 'none';
-    }
-
-    if (typeof updateNextAvailability === 'function') {
-      updateNextAvailability();
-    }
-  }
-
-  // -------------------------------------------------------------------
-  // 2) فحص صحة بيانات الهدية (page4)
-  // -------------------------------------------------------------------
-  function validateGiftPage() {
-    const receiverName  = document.getElementById('giftReceiverName');
-    const receiverPhone = document.getElementById('giftReceiverMobile');
-    const receiverCode  = document.getElementById('giftReceiverCountry');
-    const senderName    = document.getElementById('name');
-    const errRName      = document.getElementById('err-giftReceiverName');
-    const errRMobile    = document.getElementById('err-giftReceiverMobile');
-    const errName       = document.getElementById('err-name');
-    const errMobile     = document.getElementById('err-mobile');
-
-    let ok = true;
-
-    // اسم المرسل + جوال المرسل
-    const senderNameVal = (senderName?.value || '').trim();
-    if (!senderNameVal) {
-      if (errName) errName.style.display = 'block';
-      ok = false;
-    } else if (errName) {
-      errName.style.display = 'none';
-    }
-
-    const phoneOk = (window.itiPhone ? window.itiPhone.isValidNumber() : false);
-    if (!phoneOk) {
-      if (errMobile) errMobile.style.display = 'block';
-      ok = false;
-    } else if (errMobile) {
-      errMobile.style.display = 'none';
-    }
-
-    // التحقق من OTP (لو مفعّل)
-    if (window.OTP_ENABLED && !window.otpVerified) {
-      const errOtp = document.getElementById('err-otp');
-      if (errOtp) {
-        errOtp.textContent = 'يرجى التحقق من رقم الجوال عبر كود التحقق قبل إتمام الهدية.';
-        errOtp.style.display = 'block';
-      }
-      if (typeof showToast === 'function') {
-        showToast('error', 'يرجى التحقق من رقم جوالك قبل إتمام طلب الهدية.');
-      }
-      ok = false;
-    }
-
-    // اسم المستلم
-    const rName = (receiverName?.value || '').trim();
-    if (!rName) {
-      if (errRName) errRName.style.display = 'block';
-      ok = false;
-    } else if (errRName) {
-      errRName.style.display = 'none';
-    }
-
-    // جوال المستلم
-    const rPhone = (receiverPhone?.value || '').trim();
-    const rCode  = (receiverCode?.value || '966').trim();
-    if (!rPhone || rPhone.length < 7) {
-      if (errRMobile) errRMobile.style.display = 'block';
-      ok = false;
-    } else if (errRMobile) {
-      errRMobile.style.display = 'none';
-    }
-
-    if (!ok) {
-      if (typeof showToast === 'function') {
-        showToast('error', 'يرجى إكمال بيانات المرسل والمستلم قبل إرسال الهدية.');
-      }
-      return null;
-    }
-
-    // تركيب رقم المستلم الدولي بدون +
-    const receiverFull = String(rCode).replace(/^\+/, '') + String(rPhone).replace(/\D/g, '');
-
-    return {
-      senderName: senderNameVal,
-      senderPhone: window.itiPhone
-        ? window.itiPhone.getNumber().replace(/^\+/, '')
-        : '',
-      receiverName: rName,
-      receiverPhone: receiverFull
-    };
-  }
-
-  // -------------------------------------------------------------------
-  // 3) إرسال طلب الهدية إلى WebApp عبر /api/gift/request
-  // -------------------------------------------------------------------
-  async function sendGiftRequestAndFinish() {
-    if (!isGiftFlowActive()) {
-      return;
-    }
-
-    const meta = validateGiftPage();
-    if (!meta) return;
-
-    // بناء الـ payload من nForm + حقول الهدية
-    const giftMsgEl = document.getElementById('giftMessage');
     const giftMessage = giftMsgEl ? giftMsgEl.value.trim() : '';
 
-    const receiverCode  = document.getElementById('giftReceiverCountry')?.value || '966';
-    const receiverPhoneLocal = document.getElementById('giftReceiverMobile')?.value || '';
+    const senderPhone =
+      (window.itiPhone && typeof window.itiPhone.getNumber === 'function')
+        ? window.itiPhone.getNumber().replace(/^\+/, '')
+        : '';
 
-    const payload = {
+    return {
       appId:         window.APP_ID,
       isGift:        true,
-      flowType:      'gift-only',
+      flowType:      'gift-with-payment',
 
-      location:      $('#area').val() || '',
+      // الخدمة المختارة
+      location:      $('#area').val()       || '',
       serviceCat:    $('#serviceCat').val() || '',
-      service:       $('#service').val() || '',
+      service:       $('#service').val()    || '',
       serviceCount:  $('#serviceCount').val() || '1',
 
-      senderName:    meta.senderName,
-      senderPhone:   meta.senderPhone,
-      receiverName:  meta.receiverName,
-      receiverPhone: meta.receiverPhone,
+      // بيانات المرسل
+      senderName:    (senderNameEl?.value || '').trim(),
+      senderPhone,
 
+      // بيانات المستلم
+      receiverName:  (receiverNameEl?.value || '').trim(),
+      receiverPhone: receiverFull,
       receiverPhoneCountryCode: receiverCode,
-      receiverPhoneLocal:       receiverPhoneLocal,
+      receiverPhoneLocal:       receiverLocalRaw,
 
-      giftMessage:   giftMessage,
+      // رسالة الهدية
+      giftMessage,
 
-      // نستخدم لغة الفورم الحاليّة
-      locale:        window.isEnglishLocale && window.isEnglishLocale() ? 'en' : 'ar',
+      // اللغة الحالية
+      locale:        (window.isEnglishLocale && window.isEnglishLocale()) ? 'en' : 'ar',
 
-      // نمرر الخدمات الإضافية والكوبون (لو موجود)
-      additionalServices: (window.nForm?.additionalServicesIds || []).join(','),
-      couponCode:         window.couponCodeApplied || '',
+      // خدمات إضافية + كوبون
+      additionalServices:   (window.nForm?.additionalServicesIds || []).join(','),
+      couponCode:           window.couponCodeApplied    || '',
       couponDiscountAmount: window.couponDiscountAmount || 0,
 
       clientUrl: window.location.href
     };
+  }
 
-    console.log('[gift] sending payload to /api/gift/request', payload);
+  // -------------------------------------------------------------------
+  // 3) إرسال طلب الهدية عبر /api/gift/request ثم الانتقال لصفحة "تم"
+  // -------------------------------------------------------------------
+  async function sendGiftRequestAndFinish() {
+    if (!isGiftFlowActive()) {
+      // لو موضع الهدية غير مفعّل نخرج بهدوء
+      return;
+    }
+
+    // ✅ التحقق من الشروط والأحكام قبل الإرسال
+    if (window.termsAccepted === false) {
+      if (typeof window.openTermsModal === 'function') {
+        window.openTermsModal();
+      }
+      if (typeof window.showToast === 'function') {
+        window.showToast(
+          'info',
+          'من فضلك اقرأ ووافق على الشروط والأحكام قبل إتمام طلب الهدية.'
+        );
+      }
+      return;
+    }
+
+    const payload = buildGiftPayload();
+
+    // فحص بسيط جداً لوجود بعض الحقول الأساسية
+    if (!payload.senderName || !payload.senderPhone ||
+        !payload.receiverName || !payload.receiverPhone) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('error', 'يرجى التأكد من إكمال بيانات المرسل والمستلم قبل إرسال الهدية.');
+      }
+      return;
+    }
 
     const nextBtn  = document.getElementById('footer-next');
     const prevBtn  = document.getElementById('footer-prev');
@@ -210,6 +133,8 @@
     }
 
     try {
+      console.log('[gift] sending payload to /api/gift/request', payload);
+
       const res = await fetch('/api/gift/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -229,8 +154,8 @@
 
       if (!res.ok || data.ok === false) {
         const msg = data.error || 'تعذر تسجيل طلب الهدية حالياً.';
-        if (typeof showToast === 'function') {
-          showToast('error', msg);
+        if (typeof window.showToast === 'function') {
+          window.showToast('error', msg);
         }
         window.isSubmitting = false;
         if (nextBtn) {
@@ -242,31 +167,33 @@
         return;
       }
 
-      // ✅ نجاح — نعرض صفحة "شكراً لكم" بنفس الشكل، لكن تعتبرها نتيجة هدية
-      if (typeof showToast === 'function') {
-        showToast('success', 'تم تسجيل طلب الهدية بنجاح، وسيتم التواصل مع المستلم عبر واتساب 🌟');
+      // ✅ نجاح
+      if (typeof window.showToast === 'function') {
+        window.showToast(
+          'success',
+          'تم تسجيل طلب الهدية بنجاح، وسيتم التواصل مع المستلم عبر واتساب 🌟'
+        );
       }
 
-      // نحدّث ملخص الشكر ببعض المعلومات المفيدة
-      const areaText    = $('#area').find(':selected').text()   || '—';
-      const serviceText = $('#service').find(':selected').text()|| '—';
+      // تحديث ملخص الشكر
+      const areaText    = $('#area').find(':selected').text()    || '—';
+      const serviceText = $('#service').find(':selected').text() || '—';
 
       const tsArea    = document.getElementById('ts-area');
       const tsService = document.getElementById('ts-service');
       const tsDt      = document.getElementById('ts-dt');
       const tsPay     = document.getElementById('ts-pay');
+      const waBtn     = document.getElementById('ts-whatsapp');
 
       if (tsArea)    tsArea.textContent    = areaText;
       if (tsService) tsService.textContent = serviceText;
-      if (tsDt)      tsDt.textContent      = '— (هدية)';    // لا يوجد موعد محدد بعد
+      if (tsDt)      tsDt.textContent      = '— (هدية)';
       if (tsPay)     tsPay.textContent     = 'كوبون هدية';
 
-      // رابط مشاركة عبر واتساب (مرسل → صديقه مثلاً)
-      const waBtn = document.getElementById('ts-whatsapp');
       if (waBtn) {
         const msg =
-          `🎁 تم إصدار هدية غسيل سيارة لك!\n` +
-          `من: ${meta.senderName}\n` +
+          `🎁 تم إصدار هدية غسيل سيارة!\n` +
+          `من: ${payload.senderName}\n` +
           `الخدمة: ${serviceText}\n` +
           `سيصلك رابط الحجز وكوبون الخصم على واتساب قريباً بإذن الله.`;
         waBtn.href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
@@ -275,17 +202,20 @@
       if (waitWrap) waitWrap.classList.remove('show');
       window.isSubmitting = false;
 
-      // ننتقل مباشرة لصفحة "تم" (page7)
-      if (typeof showPage === 'function') {
+      // الانتقال إلى صفحة "تم" (page7)
+      if (typeof window.showPage === 'function') {
         const idx = window.orderedPages
           ? window.orderedPages.indexOf('page7')
           : 6;
-        showPage(idx >= 0 ? idx : 6);
+        window.showPage(idx >= 0 ? idx : 6);
       }
     } catch (err) {
       console.error('[gift] sendGiftRequestAndFinish error:', err);
-      if (typeof showToast === 'function') {
-        showToast('error', 'حدث خطأ أثناء إرسال طلب الهدية، حاول مرة أخرى.');
+      if (typeof window.showToast === 'function') {
+        window.showToast(
+          'error',
+          'حدث خطأ أثناء إرسال طلب الهدية، حاول مرة أخرى.'
+        );
       }
       window.isSubmitting = false;
       if (nextBtn) {
@@ -298,154 +228,16 @@
   }
 
   // -------------------------------------------------------------------
-  // 4) زر "التالي" مخصص لمسار الهدية
-  // -------------------------------------------------------------------
-  function giftAwareGotoNext() {
-    const idx = typeof getActiveIndex === 'function'
-      ? getActiveIndex()
-      : 0;
-    const id = window.orderedPages ? window.orderedPages[idx] : null;
-
-    const giftOn = isGiftFlowActive();
-
-    // لو ليست هدية → نستعمل المسار العادي
-    if (!giftOn || !id) {
-      if (typeof window.originalGotoNext === 'function') {
-        return window.originalGotoNext();
-      }
-      return;
-    }
-
-    // ----- page1: نفس السلوك العادي -----
-    if (id === 'page1') {
-      if (typeof window.originalGotoNext === 'function') {
-        return window.originalGotoNext();
-      }
-      return;
-    }
-
-    // ----- page2: تحقق من المنطقة/الخدمة ثم انتقل مباشرة إلى page4 -----
-    if (id === 'page2') {
-      const areaOk = !!$('#area').val();
-      const catOk  = !!$('#serviceCat').val();
-      const svcOk  = !!$('#service').val();
-
-      document.getElementById('err-area').style.display       = areaOk ? 'none' : 'block';
-      document.getElementById('err-serviceCat').style.display = catOk ? 'none' : 'block';
-      document.getElementById('err-service').style.display    = svcOk ? 'none' : 'block';
-
-      if (!areaOk || !catOk || !svcOk) {
-        if (typeof showToast === 'function') {
-          showToast('error', 'يرجى إكمال اختيار المنطقة/التصنيف/الخدمة أولاً.');
-        }
-        return;
-      }
-
-      // نحفظ القيم في nForm (لو احتجناها في الهدية)
-      if (window.nForm) {
-        window.nForm.location   = $('#area').val()      || '';
-        window.nForm.serviceCat = $('#serviceCat').val()|| '';
-        window.nForm.service    = $('#service').val()   || '';
-      }
-
-      if (typeof renderSummary === 'function') {
-        renderSummary('page2');
-      }
-      if (typeof showPage === 'function') {
-        // index 3 → page4
-        showPage(3);
-      }
-      if (typeof updateNextAvailability === 'function') {
-        updateNextAvailability();
-      }
-      return;
-    }
-
-    // ----- page4: إرسال طلب الهدية بدلاً من الذهاب للدفع -----
-    if (id === 'page4') {
-      sendGiftRequestAndFinish();
-      return;
-    }
-
-    // في أي صفحة أخرى (لو وصل لها المستخدم لأسباب ما) → fallback للسلوك العادي
-    if (typeof window.originalGotoNext === 'function') {
-      return window.originalGotoNext();
-    }
-  }
-
-  // -------------------------------------------------------------------
-  // 5) زر "السابق" مخصص لمسار الهدية
-  // -------------------------------------------------------------------
-  function giftAwarePrev() {
-    const idx = typeof getActiveIndex === 'function'
-      ? getActiveIndex()
-      : 0;
-    const id = window.orderedPages ? window.orderedPages[idx] : null;
-
-    if (isGiftFlowActive()) {
-      // من صفحة بيانات المرسل/المستلم نرجع إلى صفحة الخدمة مباشرة
-      if (id === 'page4') {
-        if (typeof showPage === 'function') {
-          showPage(1); // index 1 → page2
-        }
-        if (typeof updateNextAvailability === 'function') {
-          updateNextAvailability();
-        }
-        return;
-      }
-      // من صفحة "تم" لا يظهر زر السابق أصلاً؛ لذا لا حاجة للتعامل معها
-    }
-
-    if (typeof window.originalPrevHandler === 'function') {
-      return window.originalPrevHandler();
-    }
-  }
-
-  // -------------------------------------------------------------------
-  // 6) ربط الأحداث عند تحميل الصفحة
+  // 4) تحسين تفعيل زر "التالي" عند الكتابة في حقول الهدية
   // -------------------------------------------------------------------
   $(function () {
-    const toggle = document.getElementById('isGiftToggle');
-    if (toggle) {
-      toggle.addEventListener('change', function () {
-        const on = !!this.checked;
-        syncGiftToggleUI(on);
-      });
-    }
-
-    // مزامنة مبدئية لو تم تفعيل الهدية من السيرفر أو URL
-    if (toggle && toggle.checked) {
-      syncGiftToggleUI(true);
-    }
-
-    // إعادة ربط زر "التالي" ليستخدم مسار الهدية عند الحاجة
-    const nextBtn = document.getElementById('footer-next');
-    if (nextBtn) {
-      const orig = window.originalGotoNext;
-      if (typeof orig === 'function') {
-        nextBtn.removeEventListener('click', orig);
-      }
-      nextBtn.addEventListener('click', giftAwareGotoNext);
-    }
-
-    // إعادة ربط زر "السابق" ليكون واعي لوضع الهدية
-    const prevBtn = document.getElementById('footer-prev');
-    if (prevBtn) {
-      const origPrev = window.originalPrevHandler;
-      if (typeof origPrev === 'function') {
-        prevBtn.removeEventListener('click', origPrev);
-      }
-      prevBtn.addEventListener('click', giftAwarePrev);
-    }
-
-    // تحديث تفعيل زر التالي بناءً على إدخال بيانات المستلم
     ['giftReceiverName', 'giftReceiverMobile', 'giftMessage', 'name', 'mobile']
       .forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.addEventListener('input', () => {
-            if (typeof updateNextAvailability === 'function') {
-              updateNextAvailability();
+            if (typeof window.updateNextAvailability === 'function') {
+              window.updateNextAvailability();
             }
           });
         }
@@ -453,44 +245,9 @@
   });
 
   // -------------------------------------------------------------------
-  // 7) جعل updateNextAvailability يعرف وضع الهدية (مساعدة فقط)
+  // 5) ربط gift.js مع app.js
+  //    app.js (في خطوة الدفع page5) يستدعي handleGiftSubmitFromPayment
   // -------------------------------------------------------------------
-  const originalUpdateNext = window.updateNextAvailability;
-  if (typeof originalUpdateNext === 'function') {
-    window.updateNextAvailability = function () {
-      originalUpdateNext();
-
-      const nextBtn = document.getElementById('footer-next');
-      if (!nextBtn || !isGiftFlowActive()) return;
-
-      const idx = typeof getActiveIndex === 'function'
-        ? getActiveIndex()
-        : 0;
-      const id = window.orderedPages ? window.orderedPages[idx] : null;
-
-      // في page2: نكتفي بالمنطقة + الخدمة (نفس المنطق الموجود أصلاً)
-      if (id === 'page2') {
-        const areaOk = !!$('#area').val();
-        const svcOk  = !!$('#service').val();
-        const enable = areaOk && svcOk;
-        nextBtn.disabled = !enable;
-        nextBtn.classList.toggle('disabled', !enable);
-      }
-
-      // في page4 (وضع الهدية): نعيد التقييم حسب validateGiftPage ولكن بشكل مبسط
-      if (id === 'page4') {
-        const senderNameOk = ($('#name').val() || '').trim().length > 0;
-        const phoneOk      = (window.itiPhone ? window.itiPhone.isValidNumber() : false);
-        const rNameOk      = ($('#giftReceiverName').val() || '').trim().length > 0;
-        const rPhoneRaw    = ($('#giftReceiverMobile').val() || '').trim();
-        const rPhoneOk     = rPhoneRaw.length >= 7;
-        const otpOk        = (!window.OTP_ENABLED) || window.otpVerified;
-
-        const enable = senderNameOk && phoneOk && rNameOk && rPhoneOk && otpOk;
-        nextBtn.disabled = !enable;
-        nextBtn.classList.toggle('disabled', !enable);
-      }
-    };
-  }
+  window.handleGiftSubmitFromPayment = sendGiftRequestAndFinish;
 
 })();
