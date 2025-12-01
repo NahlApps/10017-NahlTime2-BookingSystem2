@@ -1,7 +1,8 @@
 // js/gift.js
 // 🎁 Gift Workflow Frontend Logic (NahlTime)
 // ----------------------------------------
-// - يعتمد على APP_ID, nForm, showPage, orderedPages, updateNextAvailability, buildPayload, postReservation من app.js
+// - يعتمد على APP_ID, nForm, showPage, orderedPages, updateNextAvailability,
+//   buildPayload, postReservation من app.js
 // - مسار الهدية الآن:
 //   page1 → page2 (اختيار الخدمة + تفعيل الهدية) → page4 (بيانات المرسل/المستلم)
 //   → page5 (اختيار طريقة الدفع) → handleGiftSubmitFromPayment → page7
@@ -20,7 +21,35 @@
   }
 
   // -------------------------------------------------------------------
-  // 2) التحقق من اكتمال بيانات المرسل والمستلم قبل إرسال الهدية
+  // 2) Helpers لإعطاء قيم افتراضية متوافقة مع الـ backend
+  // -------------------------------------------------------------------
+  function getFallbackDate() {
+    try {
+      const input = document.getElementById('date');
+      const raw   = (input?.value || '').trim();
+      if (raw) return raw;
+
+      if (window.DateTime) {
+        return window.DateTime.now().toFormat('yyyy-LL-dd');
+      }
+    } catch (e) {
+      console.warn('[gift] getFallbackDate error', e);
+    }
+    return '1970-01-01';
+  }
+
+  function getFallbackTime() {
+    // وقت افتراضي فقط لتمرير الفالديشن في السيرفر
+    return '00:00';
+  }
+
+  function getFallbackLocationUrl() {
+    // رابط خرائط افتراضي (رياض مثلاً) لتمرير الفالديشن
+    return 'https://www.google.com/maps/search/?api=1&query=24.7136,46.6753';
+  }
+
+  // -------------------------------------------------------------------
+  // 3) التحقق من اكتمال بيانات المرسل والمستلم قبل إرسال الهدية
   // -------------------------------------------------------------------
   function validateGiftBeforeSubmit() {
     const giftOn = (typeof window.safeIsGiftOn === 'function')
@@ -80,9 +109,11 @@
     }
 
     // حفظ قيم المستلم في nForm (تستخدم لاحقاً في الـ payload)
-    const rCodeRaw = ($('#giftReceiverCountry').val() || '966').trim().replace(/^\+/, '');
-    const rLocal   = recMobile;
-    const digits   = rLocal.replace(/\D/g, '');
+    const rCodeRaw = ($('#giftReceiverCountry').val() || '966')
+      .trim()
+      .replace(/^\+/, '');
+    const rLocal = recMobile;
+    const digits = rLocal.replace(/\D/g, '');
 
     if (window.nForm) {
       window.nForm.giftReceiverName        = recName;
@@ -99,7 +130,7 @@
   window.validateGiftBeforeSubmit = validateGiftBeforeSubmit;
 
   // -------------------------------------------------------------------
-  // 3) إرسال طلب الهدية عبر postReservation (نفس مسار الحجز العادي)
+  // 4) إرسال طلب الهدية عبر postReservation (نفس مسار الحجز العادي)
   // -------------------------------------------------------------------
   async function handleGiftSubmitFromPayment() {
     const giftOn = isGiftFlowActive();
@@ -131,15 +162,23 @@
 
     try {
       // نستخدم نفس الـ payload تبع الحجز، لكن:
-      // - نخلي date/time اختياري
+      // - نخلي date/time/locationUrl لها قيم افتراضية
       // - نضيف بيانات الهدية
       const payload = (typeof window.buildPayload === 'function')
         ? window.buildPayload()
         : {};
 
-      payload.isGift                     = true;
-      payload.date                       = payload.date || ''; // بدون موعد الزامي
-      payload.time                       = payload.time || '';
+      payload.isGift = true;
+
+      if (!payload.date || !String(payload.date).trim()) {
+        payload.date = getFallbackDate();
+      }
+      if (!payload.time || !String(payload.time).trim()) {
+        payload.time = getFallbackTime();
+      }
+      if (!payload.urlLocation || !String(payload.urlLocation).trim()) {
+        payload.urlLocation = getFallbackLocationUrl();
+      }
 
       if (window.nForm) {
         payload.giftReceiverName        = window.nForm.giftReceiverName;
@@ -226,7 +265,7 @@
   window.handleGiftSubmitFromPayment = handleGiftSubmitFromPayment;
 
   // -------------------------------------------------------------------
-  // 4) تحسين تفعيل زر "التالي" عند الكتابة في حقول الهدية
+  // 5) تحسين تفعيل زر "التالي" عند الكتابة في حقول الهدية
   // -------------------------------------------------------------------
   $(function () {
     ['giftReceiverName', 'giftReceiverMobile', 'giftMessage', 'name', 'mobile']
