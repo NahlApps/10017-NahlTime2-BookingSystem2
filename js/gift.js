@@ -251,3 +251,110 @@
   window.handleGiftSubmitFromPayment = sendGiftRequestAndFinish;
 
 })();
+
+async function handleGiftSubmitFromPayment() {
+  const giftOn = safeIsGiftOn();
+
+  // لو مو Gift → رجّع للمنطق الأصلي (حجز عادي)
+  if (!giftOn) {
+    if (typeof window.originalGotoNext === 'function') {
+      return window.originalGotoNext();
+    }
+    return;
+  }
+
+  // تحقق من اكتمال بيانات المرسل والمستلم فقط
+  if (!validateGiftBeforeSubmit()) return;
+
+  if (window.isSubmitting) return;
+  window.isSubmitting = true;
+
+  const nextBtn = document.getElementById('footer-next');
+  const prevBtn = document.getElementById('footer-prev');
+  const wait    = document.getElementById('footer-wait');
+
+  if (nextBtn) nextBtn.style.display = 'none';
+  if (prevBtn) prevBtn.style.display = 'none';
+  if (wait)    wait.classList.add('show');
+
+  try {
+    // نستخدم نفس الـ payload مع تعزيز قيم الهدية
+    const payload = buildPayload();
+
+    payload.isGift                     = true;
+    payload.date                       = payload.date || ''; // بدون وقت / تاريخ إلزامي
+    payload.time                       = payload.time || '';
+
+    payload.giftReceiverName           = nForm.giftReceiverName;
+    payload.giftReceiverCountry        = nForm.giftReceiverCountry;
+    payload.giftReceiverMobileLocal    = nForm.giftReceiverMobileLocal;
+    payload.giftReceiverPhoneFull      = nForm.giftReceiverPhoneFull;
+    payload.giftMessage                = nForm.giftMessage || '';
+
+    console.log('[gift] sending gift payload', payload);
+    const r = await postReservation(payload);
+    console.log('[gift] response', r);
+
+    if (r.ok && r.data?.success) {
+      showToast('success', 'تم إرسال طلب الهدية بنجاح 🎁');
+
+      // نستخدم صفحة "تم" نفسها لكن بنص مختلف بسيط للموعد
+      const areaTxt    = $('#area').find(':selected').text()    || '—';
+      const serviceTxt = $('#service').find(':selected').text() || '—';
+
+      document.getElementById('ts-area').textContent    = areaTxt;
+      document.getElementById('ts-service').textContent = serviceTxt;
+      document.getElementById('ts-dt').textContent      = 'طلب هدية (بدون موعد محدد)';
+      document.getElementById('ts-pay').textContent     =
+        (nForm.paymentMethod || '').toUpperCase() || '—';
+
+      if (wait) wait.classList.remove('show');
+      window.isSubmitting = false;
+      showPage(6); // page7 (تم)
+    } else {
+      const msg =
+        r?.data?.msgAR ||
+        (r.status === 404 ? 'المسار غير موجود' : 'تعذر إرسال الهدية حالياً');
+      showToast('error', msg);
+      if (wait) wait.classList.remove('show');
+      if (nextBtn) nextBtn.style.display = '';
+      if (prevBtn) prevBtn.style.display = '';
+      window.isSubmitting = false;
+    }
+  } catch (err) {
+    console.error('[gift] handleGiftSubmitFromPayment error:', err);
+    showToast('error', 'تعذر إرسال الهدية حالياً، حاول مرة أخرى.');
+    if (wait) wait.classList.remove('show');
+    if (nextBtn) nextBtn.style.display = '';
+    if (prevBtn) prevBtn.style.display = '';
+    window.isSubmitting = false;
+  }
+}
+
+window.handleGiftSubmitFromPayment = handleGiftSubmitFromPayment;
+
+
+function validateGiftBeforeSubmit() {
+  const giftOn = safeIsGiftOn();
+  if (!giftOn) return true; // لو مو هدية، نخلي الحجز العادي يكمل
+
+  const senderName  = ($('#name').val() || '').trim();
+  const senderOk    = senderName.length > 0;
+  const phoneOk     = window.itiPhone ? itiPhone.isValidNumber() : false;
+  const otpOk       = (!window.OTP_ENABLED) || !!window.otpVerified;
+
+  const recName     = ($('#giftReceiverName').val() || '').trim();
+  const recMobile   = ($('#giftReceiverMobile').val() || '').trim();
+  const recNameOk   = recName.length > 0;
+  const recMobileOk = recMobile.replace(/\D/g, '').length >= 6;
+
+  if (!senderOk || !phoneOk || !otpOk || !recNameOk || !recMobileOk) {
+    showToast(
+      'error',
+      'يرجى التأكد من إكمال بيانات المرسل والمستلم قبل إرسال الهدية.'
+    );
+    return false;
+  }
+
+  return true;
+}
