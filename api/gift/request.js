@@ -1,11 +1,14 @@
 // pages/api/gift/request.js
-// 🌐 Proxy between NahlTime frontend and Google Apps Script Gift WebApp
+// 🌐 Proxy بين فورم NahlTime Gift و Google Apps Script (Code.gs)
 //
-// Frontend → POST /api/gift/request  (same domain, no CORS issues)
-// This API → POST to GAS WebApp (GAS_GIFT_WEBAPP_URL) with action = 'gift.request'
+// المتغير البيئي المطلوب في Vercel:
+//   GAS_GIFT_WEBAPP_URL = https://script.google.com/macros/s/XXXX/exec
+//
+// Frontend:
+//   fetch('/api/gift/request', { method: 'POST', body: JSON.stringify(payload) })
 
 export default async function handler(req, res) {
-  // Only allow POST
+  // نسمح فقط بالـ POST
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res
@@ -13,29 +16,49 @@ export default async function handler(req, res) {
       .json({ ok: false, error: 'Method not allowed. Use POST.' });
   }
 
-  const scriptUrl = process.env.GAS_GIFT_WEBAPP_URL;
-  if (!scriptUrl) {
+  const gasUrl = process.env.GAS_GIFT_WEBAPP_URL;
+  if (!gasUrl) {
     return res.status(500).json({
       ok: false,
-      error:
-        'Missing GAS_GIFT_WEBAPP_URL env variable on Vercel. Please set it to your Apps Script WebApp URL.'
+      error: 'Missing GAS_GIFT_WEBAPP_URL env variable on Vercel.'
     });
   }
 
   try {
     const body = req.body || {};
+    const {
+      appId,
+      senderName,
+      senderPhone,
+      receiverName,
+      receiverPhone
+    } = body;
 
-    // Ensure action is set for GAS side
-    const payload = {
-      ...body,
-      action: body.action || 'gift.request'
+    // ✅ تحقق بسيط من الحقول الأساسية (نفس المطلوبة في Code.gs)
+    if (!appId || !senderName || !senderPhone || !receiverName || !receiverPhone) {
+      return res.status(400).json({
+        ok: false,
+        error: 'الرجاء ادخال البيانات بالشكل الصحيح'
+      });
+    }
+
+    // نتأكد أن action = 'gift.request' كما يتوقع doPost في Code.gs
+    const payloadToGas = {
+      action: 'gift.request',
+      ...body
     };
 
-    // Call GAS WebApp
-    const gasRes = await fetch(scriptUrl, {
+    console.log('[gift][proxy] Forwarding payload to GAS:', {
+      url: gasUrl,
+      payload: payloadToGas
+    });
+
+    const gasRes = await fetch(gasUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payloadToGas)
     });
 
     const text = await gasRes.text();
@@ -43,29 +66,35 @@ export default async function handler(req, res) {
     try {
       data = JSON.parse(text);
     } catch (e) {
-      // If GAS returned non-JSON (e.g., error/HTML), wrap it
-      data = {
-        ok: false,
-        error: 'Invalid JSON from GAS Gift WebApp',
-        raw: text
-      };
+      console.error('[gift][proxy] GAS response is not valid JSON:', text);
+      data = { ok: false, error: 'Invalid JSON from GAS', raw: text };
     }
 
-    // Forward status + payload back to frontend
-    if (!gasRes.ok || data.ok === false) {
-      return res.status(500).json({
+    console.log('[gift][proxy] GAS response:', {
+      status: gasRes.status,
+      ok: gasRes.ok,
+      data
+    });
+
+    // لو GAS رجّع حالة خطأ HTTP
+    if (!gasRes.ok) {
+      const status = gasRes.status || 500;
+      return res.status(status).json({
         ok: false,
-        error: data.error || 'Gift workflow failed on GAS',
-        details: data
+        error:
+          data.error ||
+          `GAS returned HTTP ${status}`,
+        raw: data
       });
     }
 
+    // ✅ نجاح – نرجّع نفس ردّ Code.gs للواجهة
     return res.status(200).json(data);
   } catch (err) {
-    console.error('[gift] Proxy error:', err);
+    console.error('[gift][proxy] Internal error:', err);
     return res.status(500).json({
       ok: false,
-      error: 'Gift API proxy error',
+      error: 'Internal proxy error',
       details: String(err)
     });
   }
