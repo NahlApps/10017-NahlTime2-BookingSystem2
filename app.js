@@ -1827,6 +1827,8 @@ async function verifyOtpCode(){
     }
   }
 }
+
+
 /* ========================================================================== */
 /* 25) MAP / GOOGLE MAPS INTEGRATION                                         */
 /* ========================================================================== */
@@ -1862,7 +1864,7 @@ function setPinPosition(rawLatLng, opts = {}) {
         google.maps &&
         google.maps.geometry &&
         google.maps.geometry.poly &&
-        typeof google.maps.geometry.poly.containsLocation === 'function'
+        typeof google.maps.geometry.poly.containsLocation === "function"
       ) {
         const inside = google.maps.geometry.poly.containsLocation(latLng, areaPolygon);
         if (!inside) {
@@ -1881,20 +1883,20 @@ function setPinPosition(rawLatLng, opts = {}) {
                 position: last,
                 map,
                 draggable: true,
-                title: 'اسحب أو اضغط لتحديد الموقع'
+                title: "اسحب أو اضغط لتحديد الموقع",
               });
             }
 
             if (pan) map.panTo(last);
           }
-          if (typeof showToast === 'function') {
-            showToast('error', 'الخدمة متاحة فقط داخل المنطقة المحددة على الخريطة');
+          if (typeof showToast === "function") {
+            showToast("error", "الخدمة متاحة فقط داخل المنطقة المحددة على الخريطة");
           }
           return;
         }
       }
     } catch (err) {
-      console.warn('[map] polygon check error:', err);
+      console.warn("[map] polygon check error:", err);
       // في حالة أي خطأ، نكمل عادي بدون منع اختيار النقطة
     }
   }
@@ -1907,32 +1909,37 @@ function setPinPosition(rawLatLng, opts = {}) {
     position: latLng,
     map,
     draggable: true,
-    title: 'اسحب أو اضغط لتحديد الموقع'
+    title: "اسحب أو اضغط لتحديد الموقع",
   });
 
   // سحب الماركر يعيد تحديث الإحداثيات
-  marker.addListener('dragend', (e) => {
+  marker.addListener("dragend", (e) => {
     setPinPosition(e.latLng, { pan: false });
   });
 
   if (pan) {
     map.panTo(latLng);
   }
-  // ⚠️ لا نغيّر مستوى الزوم هنا، حتى لا يتأثر الزووم باختيار النقطة
+  // ⚠️ لا نغيّر مستوى الزوم هنا، حتى لا يتأثر الزوم باختيار النقطة
 
   // تحديث رابط الموقع وآخر نقطة صحيحة
   positionUrl = `https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
   lastValidLatLng = { lat: latLng.lat(), lng: latLng.lng() };
 
-  const hint = document.getElementById('mapHint');
+  const hint = document.getElementById("mapHint");
   if (hint) {
-    hint.innerHTML = `تم اختيار الموقع: <strong>${latLng
-      .lat()
-      .toFixed(5)}, ${latLng.lng().toFixed(5)}</strong>`;
+    hint.innerHTML =
+      `تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(
+        5
+      )}</strong>` +
+      `<br><span class="small text-muted">` +
+      `اضغط أو المس الخريطة لوضع الدبوس، اسحب الدبوس لتعديل المكان، ` +
+      `أو استخدم زر <strong>📍</strong> داخل الخريطة لتحديد موقعك الحالي.` +
+      `</span>`;
   }
 
   // تحديث ملخص + زر "التالي"
-  renderSummary('page6');
+  renderSummary("page6");
   updateNextAvailability();
 }
 
@@ -1950,23 +1957,23 @@ async function loadAreaBounds(areaId) {
   try {
     const params = new URLSearchParams({
       appId: APP_ID,
-      areaId: String(areaId)
+      areaId: String(areaId),
     });
 
     const res = await fetch(`${AREA_BOUNDS_URL}?${params.toString()}`, {
-      method: 'GET',
-      cache: 'no-store'
+      method: "GET",
+      cache: "no-store",
     });
 
     if (!res.ok) {
-      console.warn('loadAreaBounds HTTP error', res.status);
+      console.warn("loadAreaBounds HTTP error", res.status);
       return;
     }
 
-    const json    = await res.json();
+    const json = await res.json();
     const payload = json && json.data ? json.data : json;
     if (!payload) {
-      console.warn('loadAreaBounds: no payload');
+      console.warn("loadAreaBounds: no payload");
       return;
     }
 
@@ -1979,8 +1986,8 @@ async function loadAreaBounds(areaId) {
 
     const north = Number(boundsObj.north);
     const south = Number(boundsObj.south);
-    const east  = Number(boundsObj.east);
-    const west  = Number(boundsObj.west);
+    const east = Number(boundsObj.east);
+    const west = Number(boundsObj.west);
 
     let center;
     if (Number.isFinite(centerLat) && Number.isFinite(centerLng)) {
@@ -2009,8 +2016,8 @@ async function loadAreaBounds(areaId) {
       map.setOptions({
         restriction: {
           latLngBounds: areaLatLngBounds,
-          strictBounds: true
-        }
+          strictBounds: true,
+        },
       });
       map.fitBounds(areaLatLngBounds);
     }
@@ -2032,17 +2039,17 @@ async function loadAreaBounds(areaId) {
         }
         areaPolygon = new google.maps.Polygon({
           paths: path,
-          strokeColor: '#027A93',
+          strokeColor: "#027A93",
           strokeOpacity: 0.8,
           strokeWeight: 2,
-          fillColor: '#027A93',
-          fillOpacity: 0.08
+          fillColor: "#027A93",
+          fillOpacity: 0.08,
         });
         areaPolygon.setMap(map);
       }
     }
   } catch (err) {
-    console.error('loadAreaBounds error:', err);
+    console.error("loadAreaBounds error:", err);
   }
 }
 
@@ -2050,13 +2057,63 @@ async function loadAreaBounds(areaId) {
  * استدعاء تحميل حدود المنطقة الحالية (تُستدعى من initMap ومن change على #area)
  */
 function requestAreaBoundsForCurrentArea() {
-  const areaEl = document.getElementById('area');
+  const areaEl = document.getElementById("area");
   if (!areaEl) return;
 
-  const areaId = areaEl.value || '';
+  const areaId = areaEl.value || "";
   if (!areaId) return;
 
   loadAreaBounds(areaId);
+}
+
+/**
+ * إنشاء زر "📍 موقعي" كأيقونة داخل الخريطة
+ */
+function setupMyLocationControl(mapInstance) {
+  const controlDiv = document.createElement("div");
+  controlDiv.style.background = "#fff";
+  controlDiv.style.border = "1px solid rgba(0,0,0,.2)";
+  controlDiv.style.borderRadius = "999px";
+  controlDiv.style.width = "40px";
+  controlDiv.style.height = "40px";
+  controlDiv.style.display = "flex";
+  controlDiv.style.alignItems = "center";
+  controlDiv.style.justifyContent = "center";
+  controlDiv.style.cursor = "pointer";
+  controlDiv.style.boxShadow = "0 2px 6px rgba(0,0,0,.3)";
+  controlDiv.style.margin = "10px";
+  controlDiv.style.fontSize = "18px";
+  controlDiv.title = "استخدم موقعي الحالي";
+
+  // أيقونة بسيطة
+  controlDiv.textContent = "📍";
+
+  controlDiv.addEventListener("click", () => {
+    if (!navigator.geolocation) {
+      if (typeof showToast === "function") {
+        showToast("error", "المتصفح لا يدعم تحديد الموقع");
+      }
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const latLng = new google.maps.LatLng(
+          pos.coords.latitude,
+          pos.coords.longitude
+        );
+        setPinPosition(latLng, { pan: true });
+      },
+      () => {
+        if (typeof showToast === "function") {
+          showToast("error", "تعذر تحديد موقعك");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  });
+
+  // نضع الأيقونة أسفل يمين الخريطة (مناسب للجوال)
+  mapInstance.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(controlDiv);
 }
 
 /**
@@ -2065,13 +2122,13 @@ function requestAreaBoundsForCurrentArea() {
  *   - click / tap → drop pin
  *   - dblclick / double-tap → drop pin
  *   - سحب الماركر
- *   - زر "إظهار موقعي"
+ *   - زر "📍" داخل الخريطة لتحديد موقعي
  *   - البحث بالمكان
  */
 function initMap() {
   const def = { lat: 24.7136, lng: 46.6753 }; // الرياض افتراضيًا
 
-  map = new google.maps.Map(document.getElementById('googleMap'), {
+  map = new google.maps.Map(document.getElementById("googleMap"), {
     center: def,
     zoom: 12,
     disableDoubleClickZoom: true, // نستخدم double-tap لتحديد الموقع بدل التكبير
@@ -2079,37 +2136,37 @@ function initMap() {
     fullscreenControl: true,
     restriction: {
       latLngBounds: SA_BOUNDS,
-      strictBounds: false
-    }
+      strictBounds: false,
+    },
   });
 
   // أول ماركر افتراضي في وسط الرياض
   setPinPosition(def, { pan: false, skipBoundsCheck: true });
 
   // 👆 ضغط واحد / لمسة واحدة (click / tap) → drop pin
-  map.addListener('click', (e) => {
+  map.addListener("click", (e) => {
     if (!e || !e.latLng) return;
     setPinPosition(e.latLng, { pan: true });
   });
 
   // 📱 double-tap / dblclick → نفس منطق click-to-drop
-  map.addListener('dblclick', (e) => {
+  map.addListener("dblclick", (e) => {
     if (!e || !e.latLng) return;
     setPinPosition(e.latLng, { pan: true });
   });
 
   // 🔍 البحث عن عنوان
-  const input = document.getElementById('mapSearch');
+  const input = document.getElementById("mapSearch");
   if (input) {
     const opts = {
-      fields: ['geometry', 'name'],
-      componentRestrictions: { country: 'sa' },
-      strictBounds: false
+      fields: ["geometry", "name"],
+      componentRestrictions: { country: "sa" },
+      strictBounds: false,
     };
     autocomplete = new google.maps.places.Autocomplete(input, opts);
-    autocomplete.bindTo('bounds', map);
+    autocomplete.bindTo("bounds", map);
 
-    autocomplete.addListener('place_changed', () => {
+    autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
       if (!place || !place.geometry || !place.geometry.location) return;
       const loc = place.geometry.location;
@@ -2118,32 +2175,21 @@ function initMap() {
     });
   }
 
-  // 📍 زر "إظهار موقعي"
-  const btn = document.getElementById('show-my-location');
-  if (btn) {
-    btn.addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        if (typeof showToast === 'function') {
-          showToast('error', 'المتصفح لا يدعم تحديد الموقع');
-        }
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const latLng = new google.maps.LatLng(
-            pos.coords.latitude,
-            pos.coords.longitude
-          );
-          setPinPosition(latLng, { pan: true });
-        },
-        () => {
-          if (typeof showToast === 'function') {
-            showToast('error', 'تعذر تحديد موقعك');
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-      );
-    });
+  // 🧭 زر "📍 موقعي" داخل الخريطة
+  setupMyLocationControl(map);
+
+  // إخفاء الزر القديم تحت الخريطة (إن وُجد في الـ HTML)
+  const legacyBtn = document.getElementById("show-my-location");
+  if (legacyBtn) {
+    legacyBtn.style.display = "none";
+  }
+
+  // تعليمات افتراضية لو ما تم اختيار موقع بعد
+  const hint = document.getElementById("mapHint");
+  if (hint && !positionUrl) {
+    hint.innerHTML =
+      `اضغط على الخريطة لوضع الدبوس، اسحب الدبوس لتعديل المكان، ` +
+      `أو استخدم زر <strong>📍</strong> داخل الخريطة لتحديد موقعك الحالي.`;
   }
 
   // لو كان فيه منطقة تم اختيارها قبل تحميل الخريطة
@@ -2156,6 +2202,7 @@ function initMap() {
 }
 
 window.initMap = initMap;
+
 
 
 /* ========================================================================== */
