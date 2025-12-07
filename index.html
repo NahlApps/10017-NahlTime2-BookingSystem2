@@ -38,6 +38,29 @@
 
   <!-- Main app styles -->
   <link rel="stylesheet" href="style.css">
+
+  <!-- Small style for language toggle button -->
+  <style>
+    .lang-toggle-btn {
+      border: 1px solid rgba(255,255,255,0.6);
+      background: rgba(0,0,0,0.12);
+      color: #fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+    }
+    .lang-toggle-btn i {
+      font-size: 14px;
+    }
+    .lang-toggle-btn:hover {
+      background: rgba(0,0,0,0.25);
+    }
+  </style>
 </head>
 <body>
   <!-- 🔔 Toast container -->
@@ -58,6 +81,16 @@
       </div>
 
       <div class="header-right">
+        <!-- 🌐 Language toggle (user icon) -->
+        <button id="langToggleBtn"
+                type="button"
+                class="lang-toggle-btn"
+                aria-label="Change language / تغيير اللغة"
+                title="تغيير اللغة">
+          <i class="fa-regular fa-user"></i>
+          <span id="langToggleLabel">ع</span>
+        </button>
+
         <div class="mini-progress" aria-hidden="true">
           <div class="bar"><span id="miniBarFill" style="width:0%"></span></div>
           <div class="step" id="miniStepTitle">الترحيب</div>
@@ -114,8 +147,7 @@
           </div>
         </section>
 
-        <!-- 2) Service & Location (+ Gift toggle) -->
-        <!-- 2) Service & Location (+ Gift toggle) -->
+        <!-- 2) Service & Location (+ Additional services + Gift toggle) -->
         <section id="page2" class="page" aria-label="اختيار المنطقة والخدمة">
           <h1>وين تحب نجيك؟</h1>
 
@@ -150,7 +182,7 @@
                 <div id="servicePrice"
                      class="small bg-white border rounded-3 p-3 fw-bold text-primary"
                      style="border-radius:14px;">
-                  —
+                  — 
                 </div>
               </div>
 
@@ -166,7 +198,7 @@
               </div>
             </div>
 
-            <!-- 🔹 Additional Services UI (moved ABOVE gift section) -->
+            <!-- 🔁 Additional Services UI (أعلى من الهدية الآن) -->
             <hr class="mt-4 mb-3"/>
             <div class="mt-2">
               <label class="form-label">خدمات إضافية (اختياري)</label>
@@ -199,7 +231,6 @@
             </div>
           </div>
         </section>
-
 
         <!-- 3) Time (normal booking only; skipped for gift) -->
         <section id="page3" class="page" aria-label="اختيار الموعد">
@@ -375,19 +406,18 @@
               <i class="fa-solid fa-magnifying-glass"></i>
             </div>
             <div id="googleMap"></div>
-            <!-- 🔒 Hidden fields to store map coordinates (إن أحببت تستخدمها لاحقاً) -->
+            <!-- 🔒 Hidden fields to store map coordinates -->
             <input type="hidden" id="locationLat">
             <input type="hidden" id="locationLng">
           </div>
 
-          <!-- 🔁 Legacy "show my location" button (مخفي، فقط للتوافق مع أي كود قديم) -->
-          <div class="d-none">
-            <button id="show-my-location" type="button">إظهار موقعي</button>
+          <!-- الزر القديم سيتم إخفاؤه من app.js (نستخدم أيقونة 📍 داخل الخريطة) -->
+          <div class="card text-center">
+            <button id="show-my-location" class="btn btn-outline-primary" type="button">إظهار موقعي</button>
           </div>
 
           <small id="mapHint" class="text-muted d-block mt-2" style="text-align:center">
-            اضغط على الخريطة لوضع الدبوس، اسحب الدبوس لتعديل المكان، أو استخدم زر
-            <strong>📍</strong> داخل الخريطة لتحديد موقعك الحالي.
+            اضغط على الخريطة لوضع الدبوس، اسحب الدبوس لتعديل المكان، أو استخدم زر <strong>📍</strong> داخل الخريطة لتحديد موقعك الحالي.
           </small>
           <div class="field-error" id="err-map" style="text-align:center">الرجاء تحديد الموقع على الخريطة</div>
         </section>
@@ -458,7 +488,10 @@
     <div class="offers-dialog" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
       <div class="offers-header">
         <h2 id="termsTitle" class="offers-title">الشروط والأحكام</h2>
-        <button type="button" class="offers-close" data-terms-dismiss="1" aria-label="إغلاق الشروط">
+        <button type="button"
+                class="offers-close"
+                data-terms-dismiss="1"
+                aria-label="إغلاق الشروط">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -524,7 +557,7 @@
                 title="تثبيت تطبيق NahlTime">
           <i class="fa-solid fa-mobile-screen-button"></i>
         </button>
-      
+
         <div id="footer-wait" class="">
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           <span>يتم إرسال الطلب…</span>
@@ -532,7 +565,7 @@
       </div>
     </div>
 
-    <!-- زر PWA عائم للايفون/أندرويد (مخفي الآن) -->
+    <!-- زر PWA عائم للايفون/أندرويد (لم نعد نستخدمه) -->
     <button id="installPwaBtn"
             style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
                    z-index:9999; padding:10px 18px; border-radius:999px;
@@ -540,7 +573,6 @@
                    box-shadow:0 6px 18px rgba(0,0,0,.25);">
       📲 تثبيت تطبيق NahlTime
     </button>
-
   </footer>
 
   <!-- ========================= -->
@@ -579,9 +611,9 @@
         // فقط طبّق المنطق إذا صفحة 2 هي المعروضة حاليًا
         if (!$('#page2').hasClass('active') || !$nextBtn.length) return;
 
-        const areaOk    = !!$area.val();
-        const catOk     = !!$serviceCat.val();
-        const serviceOk = !!$service.val();
+        const areaOk   = !!$area.val();
+        const catOk    = !!$serviceCat.val();
+        const serviceOk= !!$service.val();
 
         // 🎯 ملاحظة مهمة:
         // خيار الهدية (تشغيل/إيقاف) لا يؤثر على تمكين الزر
@@ -612,6 +644,40 @@
       // تشغيل مبدئي
       refreshPage2Next();
     });
+  </script>
+
+  <!-- 🌐 Language Toggle Logic -->
+  <script>
+    (function () {
+      const btn       = document.getElementById('langToggleBtn');
+      const labelSpan = document.getElementById('langToggleLabel');
+      if (!btn || !labelSpan) return;
+
+      // نقرأ اللغة الحالية من الـ URL (?lang=en أو افتراضي ar)
+      const params      = new URLSearchParams(window.location.search || '');
+      const currentLang = (params.get('lang') || 'ar').toLowerCase() === 'en' ? 'en' : 'ar';
+
+      if (currentLang === 'en') {
+        btn.dataset.lang = 'en';
+        labelSpan.textContent = 'EN';
+      } else {
+        btn.dataset.lang = 'ar';
+        labelSpan.textContent = 'ع';
+      }
+
+      btn.addEventListener('click', function () {
+        const urlParams = new URLSearchParams(window.location.search || '');
+        const activeLang = (urlParams.get('lang') || 'ar').toLowerCase();
+        const nextLang   = activeLang === 'en' ? 'ar' : 'en';
+        urlParams.set('lang', nextLang);
+
+        const baseUrl = window.location.origin + window.location.pathname;
+        const newUrl  = baseUrl + '?' + urlParams.toString();
+
+        // نعيد تحميل الصفحة مع اللغة الجديدة
+        window.location.href = newUrl;
+      });
+    })();
   </script>
 
   <!-- Google Maps (after initMap is defined in app.js) -->
