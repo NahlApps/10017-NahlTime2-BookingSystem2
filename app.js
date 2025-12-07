@@ -2856,8 +2856,11 @@ if ('serviceWorker' in navigator) {
 // ====== PWA Install Logic (Android + iOS) ======
 let deferredInstallPrompt = null;
 
-const floatingInstallBtn = document.getElementById('installPwaBtn');
-const footerInstallBtn   = document.getElementById('footer-install-btn');
+// ❌ لم نعد نستخدم الزر العائم
+// const floatingInstallBtn = document.getElementById('installPwaBtn');
+
+// ✅ زر التثبيت الوحيد في الفوتر (أيقونة)
+const footerInstallBtn = document.getElementById('footer-install-btn');
 
 function isIos() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
@@ -2891,8 +2894,9 @@ async function handlePwaInstallClick() {
     console.log('User choice:', choice.outcome);
     deferredInstallPrompt = null;
 
-    if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
-    if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
+    if (footerInstallBtn) {
+      footerInstallBtn.style.display = 'none';
+    }
     return;
   }
 
@@ -2905,43 +2909,32 @@ async function handlePwaInstallClick() {
 }
 
 window.addEventListener('load', () => {
+  // 👂 التقاط beforeinstallprompt لإظهار زر الفوتر فقط
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstallPrompt = e;
 
-    if (floatingInstallBtn) {
-      floatingInstallBtn.style.display = 'block';
-      floatingInstallBtn.textContent   = '📲 تثبيت تطبيق NahlTime';
-    }
     if (footerInstallBtn) {
-      footerInstallBtn.style.display   = 'block';
-      footerInstallBtn.textContent     = '📲 تحميل التطبيق';
+      footerInstallBtn.style.display = 'inline-flex'; // نُظهر الأيقونة فقط
+      // لا نغيّر النص لأن الزر الآن يحتوي على أيقونة فقط
     }
   });
 
-  if (floatingInstallBtn) {
-    floatingInstallBtn.addEventListener('click', handlePwaInstallClick);
-  }
   if (footerInstallBtn) {
     footerInstallBtn.addEventListener('click', handlePwaInstallClick);
   }
 
-  // iOS: إظهار زر التثبيت + توست بسيط لو التطبيق غير مثبت
+  // iOS: إظهار زر التثبيت لو التطبيق غير مثبت
   if (isIos() && !isInStandaloneMode()) {
     if (footerInstallBtn) {
-      footerInstallBtn.style.display   = 'block';
-      footerInstallBtn.textContent     = '📲 تحميل التطبيق';
-    }
-    if (floatingInstallBtn) {
-      floatingInstallBtn.style.display = 'block';
-      floatingInstallBtn.textContent   = '📲 تثبيت تطبيق NahlTime';
+      footerInstallBtn.style.display = 'inline-flex';
     }
 
     if (typeof showToast === 'function') {
       setTimeout(() => {
         showToast(
           'info',
-          '📲 تقدر تثبت NahlTime من زر "تحميل التطبيق" في الأسفل أو من مشاركة سفاري → إضافة إلى الشاشة الرئيسية'
+          '📲 تقدر تثبت NahlTime من زر الأيقونة في الأسفل أو من مشاركة سفاري → إضافة إلى الشاشة الرئيسية'
         );
       }, 2500);
     }
@@ -2950,7 +2943,7 @@ window.addEventListener('load', () => {
       setTimeout(() => {
         showToast(
           'info',
-          '📲 عند ظهور زر "تحميل التطبيق" في الأسفل تقدر تثبت NahlTime كتطبيق على جهازك'
+          '📲 عند ظهور أيقونة التثبيت في الأسفل تقدر تثبت NahlTime كتطبيق على جهازك'
         );
       }, 2500);
     }
@@ -2959,8 +2952,9 @@ window.addEventListener('load', () => {
 
 window.addEventListener('appinstalled', () => {
   console.log('NahlTime installed ✅');
-  if (floatingInstallBtn) floatingInstallBtn.style.display = 'none';
-  if (footerInstallBtn)   footerInstallBtn.style.display   = 'none';
+  if (footerInstallBtn) {
+    footerInstallBtn.style.display = 'none';
+  }
   if (typeof showToast === 'function') {
     showToast('success', 'تم تثبيت تطبيق NahlTime على جهازك ✅');
   }
