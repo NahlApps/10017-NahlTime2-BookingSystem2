@@ -2625,27 +2625,46 @@ $(function(){
     applyBtn.addEventListener('click', validateCouponAndApply);
   }
 
+
   // 🔐 Wire OTP controls (if enabled)
-  if(OTP_ENABLED){
-    const otpControls = document.getElementById('otpControls');
-    const verifyRow   = document.getElementById('otpVerifyRow');
-    if(otpControls) otpControls.style.display = 'flex';
-    if(verifyRow)   verifyRow.style.display   = 'none';
-
-    const btnSendOtp   = document.getElementById('btnSendOtp');
-    const btnVerifyOtp = document.getElementById('btnVerifyOtp');
-    if(btnSendOtp){   btnSendOtp.addEventListener('click', requestOtpForMobile); }
-    if(btnVerifyOtp){ btnVerifyOtp.addEventListener('click', verifyOtpCode); }
-
-    resetOtpState(true);
-  } else {
+  if (OTP_ENABLED) {
     const otpControls = document.getElementById('otpControls');
     const verifyRow   = document.getElementById('otpVerifyRow');
     const errOtp      = document.getElementById('err-otp');
-    if(otpControls) otpControls.style.display = 'none';
-    if(verifyRow)   verifyRow.style.display   = 'none';
-    if(errOtp)      errOtp.style.display      = 'none';
+
+    // إظهار صف زر الإرسال فقط، وإخفاء صف التحقق مؤقتًا
+    if (otpControls) otpControls.style.display = 'flex';
+    if (verifyRow)   verifyRow.style.display   = 'none';
+    if (errOtp)      errOtp.style.display      = 'none';
+
+    const btnSendOtp   = document.getElementById('btnSendOtp');
+    const btnVerifyOtp = document.getElementById('btnVerifyOtp');
+
+    if (btnSendOtp)   btnSendOtp.addEventListener('click', requestOtpForMobile);
+    if (btnVerifyOtp) btnVerifyOtp.addEventListener('click', verifyOtpCode);
+
+    // إعادة ضبط حالة OTP
+    resetOtpState(true);
+
+  } else {
+    // ✅ OTP معطَّل:
+    // - إخفاء كل شيء له علاقة به
+    // - التأكد أن أي رسائل خطأ مخفية
+    const otpControls = document.getElementById('otpControls');
+    const verifyRow   = document.getElementById('otpVerifyRow');
+    const errOtp      = document.getElementById('err-otp');
+    const codeInput   = document.getElementById('otpCode');
+
+    if (otpControls) otpControls.style.display = 'none';
+    if (verifyRow)   verifyRow.style.display   = 'none';
+    if (errOtp)      errOtp.style.display      = 'none';
+    if (codeInput)   codeInput.value           = '';
+
+    // flag داخلي: لا نستخدم OTP بالمرة
+    window.otpRequested = false;
+    window.otpVerified  = true; // 👈 نخليها true حتى لا يوقفك شرط OTP في صفحة 4
   }
+
 
   // Load dynamic extras + payment methods + wire offers + terms popup
   loadAdditionalServices();
