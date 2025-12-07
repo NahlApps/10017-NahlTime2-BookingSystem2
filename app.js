@@ -2025,19 +2025,19 @@ function initMap() {
   map = new google.maps.Map(mapEl, {
     center: def,
     zoom: 12,
-    gestureHandling: 'greedy', // ممتاز للجوال – يسمح بالسحب والتكبير/التصغير
+    gestureHandling: 'greedy',      // ممتاز للجوال
     zoomControl: !isMobile,
     streetViewControl: false,
     mapTypeControl: false,
     fullscreenControl: !isMobile,
-    disableDoubleClickZoom: true,
+    disableDoubleClickZoom: true,   // ⛔ منع زوم بالضغط المزدوج (علشان نستخدمه لتثبيت الدبوس)
     restriction: {
       latLngBounds: SA_BOUNDS,
       strictBounds: false
     }
   });
 
-  // 🔴 دبوس أحمر افتراضي قابل للسحب على جميع الأجهزة (موبايل + ديسكتوب)
+  // 🔴 دبوس أحمر افتراضي قابل للسحب
   marker = new google.maps.Marker({
     position: def,
     map,
@@ -2046,31 +2046,27 @@ function initMap() {
     title: isEnglishLocale()
       ? 'Drag the pin or tap on the map to select your place'
       : 'اسحب الدبوس أو اضغط على الخريطة لتحديد موقعك'
-    // لا نحدد icon → يبقى اللون الأحمر الافتراضي من Google
+    // لا نحدد icon → يبقى اللون الأحمر الافتراضي
   });
 
   lastValidLatLng = new google.maps.LatLng(def.lat, def.lng);
 
-  // 🟢 سحب الدبوس (Drag & Drop)
+  // 🟢 سحب الدبوس Drag & Drop
   marker.addListener('dragend', ({ latLng }) => {
     if (!latLng) return;
     setMapPosition(latLng, true);
   });
 
-  // 🟢 لمس/ضغط على الخريطة = نقل الدبوس للمكان المضغوط
+  // 🟢 ضغطة واحدة على الخريطة = نقل الدبوس للمكان المضغوط
   map.addListener('click', ({ latLng }) => {
     if (!latLng) return;
     setMapPosition(latLng, true);
   });
 
-  // 🟢 للجوال: لما يوقف سحب الخريطة (idle بعد drag) ننقل الدبوس لمركز الخريطة
-  // هذا يجعل UX أسهل: "حرّك الخريطة ثم اتركها" → الدبوس يثبت في المركز
-  map.addListener('dragend', () => {
-    if (!isMobile) return;
-    const center = map.getCenter();
-    if (center) {
-      setMapPosition(center, false);
-    }
+  // 🟢 ضغطة مزدوجة (Double Click / Double Tap) = نفس الشيء: تثبيت الدبوس هناك
+  map.addListener('dblclick', ({ latLng }) => {
+    if (!latLng) return;
+    setMapPosition(latLng, true);
   });
 
   // 🔍 البحث (Places Autocomplete)
@@ -2139,11 +2135,19 @@ function initMap() {
   const hint = document.getElementById('mapHint');
   if (hint) {
     hint.textContent = isEnglishLocale()
-      ? 'Drag the pin or tap on the map to set your exact location, then press Next.'
-      : 'اسحب الدبوس أو اضغط على الخريطة لتحديد موقعك بدقة، ثم اضغط "التالي".';
+      ? 'Tap, double-tap, or drag the pin to set your exact location, then press Next.'
+      : 'اضغط مرة أو ضغطتين على الخريطة أو اسحب الدبوس لتحديد موقعك بدقة، ثم اضغط "التالي".';
   }
 }
 window.initMap = initMap;
+
+map.addListener('dragend', () => {
+  if (!isMobile) return;
+  const center = map.getCenter();
+  if (center) {
+    setMapPosition(center, false);
+  }
+});
 
 /* ========================================================================== */
 /* 26) DOCUMENT READY: WIRING & FLOW                                         */
