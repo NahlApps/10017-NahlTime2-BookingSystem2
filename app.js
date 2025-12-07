@@ -1832,10 +1832,6 @@ async function verifyOtpCode(){
 /* 25) MAP / GOOGLE MAPS INTEGRATION                                         */
 /* ========================================================================== */
 
-/* ========================================================================== */
-/* 25) MAP / GOOGLE MAPS INTEGRATION                                         */
-/* ========================================================================== */
-
 let map, marker, autocomplete, areaPolygon, pendingAreaForBounds = null, currentAreaBounds;
 let lastValidLatLng = null;
 let geocoder = null;
@@ -1947,6 +1943,7 @@ async function loadAreaBounds(areaId) {
  * طلب حدود المنطقة بناءً على الـ area الحالي في صفحة 2
  */
 function requestAreaBoundsForCurrentArea() {
+  // لا نستخدم jQuery هنا لتفادي مشاكل الترتيب
   const areaEl = document.getElementById('area');
   if (!areaEl) return;
   const areaId = areaEl.value || '';
@@ -1955,12 +1952,13 @@ function requestAreaBoundsForCurrentArea() {
 }
 
 /**
- * تحديث الـ Lat/Lng في الحقول المخفية (إن وُجدت) + positionUrl + hint
+ * تحديث الـ Lat/Lng في الحقول + positionUrl + hint + locationDescription (عند توفر Geocoding)
  */
 function updateLatLngFieldsAndHint(latLng) {
   const lat = latLng.lat();
   const lng = latLng.lng();
 
+  // لو حاب تحفظ الإحداثيات مستقبلاً
   const hiddenLat = document.getElementById('locationLat');
   const hiddenLng = document.getElementById('locationLng');
   if (hiddenLat) hiddenLat.value = lat;
@@ -1972,20 +1970,23 @@ function updateLatLngFieldsAndHint(latLng) {
   const hint = document.getElementById('mapHint');
   if (hint) {
     const txt = isEnglishLocale()
-      ? `Location selected: ${lat.toFixed(5)}, ${lng.toFixed(5)}`
-      : `تم اختيار الموقع: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    hint.innerHTML = `<strong>${txt}</strong>`;
+      ? `Move the map to choose your exact location, then press Next.`
+      : `حرّك الخريطة وحدّد موقعك بالضبط، ثم اضغط "التالي" لإكمال الحجز.`;
+    const coordsTxt = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    hint.innerHTML = `<div>${txt}</div><div style="font-size:.8rem;opacity:.8;">${coordsTxt}</div>`;
   }
 
-  // 🔁 Reverse Geocoding (اختياري) – لو موجود حقل locationDescription
+  // Reverse Geocoding → تعبئة locationDescription إن وجد
   const locationDescInput = document.getElementById('locationDescription');
   if (geocoder && locationDescInput) {
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
       if (status === 'OK' && results && results[0]) {
         const addr = results[0].formatted_address || '';
-        locationDescInput.value = addr;
-        if (hint && addr) {
-          hint.textContent = addr;
+        if (addr) {
+          locationDescInput.value = addr;
+          if (hint) {
+            hint.innerHTML = `<div>${addr}</div>`;
+          }
         }
       }
     });
@@ -1996,26 +1997,25 @@ function updateLatLngFieldsAndHint(latLng) {
 }
 
 /**
- * تفعيل الخرائط – يدعم:
- * - لمس واحد في الجوال (tap) لإسقاط/نقل الـ pin
- * - سحب الـ marker
- * - حدود السعودية + حدود المنطقة
- * - بحث العنوان + زر موقعي
+ * تفعيل الخرائط – UX مخصص للجوال:
+ * - المؤشر ثابت في الوسط (Overlay) والمستخدم يحرك الخريطة
+ * - في الديسكتوب يمكن سحب الـ marker أيضاً
  */
 function initMap() {
   const mapEl = document.getElementById('googleMap');
   if (!mapEl || !window.google || !google.maps) return;
 
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
   const defCenter = { lat: 24.7136, lng: 46.6753 };
 
   map = new google.maps.Map(mapEl, {
     center: defCenter,
     zoom: 12,
-    gestureHandling: 'greedy',       // 👍 أفضل للجوال: يسمح بالسحب/التكبير بسهولة
-    zoomControl: true,
+    gestureHandling: 'greedy',           // ممتاز للجوال — يدعم السحب والتكبير بالإصبعين
+    zoomControl: !isMobile,
     streetViewControl: false,
     mapTypeControl: false,
-    fullscreenControl: true,
+    fullscreenControl: !isMobile,
     disableDoubleClickZoom: true,
     restriction: {
       latLngBounds: SA_BOUNDS,
@@ -2025,29 +2025,77 @@ function initMap() {
 
   geocoder = new google.maps.Geocoder();
 
+  // في الديسكتوب نظهر marker عادي، في الجوال نستخدم Pin ثابت في المركز
   marker = new google.maps.Marker({
     position: defCenter,
     map,
-    draggable: true,
+    draggable: !isMobile,
     animation: google.maps.Animation.DROP,
     title: isEnglishLocale()
-      ? 'Drag or tap the map to set location'
-      : 'اسحب أو اضغط على الخريطة لتحديد الموقع'
+      ? 'Drag the map (or marker) to select your place'
+      : 'حرّك الخريطة (أو اسحب العلامة) لتحديد موقعك'
   });
 
   lastValidLatLng = { lat: defCenter.lat, lng: defCenter.lng };
 
-  /**
-   * دالة موحدة لتعيين الموقع (تستخدم من:
-   * - click على الخريطة (لمسة في الجوال)
-   * - dragend للعلامة
-   * - البحث
-   * - زر موقعي
-   */
-  const setPos = (latLng, pan = false) => {
-    if (!latLng) return;
+  // 🎯 Overlay Pin في منتصف الخريطة للجوال (أفضل UX)
+  let centerPinEl = null;
+  if (isMobile) {
+    marker.setVisible(false); // نستخدم overlay بدلاً من marker العادي في الجوال
 
-    // 🔒 التحقق من أن النقطة داخل المنطقة المحددة (polygon) إن وُجدت
+    centerPinEl = document.createElement('div');
+    centerPinEl.id = 'mapCenterPin';
+    centerPinEl.style.position = 'absolute';
+    centerPinEl.style.top = '50%';
+    centerPinEl.style.left = '50%';
+    centerPinEl.style.transform = 'translate(-50%, -100%)';
+    centerPinEl.style.zIndex = '5';
+    centerPinEl.style.pointerEvents = 'none';
+
+    // شكل الـ pin (دوائر بسيطة + ظل)
+    centerPinEl.innerHTML = `
+      <div style="
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background:#027A93;
+        box-shadow:0 6px 16px rgba(0,0,0,.35);
+        position:relative;
+      ">
+        <div style="
+          position:absolute;
+          width: 12px;
+          height: 12px;
+          border-radius:50%;
+          background:#fff;
+          top:50%;
+          left:50%;
+          transform:translate(-50%,-50%);
+        "></div>
+      </div>
+      <div style="
+        width: 26px;
+        height: 8px;
+        background:rgba(0,0,0,.2);
+        border-radius:50%;
+        margin:3px auto 0;
+        filter:blur(1px);
+      "></div>
+    `;
+    mapEl.style.position = 'relative';
+    mapEl.appendChild(centerPinEl);
+  }
+
+  /**
+   * دالة موحدة لاختيار الموقع:
+   * - في الجوال: center of map هو الموقع المعتمد
+   * - في الديسكتوب: marker position أو click position
+   */
+  const commitCenterAsPosition = () => {
+    const center = map.getCenter();
+    if (!center) return;
+
+    // التحقق من أن النقطة داخل الـ polygon للمنطقة الحالية (إن وُجدت)
     if (
       areaPolygon &&
       google.maps &&
@@ -2055,11 +2103,10 @@ function initMap() {
       google.maps.geometry.poly &&
       typeof google.maps.geometry.poly.containsLocation === 'function'
     ) {
-      const inside = google.maps.geometry.poly.containsLocation(latLng, areaPolygon);
+      const inside = google.maps.geometry.poly.containsLocation(center, areaPolygon);
       if (!inside) {
         if (lastValidLatLng) {
           const last = new google.maps.LatLng(lastValidLatLng.lat, lastValidLatLng.lng);
-          marker.setPosition(last);
           map.panTo(last);
         }
         showToast(
@@ -2072,31 +2119,48 @@ function initMap() {
       }
     }
 
-    marker.setPosition(latLng);
-    if (pan) {
-      map.panTo(latLng);
-    }
-    if (map.getZoom() < 16) {
-      map.setZoom(16);
+    if (!isMobile) {
+      marker.setPosition(center);
     }
 
-    updateLatLngFieldsAndHint(latLng);
+    updateLatLngFieldsAndHint(center);
   };
 
-  // 🟢 سحب الـ marker يحدّث الموقع
-  marker.addListener('dragend', ({ latLng }) => setPos(latLng, true));
+  // 🟢 Desktop: سحب الـ marker يغيّر الموقع
+  if (!isMobile) {
+    marker.addListener('dragend', ({ latLng }) => {
+      if (!latLng) return;
+      map.panTo(latLng);
+      updateLatLngFieldsAndHint(latLng);
+    });
 
-  // 🟢 لمسة/كليك على الخريطة = إسقاط/نقل الـ pin
-  map.addListener('click', ({ latLng }) => setPos(latLng, true));
+    // Click على الخريطة في الديسكتوب = نقل المؤشر
+    map.addListener('click', ({ latLng }) => {
+      if (!latLng) return;
+      map.panTo(latLng);
+      marker.setPosition(latLng);
+      updateLatLngFieldsAndHint(latLng);
+    });
+  }
 
-  // تحسين بسيط للجوال: ضمان أن الخريطة قابلة للسحب
-  mapEl.addEventListener(
-    'touchstart',
-    () => {
-      map.setOptions({ draggable: true });
-    },
-    { passive: true }
-  );
+  // 🟢 Mobile: المستخدم يحرّك الخريطة، والـ pin ثابت في المنتصف
+  if (isMobile) {
+    // أثناء السحب نعرض تلميح بسيط
+    map.addListener('dragstart', () => {
+      const hint = document.getElementById('mapHint');
+      if (hint) {
+        hint.textContent = isEnglishLocale()
+          ? 'Move the map, then release to select your location.'
+          : 'حرّك الخريطة ثم اتركها لاختيار موقعك.';
+      }
+    });
+
+    // بعد ما يوقف الحركة (idle) نعتمد مركز الخريطة كموقع
+    map.addListener('idle', () => {
+      // idle يُستدعى عند فتح الخريطة لأول مرة أيضاً → ممتاز كبداية
+      commitCenterAsPosition();
+    });
+  }
 
   // 🔍 البحث في الخريطة (Google Places Autocomplete)
   const input = document.getElementById('mapSearch');
@@ -2114,7 +2178,10 @@ function initMap() {
       const loc = place.geometry.location;
       map.panTo(loc);
       map.setZoom(16);
-      setPos(loc, true);
+      if (!isMobile) {
+        marker.setPosition(loc);
+      }
+      updateLatLngFieldsAndHint(loc);
     });
   }
 
@@ -2125,25 +2192,39 @@ function initMap() {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const latLng = new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-          setPos(latLng, true);
+          map.panTo(latLng);
+          map.setZoom(16);
+          if (!isMobile) {
+            marker.setPosition(latLng);
+          }
+          updateLatLngFieldsAndHint(latLng);
         },
         () => {
-          showToast('error', 'تعذر تحديد موقعك');
+          showToast('error', isEnglishLocale() ? 'Unable to detect your location.' : 'تعذر تحديد موقعك');
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
       );
     });
   }
 
-  // تحميل حدود المنطقة إن كانت موجودة مسبقًا
+  // تحميل حدود المنطقة لو كانت موجودة من قبل
   if (pendingAreaForBounds) {
     loadAreaBounds(pendingAreaForBounds);
     pendingAreaForBounds = null;
   } else {
     requestAreaBoundsForCurrentArea();
   }
+
+  // تلميح مبدئي
+  const hint = document.getElementById('mapHint');
+  if (hint) {
+    hint.textContent = isEnglishLocale()
+      ? 'Move the map so the pin is on your exact location, then press Next.'
+      : 'حرّك الخريطة بحيث يكون المؤشر على مكانك بالضبط، ثم اضغط "التالي".';
+  }
 }
 window.initMap = initMap;
+
 
 /* ========================================================================== */
 /* 26) DOCUMENT READY: WIRING & FLOW                                         */
