@@ -473,3 +473,15 @@ body.offers-open{
   }
 }
 
+.btn-footer-icon {
+  padding-inline: 10px;
+  min-width: 42px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-footer-icon i {
+  font-size: 1.1rem;
+}
