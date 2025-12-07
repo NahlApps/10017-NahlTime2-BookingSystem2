@@ -2141,13 +2141,7 @@ function initMap() {
 }
 window.initMap = initMap;
 
-map.addListener('dragend', () => {
-  if (!isMobile) return;
-  const center = map.getCenter();
-  if (center) {
-    setMapPosition(center, false);
-  }
-});
+
 
 /* ========================================================================== */
 /* 26) DOCUMENT READY: WIRING & FLOW                                         */
