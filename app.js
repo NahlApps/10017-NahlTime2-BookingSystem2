@@ -2729,16 +2729,23 @@ $(function(){
     const verifyRow   = document.getElementById('otpVerifyRow');
     const errOtp      = document.getElementById('err-otp');
     const codeInput   = document.getElementById('otpCode');
+    const btnSendOtp  = document.getElementById('btnSendOtp');
+    const otpStatus   = document.getElementById('otpStatus');
 
     if (otpControls) otpControls.style.display = 'none';
     if (verifyRow)   verifyRow.style.display   = 'none';
     if (errOtp)      errOtp.style.display      = 'none';
     if (codeInput)   codeInput.value           = '';
 
+    // إخفاء زر الإرسال ونص الحالة بشكل صريح
+    if (btnSendOtp) btnSendOtp.style.display = 'none';
+    if (otpStatus)  otpStatus.style.display  = 'none';
+
     // flag داخلي: لا نستخدم OTP بالمرة
     window.otpRequested = false;
     window.otpVerified  = true; // 👈 نخليها true حتى لا يوقفك شرط OTP في صفحة 4
   }
+
 
 
   // Load dynamic extras + payment methods + wire offers + terms popup
