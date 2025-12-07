@@ -2654,6 +2654,43 @@ $(function(){
   if (typeof wireTermsModal === 'function') {
     wireTermsModal();
   }
+    // ✅ بعد الموافقة على الشروط، لو المستخدم في صفحة الموقع (page6)
+  //    نكمل الحجز مباشرة باستخدام نفس منطق زر "التالي"
+  const btnAcceptTerms = document.getElementById('btnAcceptTerms');
+  if (btnAcceptTerms) {
+    btnAcceptTerms.addEventListener('click', () => {
+      // علّم النظام أن الشروط تم قبولها
+      window.termsAccepted = true;
+
+      // إغلاق نافذة الشروط (في حال wireTermsModal ما أغلقها)
+      const termsModal = document.getElementById('termsModal');
+      if (termsModal) {
+        termsModal.classList.remove('show');
+        termsModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('offers-open');
+      }
+
+      // لو نحن حاليًا في صفحة 6 (الموقع على الخريطة)
+      const activeIdx = getActiveIndex();
+      const activeId  = orderedPages[activeIdx] || '';
+
+      if (activeId === 'page6') {
+        // لو فيه حجز قيد الإرسال لا نعيده
+        if (window.isSubmitting) return;
+
+        // أفضل شيء: نستدعي نفس دالة "التالي" الأصلية
+        if (typeof window.originalGotoNext === 'function') {
+          window.originalGotoNext();
+        } else {
+          // احتياط: نضغط على زر التالي برمجيًا
+          const nextBtn = document.getElementById('footer-next');
+          if (nextBtn && !nextBtn.disabled) {
+            nextBtn.click();
+          }
+        }
+      }
+    });
+  }
 
   setPageBackground('page1');
   renderSummary('page1');
