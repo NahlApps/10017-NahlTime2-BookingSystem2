@@ -458,3 +458,18 @@ body.offers-open{
   font-weight:800;
   color:var(--brand-700);
 }
+
+#googleMap {
+  width: 100%;
+  min-height: 320px;
+  border-radius: 16px;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+@media (max-width: 576px) {
+  #googleMap {
+    min-height: 360px;
+  }
+}
+
