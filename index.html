@@ -372,17 +372,20 @@
               <input id="mapSearch" class="form-control" type="text" placeholder="ابحث عن برج، حي، أو عنوان داخل السعودية"/>
               <i class="fa-solid fa-magnifying-glass"></i>
             </div>
-           <div id="googleMap"></div>
-              <!-- 🔒 Hidden fields to store map coordinates -->
-              <input type="hidden" id="locationLat">
-              <input type="hidden" id="locationLng">
+            <div id="googleMap"></div>
+            <!-- 🔒 Hidden fields to store map coordinates (إن أحببت تستخدمها لاحقاً) -->
+            <input type="hidden" id="locationLat">
+            <input type="hidden" id="locationLng">
+          </div>
 
+          <!-- 🔁 Legacy "show my location" button (مخفي، فقط للتوافق مع أي كود قديم) -->
+          <div class="d-none">
+            <button id="show-my-location" type="button">إظهار موقعي</button>
           </div>
-          <div class="card text-center">
-            <button id="show-my-location" class="btn btn-outline-primary" type="button">إظهار موقعي</button>
-          </div>
+
           <small id="mapHint" class="text-muted d-block mt-2" style="text-align:center">
-            اضغط على الخريطة أو اسحب العلامة لتحديد موقعك
+            اضغط على الخريطة لوضع الدبوس، اسحب الدبوس لتعديل المكان، أو استخدم زر
+            <strong>📍</strong> داخل الخريطة لتحديد موقعك الحالي.
           </small>
           <div class="field-error" id="err-map" style="text-align:center">الرجاء تحديد الموقع على الخريطة</div>
         </section>
@@ -511,15 +514,14 @@
         <button id="footer-prev" type="button" class="btn-footer hidden">السابق</button>
         <button id="footer-next" type="button" class="btn-footer primary disabled" disabled>تخطي العرض</button>
       
-<button id="footer-install-btn"
-        type="button"
-        class="btn-footer btn-footer-icon"
-        style="display:none;"
-        aria-label="تثبيت تطبيق NahlTime"
-        title="تثبيت تطبيق NahlTime">
-  <i class="fa-solid fa-mobile-screen-button"></i>
-</button>
-
+        <button id="footer-install-btn"
+                type="button"
+                class="btn-footer btn-footer-icon"
+                style="display:none;"
+                aria-label="تثبيت تطبيق NahlTime"
+                title="تثبيت تطبيق NahlTime">
+          <i class="fa-solid fa-mobile-screen-button"></i>
+        </button>
       
         <div id="footer-wait" class="">
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -528,15 +530,14 @@
       </div>
     </div>
 
-    <!-- زر PWA عائم للايفون/أندرويد -->
-<!-- لم نعد نستخدم هذا الزر العائم -->
-<button id="installPwaBtn"
-        style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
-               z-index:9999; padding:10px 18px; border-radius:999px;
-               border:none; background:#027A93; color:#fff; font-weight:800;
-               box-shadow:0 6px 18px rgba(0,0,0,.25);">
-  📲 تثبيت تطبيق NahlTime
-</button>
+    <!-- زر PWA عائم للايفون/أندرويد (مخفي الآن) -->
+    <button id="installPwaBtn"
+            style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+                   z-index:9999; padding:10px 18px; border-radius:999px;
+                   border:none; background:#027A93; color:#fff; font-weight:800;
+                   box-shadow:0 6px 18px rgba(0,0,0,.25);">
+      📲 تثبيت تطبيق NahlTime
+    </button>
 
   </footer>
 
@@ -576,9 +577,9 @@
         // فقط طبّق المنطق إذا صفحة 2 هي المعروضة حاليًا
         if (!$('#page2').hasClass('active') || !$nextBtn.length) return;
 
-        const areaOk   = !!$area.val();
-        const catOk    = !!$serviceCat.val();
-        const serviceOk= !!$service.val();
+        const areaOk    = !!$area.val();
+        const catOk     = !!$serviceCat.val();
+        const serviceOk = !!$service.val();
 
         // 🎯 ملاحظة مهمة:
         // خيار الهدية (تشغيل/إيقاف) لا يؤثر على تمكين الزر
