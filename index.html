@@ -115,6 +115,7 @@
         </section>
 
         <!-- 2) Service & Location (+ Gift toggle) -->
+        <!-- 2) Service & Location (+ Gift toggle) -->
         <section id="page2" class="page" aria-label="اختيار المنطقة والخدمة">
           <h1>وين تحب نجيك؟</h1>
 
@@ -149,7 +150,7 @@
                 <div id="servicePrice"
                      class="small bg-white border rounded-3 p-3 fw-bold text-primary"
                      style="border-radius:14px;">
-                  — 
+                  —
                 </div>
               </div>
 
@@ -163,6 +164,16 @@
                   <option value="5">5</option>
                 </select>
               </div>
+            </div>
+
+            <!-- 🔹 Additional Services UI (moved ABOVE gift section) -->
+            <hr class="mt-4 mb-3"/>
+            <div class="mt-2">
+              <label class="form-label">خدمات إضافية (اختياري)</label>
+              <div id="additionalServicesWrap">
+                <div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>
+              </div>
+              <div class="field-error" id="err-additionalServices" style="display:none"></div>
             </div>
 
             <!-- 🎁 Gift toggle -->
@@ -182,22 +193,13 @@
               </div>
             </div>
 
-            <!-- Additional Services UI -->
-            <hr class="mt-4 mb-3"/>
-            <div class="mt-2">
-              <label class="form-label">خدمات إضافية (اختياري)</label>
-              <div id="additionalServicesWrap">
-                <div class="text-muted small">جاري تحميل الخدمات الإضافية…</div>
-              </div>
-              <div class="field-error" id="err-additionalServices" style="display:none"></div>
-            </div>
-
             <div id="servicesLoading" class="load-overlay" aria-hidden="true">
               <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
               <strong>جاري تحميل الخدمات…</strong>
             </div>
           </div>
         </section>
+
 
         <!-- 3) Time (normal booking only; skipped for gift) -->
         <section id="page3" class="page" aria-label="اختيار الموعد">
