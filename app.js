@@ -34,7 +34,7 @@ const OTP_REQUEST_URL    = `${API_BASE}/api/otp/request`;
 const OTP_VERIFY_URL     = `${API_BASE}/api/otp/verify`;
 
 /* 🔄 Toggle OTP feature ON/OFF from here (no backend change required) */
-const OTP_ENABLED        = true;   // 🟢 true = require OTP verify, 🔴 false = skip OTP
+const OTP_ENABLED        = false;   // 🟢 true = require OTP verify, 🔴 false = skip OTP
 const OTP_CODE_LENGTH    = 4;
 const OTP_RESEND_SECONDS = 60;
 
