@@ -1834,15 +1834,26 @@ async function verifyOtpCode(){
 
 let map, marker, autocomplete, areaPolygon, pendingAreaForBounds = null, currentAreaBounds;
 let lastValidLatLng = null;
-const SA_BOUNDS = { north: 32.154, south: 16.370, west: 34.495, east: 55.666 };
+
+// حدود السعودية العامة (لمنع اختيار مواقع خارج البلد)
+const SA_BOUNDS = {
+  north: 32.154,
+  south: 16.370,
+  west: 34.495,
+  east: 55.666
+};
 
 /**
- * تحميل حدود المنطقة (polygon + bounds) من الـ API
+ * تحميل حدود المنطقة المختارة (من الـ backend)
+ * - تضبط center للخريطة
+ * - تضبط restriction داخل حدود المنطقة
+ * - ترسم polygon إن كان موجود
  */
 async function loadAreaBounds(areaId) {
   if (!areaId) return;
 
   if (!window.google || !window.google.maps || !map) {
+    // لو الخريطة ما خلصت تحميل، نخزن الطلب وننفذه بعد initMap
     pendingAreaForBounds = areaId;
     return;
   }
@@ -1852,14 +1863,17 @@ async function loadAreaBounds(areaId) {
       appId: APP_ID,
       areaId: String(areaId)
     });
+
     const res = await fetch(`${AREA_BOUNDS_URL}?${params.toString()}`, {
       method: 'GET',
       cache: 'no-store'
     });
+
     if (!res.ok) {
       console.warn('loadAreaBounds HTTP error', res.status);
       return;
     }
+
     const json    = await res.json();
     const payload = json && json.data ? json.data : json;
 
@@ -1880,6 +1894,7 @@ async function loadAreaBounds(areaId) {
     const east  = Number(boundsObj.east);
     const west  = Number(boundsObj.west);
 
+    // 🔹 مركز المنطقة
     let center;
     if (Number.isFinite(centerLat) && Number.isFinite(centerLng)) {
       center = new google.maps.LatLng(centerLat, centerLng);
@@ -1893,31 +1908,42 @@ async function loadAreaBounds(areaId) {
         marker.setPosition(center);
       }
       lastValidLatLng = center;
+      // نحدّث الـ URL والـ summary
+      setMapPosition(center, false, false);
     }
 
-    if (Number.isFinite(north) && Number.isFinite(south) && Number.isFinite(east) && Number.isFinite(west)) {
+    // 🔹 ضبط restriction داخل حدود المنطقة (إن وجدت)
+    if (
+      Number.isFinite(north) &&
+      Number.isFinite(south) &&
+      Number.isFinite(east) &&
+      Number.isFinite(west)
+    ) {
       const areaLatLngBounds = new google.maps.LatLngBounds(
         new google.maps.LatLng(south, west),
         new google.maps.LatLng(north, east)
       );
+
       map.setOptions({
         restriction: {
           latLngBounds: areaLatLngBounds,
           strictBounds: true
         }
       });
+
       map.fitBounds(areaLatLngBounds);
     }
 
+    // 🔹 polygon منطقة الخدمة
     const poly = payload.polygon;
     if (poly && Array.isArray(poly) && poly.length) {
       const path = poly
-        .map(pt => {
+        .map((pt) => {
           const lat = Number(pt.lat ?? pt[0]);
           const lng = Number(pt.lng ?? pt[1]);
           return { lat, lng };
         })
-        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+        .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 
       if (path.length) {
         if (areaPolygon) {
@@ -1940,26 +1966,54 @@ async function loadAreaBounds(areaId) {
 }
 
 /**
- * طلب حدود المنطقة بناءً على الـ area الحالي في صفحة 2
+ * طلب حدود المنطقة الحالية بناءً على قيمة select#area
+ * (تُستدعى من initMap وأيضًا عند تغيير المنطقة)
  */
 function requestAreaBoundsForCurrentArea() {
   const areaEl = document.getElementById('area');
   if (!areaEl) return;
+
   const areaId = areaEl.value || '';
   if (!areaId) return;
+
   loadAreaBounds(areaId);
 }
 
 /**
- * تعيين الموقع وتحديث الـ URL + الرسالة + تمكين زر التالي
+ * 🔁 Helper: تثبيت الدبوس في مكان معيّن وتحديث الـ URL والـ UI
+ * @param {google.maps.LatLng} latLng
+ * @param {boolean} pan      هل نحرك الخريطة نحو الدبوس؟
+ * @param {boolean} zoomOnPlace هل نقرّب زووم للموضع؟
  */
-function setMapPosition(latLng, pan = false) {
-  if (!latLng || !map || !marker) return;
+function setMapPosition(latLng, pan = false, zoomOnPlace = true) {
+  if (!latLng || !map || !marker || !window.google || !google.maps) return;
 
-  // تحقق أن النقطة داخل البوليجون لو موجود
+  // ✅ التحقق من وجود داخل حدود السعودية العامة
+  const countryBounds = new google.maps.LatLngBounds(
+    new google.maps.LatLng(SA_BOUNDS.south, SA_BOUNDS.west),
+    new google.maps.LatLng(SA_BOUNDS.north, SA_BOUNDS.east)
+  );
+  if (!countryBounds.contains(latLng)) {
+    if (lastValidLatLng) {
+      marker.setPosition(lastValidLatLng);
+      if (pan) {
+        map.panTo(lastValidLatLng);
+      }
+    }
+    if (typeof showToast === 'function') {
+      showToast(
+        'error',
+        isEnglishLocale()
+          ? 'Service is only available inside Saudi Arabia.'
+          : 'الخدمة متاحة فقط داخل السعودية.'
+      );
+    }
+    return;
+  }
+
+  // ✅ التحقق من وجود داخل polygon المنطقة (إن وجد)
   if (
     areaPolygon &&
-    google.maps &&
     google.maps.geometry &&
     google.maps.geometry.poly &&
     typeof google.maps.geometry.poly.containsLocation === 'function'
@@ -1967,109 +2021,130 @@ function setMapPosition(latLng, pan = false) {
     const inside = google.maps.geometry.poly.containsLocation(latLng, areaPolygon);
     if (!inside) {
       if (lastValidLatLng) {
-        const last =
-          (typeof lastValidLatLng.lat === 'function' && typeof lastValidLatLng.lng === 'function')
-            ? lastValidLatLng
-            : new google.maps.LatLng(
-                lastValidLatLng.lat || 24.7136,
-                lastValidLatLng.lng || 46.6753
-              );
-        marker.setPosition(last);
-        map.panTo(last);
+        marker.setPosition(lastValidLatLng);
+        if (pan) {
+          map.panTo(lastValidLatLng);
+        }
       }
-      showToast(
-        'error',
-        isEnglishLocale()
-          ? 'Service is only available inside the highlighted area.'
-          : 'الخدمة متاحة فقط داخل المنطقة المحددة على الخريطة'
-      );
+      if (typeof showToast === 'function') {
+        showToast(
+          'error',
+          isEnglishLocale()
+            ? 'Please choose a location inside the selected service area.'
+            : 'الخدمة متاحة فقط داخل المنطقة المحددة على الخريطة.'
+        );
+      }
       return;
     }
   }
 
+  // 🔴 تثبيت الدبوس
   marker.setPosition(latLng);
+
   if (pan) {
     map.panTo(latLng);
   }
-  map.setZoom(Math.max(map.getZoom(), 16));
 
-  positionUrl = `https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
-  lastValidLatLng = latLng;
-
-  const hint = document.getElementById('mapHint');
-  if (hint) {
-    const coordsTxt = `${latLng.lat().toFixed(5)}, ${latLng.lng().toFixed(5)}`;
-    hint.innerHTML = isEnglishLocale()
-      ? `Location selected ✅<br/><span style="font-size:.8rem;opacity:.8;">${coordsTxt}</span>`
-      : `تم اختيار الموقع ✅<br/><span style="font-size:.8rem;opacity:.8;">${coordsTxt}</span>`;
+  if (zoomOnPlace && map.getZoom() < 16) {
+    map.setZoom(16);
   }
 
-  renderSummary('page6');
-  updateNextAvailability();
+  // حفظ آخر موقع صحيح
+  lastValidLatLng = latLng;
+
+  // رابط Google Maps
+  positionUrl = `https://www.google.com/maps/search/?api=1&query=${latLng.lat()},${latLng.lng()}`;
+
+  // Hint أسفل الخريطة
+  const hint = document.getElementById('mapHint');
+  if (hint) {
+    hint.innerHTML = isEnglishLocale()
+      ? `Location selected: <strong>${latLng.lat().toFixed(5)}, ${latLng
+          .lng()
+          .toFixed(5)}</strong>`
+      : `تم اختيار الموقع: <strong>${latLng.lat().toFixed(5)}, ${latLng
+          .lng()
+          .toFixed(5)}</strong>`;
+  }
+
+  // تحديث الملخص + حالة زر التالي
+  if (typeof renderSummary === 'function') {
+    renderSummary('page6');
+  }
+  if (typeof updateNextAvailability === 'function') {
+    updateNextAvailability();
+  }
 }
 
 /**
- * تهيئة خريطة قوقل – مع UX ممتاز للجوال:
- * - دبوس أحمر افتراضي (Google marker)
- * - سحب الدبوس Drag
- * - لمس/ضغط على الخريطة = إسقاط الدبوس Drop
- * - في الجوال: سحب الخريطة ثم إفلاتها ينقل الدبوس لمركز الخريطة
+ * تهيئة Google Map:
+ * - دبوس أحمر قابل للسحب
+ * - single tap / click = تحريك الدبوس
+ * - double tap / dblclick = تحريك الدبوس (مع تعطيل double-click zoom)
+ * - زر "إظهار موقعي"
+ * - مربع بحث (Places Autocomplete)
  */
 function initMap() {
   const mapEl = document.getElementById('googleMap');
   if (!mapEl || !window.google || !google.maps) return;
 
   const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  const def = { lat: 24.7136, lng: 46.6753 };
+  const defaultCenter = new google.maps.LatLng(24.7136, 46.6753); // الرياض
 
   map = new google.maps.Map(mapEl, {
-    center: def,
+    center: defaultCenter,
     zoom: 12,
-    gestureHandling: 'greedy',      // ممتاز للجوال
+    gestureHandling: 'greedy',         // مريح للجوال (سحب/تكبير باللمس)
     zoomControl: !isMobile,
     streetViewControl: false,
     mapTypeControl: false,
     fullscreenControl: !isMobile,
-    disableDoubleClickZoom: true,   // ⛔ منع زوم بالضغط المزدوج (علشان نستخدمه لتثبيت الدبوس)
+    disableDoubleClickZoom: true,      // ⛔ نستخدم double tap لوضع الدبوس بدل الزوم
     restriction: {
-      latLngBounds: SA_BOUNDS,
+      latLngBounds: {
+        north: SA_BOUNDS.north,
+        south: SA_BOUNDS.south,
+        west: SA_BOUNDS.west,
+        east: SA_BOUNDS.east
+      },
       strictBounds: false
     }
   });
 
-  // 🔴 دبوس أحمر افتراضي قابل للسحب
+  // 🔴 دبوس أحمر افتراضي (Google default) قابل للسحب
   marker = new google.maps.Marker({
-    position: def,
+    position: defaultCenter,
     map,
     draggable: true,
     animation: google.maps.Animation.DROP,
     title: isEnglishLocale()
-      ? 'Drag the pin or tap on the map to select your place'
+      ? 'Drag the pin or tap the map to set your location'
       : 'اسحب الدبوس أو اضغط على الخريطة لتحديد موقعك'
-    // لا نحدد icon → يبقى اللون الأحمر الافتراضي
   });
 
-  lastValidLatLng = new google.maps.LatLng(def.lat, def.lng);
+  lastValidLatLng = defaultCenter;
+  // تحديث الـ URL والـ hint من البداية بدون تغيير الزوم
+  setMapPosition(defaultCenter, false, false);
 
-  // 🟢 سحب الدبوس Drag & Drop
-  marker.addListener('dragend', ({ latLng }) => {
-    if (!latLng) return;
-    setMapPosition(latLng, true);
+  // 🟢 سحب الدبوس → يثبت الموقع
+  marker.addListener('dragend', (event) => {
+    if (!event || !event.latLng) return;
+    setMapPosition(event.latLng, true, false);
   });
 
-  // 🟢 ضغطة واحدة على الخريطة = نقل الدبوس للمكان المضغوط
-  map.addListener('click', ({ latLng }) => {
-    if (!latLng) return;
-    setMapPosition(latLng, true);
+  // 🟢 ضغطة واحدة على الخريطة → نقل الدبوس
+  map.addListener('click', (event) => {
+    if (!event || !event.latLng) return;
+    setMapPosition(event.latLng, true, true);
   });
 
-  // 🟢 ضغطة مزدوجة (Double Click / Double Tap) = نفس الشيء: تثبيت الدبوس هناك
-  map.addListener('dblclick', ({ latLng }) => {
-    if (!latLng) return;
-    setMapPosition(latLng, true);
+  // 🟢 ضغطة مزدوجة (Double Click / Double Tap) → نقل الدبوس أيضًا
+  map.addListener('dblclick', (event) => {
+    if (!event || !event.latLng) return;
+    setMapPosition(event.latLng, true, true);
   });
 
-  // 🔍 البحث (Places Autocomplete)
+  // 🔍 البحث باستخدام Places Autocomplete
   const input = document.getElementById('mapSearch');
   if (input) {
     const opts = {
@@ -2079,13 +2154,13 @@ function initMap() {
     };
     autocomplete = new google.maps.places.Autocomplete(input, opts);
     autocomplete.bindTo('bounds', map);
+
     autocomplete.addListener('place_changed', () => {
       const place = autocomplete.getPlace();
-      if (!place?.geometry || !place.geometry.location) return;
+      if (!place || !place.geometry || !place.geometry.location) return;
+
       const loc = place.geometry.location;
-      map.panTo(loc);
-      map.setZoom(16);
-      setMapPosition(loc, false);
+      setMapPosition(loc, true, true);
     });
   }
 
@@ -2093,37 +2168,40 @@ function initMap() {
   const btn = document.getElementById('show-my-location');
   btn?.addEventListener('click', () => {
     if (!navigator.geolocation) {
-      showToast(
-        'error',
-        isEnglishLocale()
-          ? 'Your browser does not support geolocation.'
-          : 'المتصفح لا يدعم تحديد الموقع'
-      );
+      if (typeof showToast === 'function') {
+        showToast(
+          'error',
+          isEnglishLocale()
+            ? 'Your browser does not support geolocation.'
+            : 'المتصفح لا يدعم تحديد الموقع'
+        );
+      }
       return;
     }
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const latLng = new google.maps.LatLng(
           pos.coords.latitude,
           pos.coords.longitude
         );
-        map.panTo(latLng);
-        map.setZoom(16);
-        setMapPosition(latLng, false);
+        setMapPosition(latLng, true, true);
       },
       () => {
-        showToast(
-          'error',
-          isEnglishLocale()
-            ? 'Unable to detect your location.'
-            : 'تعذر تحديد موقعك'
-        );
+        if (typeof showToast === 'function') {
+          showToast(
+            'error',
+            isEnglishLocale()
+              ? 'Unable to detect your location.'
+              : 'تعذر تحديد موقعك'
+          );
+        }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
   });
 
-  // تحميل حدود المنطقة لو موجودة
+  // تحميل حدود المنطقة إن كانت مطلوبة من قبل
   if (pendingAreaForBounds) {
     loadAreaBounds(pendingAreaForBounds);
     pendingAreaForBounds = null;
@@ -2131,16 +2209,15 @@ function initMap() {
     requestAreaBoundsForCurrentArea();
   }
 
-  // تلميح مبدئي
+  // تلميح مبدئي للمستخدم
   const hint = document.getElementById('mapHint');
   if (hint) {
     hint.textContent = isEnglishLocale()
       ? 'Tap, double-tap, or drag the pin to set your exact location, then press Next.'
-      : 'اضغط مرة أو ضغطتين على الخريطة أو اسحب الدبوس لتحديد موقعك بدقة، ثم اضغط "التالي".';
+      : 'اضغط مرة أو مرتين على الخريطة أو اسحب الدبوس لتحديد موقعك بدقة، ثم اضغط "التالي".';
   }
 }
 window.initMap = initMap;
-
 
 
 /* ========================================================================== */
