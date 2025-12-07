@@ -30,6 +30,7 @@ body{
   padding-right: env(safe-area-inset-right);
 }
 
+/* ========== HEADER ========== */
 header{
   position:fixed; top:0; left:0; right:0; z-index:999;
   background:rgba(11,38,48,.36); backdrop-filter:blur(10px);
@@ -43,6 +44,40 @@ header{
 .brand img{height:72px; width:auto; object-fit:contain; filter:drop-shadow(0 6px 20px rgba(0,0,0,.25));}
 
 .header-right{flex:1; display:flex; flex-direction:column; gap:6px}
+
+/* 🌐 Language toggle (user icon button) */
+.lang-toggle-btn{
+  align-self:flex-end;
+  border:1px solid rgba(255,255,255,0.6);
+  background:rgba(0,0,0,0.12);
+  color:#fff;
+  border-radius:999px;
+  padding:6px 10px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:13px;
+  cursor:pointer;
+  backdrop-filter:blur(6px);
+  transition:
+    background var(--dur-xs) var(--ease),
+    transform var(--dur-xs) var(--ease),
+    box-shadow var(--dur-xs) var(--ease),
+    border-color var(--dur-xs) var(--ease);
+}
+.lang-toggle-btn i{
+  font-size:14px;
+}
+.lang-toggle-btn span{
+  font-weight:700;
+}
+.lang-toggle-btn:hover{
+  background:rgba(0,0,0,0.25);
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(0,0,0,.3);
+}
+
+/* Mini progress + chips */
 .mini-progress{display:flex; align-items:center; gap:10px; width:100%}
 .mini-progress .bar{flex:1; height:8px; background:rgba(255,255,255,.25); border-radius:999px; overflow:hidden}
 .mini-progress .bar>span{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--brand-600), var(--brand-200)); transition:width var(--dur-md) var(--ease); will-change:width}
@@ -55,8 +90,13 @@ header{
   border-radius:999px; color:#fff; font-size:.85rem; background:transparent;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.chip.current{ background:rgba(255,255,255,.18); border-color:rgba(255,255,255,.75); box-shadow:0 0 0 2px rgba(255,255,255,.16) inset; }
+.chip.current{
+  background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.75);
+  box-shadow:0 0 0 2px rgba(255,255,255,.16) inset;
+}
 
+/* ========== LAYOUT ========== */
 main{flex:1 0 auto; display:flex; justify-content:center; padding:8px 12px 0}
 #app{width:100%; max-width:1120px}
 .stage{position:relative; min-height:560px; padding:8px 0 20px}
@@ -71,24 +111,31 @@ main{flex:1 0 auto; display:flex; justify-content:center; padding:8px 12px 0}
 @keyframes pageOut{ from{opacity:1; transform:translateY(0) scale(1)} to{opacity:0; transform:translateY(14px) scale(.985)} }
 .page h1{font-size:1.375rem; font-weight:800; margin:0; text-align:center}
 
+/* ========== CARD ========== */
 .card{
   background:rgba(255,255,255,.88); color:#0B2630;
   border-radius:14px; box-shadow:var(--shadow-md);
   padding:24px; width:100%; max-width:920px; backdrop-filter:blur(6px);
 }
 
+/* ========== PPT DECK ========== */
 .ppt-deck{position:relative; width:100%; max-width:920px; height:200px}
 .ppt-slide{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   opacity:0; transform:translateY(14px) scale(.98); transition:opacity .6s var(--ease), transform .6s var(--ease);
 }
-.ppt-slide .slide-card{ background:rgba(255,255,255,.92); color:#0B2630; border-radius:14px; box-shadow:var(--shadow-md); padding:18px 20px; text-align:center; width:min(820px,92%) }
+.ppt-slide .slide-card{
+  background:rgba(255,255,255,.92); color:#0B2630;
+  border-radius:14px; box-shadow:var(--shadow-md);
+  padding:18px 20px; text-align:center; width:min(820px,92%);
+}
 .ppt-slide.is-active{opacity:1; transform:none; z-index:2}
 .ppt-slide.is-exiting{opacity:0; transform:translateY(-8px) scale(.985); z-index:1}
 .ppt-dots{display:flex; gap:8px; justify-content:center; margin-top:12px}
 .ppt-dot{width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.55)}
 .ppt-dot.active{background:#fff}
 
+/* ========== FORM ELEMENTS ========== */
 .form-control, select, .select2-selection{
   background:#fff; color:#0B2630; border:1px solid var(--border-300)!important; border-radius:14px!important;
   min-height:52px; text-align:center; font-size:16px;
@@ -105,6 +152,7 @@ main{flex:1 0 auto; display:flex; justify-content:center; padding:8px 12px 0}
 .select2-dropdown{background:#fff; color:#0B2630}
 .select2-results__option, .select2-search__field{color:#0B2630}
 
+/* ========== TIME GRID ========== */
 .time-toolbar{display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:8px}
 @media (min-width:768px){ .time-toolbar{grid-template-columns: 1fr; } }
 .btn-toggle{display:flex; gap:8px}
@@ -122,6 +170,7 @@ main{flex:1 0 auto; display:flex; justify-content:center; padding:8px 12px 0}
 .time-option:hover{transform:translateY(-2px); background:var(--brand-050); box-shadow:var(--shadow-sm)}
 .time-option[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
 
+/* ========== LOADING OVERLAY ========== */
 .load-overlay{
   position:absolute; inset:0; background:rgba(255,255,255,.88); color:#0B2630;
   display:none; align-items:center; justify-content:center; gap:12px; border-radius:14px; backdrop-filter:blur(2px);
@@ -129,6 +178,7 @@ main{flex:1 0 auto; display:flex; justify-content:center; padding:8px 12px 0}
 .load-overlay.show{display:flex; animation:fadeIn var(--dur-sm) var(--ease) both}
 @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
 
+/* ========== PAYMENT CARDS ========== */
 .pay-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; width:100%; max-width:920px}
 .pay-card{
   background:#fff; color:#0B2630; border:1px solid var(--border-300); border-radius:14px;
@@ -139,11 +189,19 @@ main{flex:1 0 auto; display:flex; justify-content:center; padding:8px 12px 0}
 .pay-card img{max-width:140px; height:auto}
 .pay-card[aria-checked="true"]{outline:3px solid var(--brand-600); outline-offset:2px}
 
+/* ========== MAP ========== */
 .map-search{position:relative; margin-bottom:12px}
 .map-search .form-control{min-height:48px; text-align:right}
 .map-search .fa-magnifying-glass{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#6b7280}
-#googleMap{width:100%;height:420px;border-radius:14px;overflow:hidden}
+#googleMap{
+  width:100%;
+  min-height:320px;
+  border-radius:16px;
+  overflow:hidden;
+  touch-action:manipulation;
+}
 
+/* ========== FOOTER ========== */
 footer.sticky-nav{
   position:sticky; bottom:0; z-index:40; background:rgba(11,38,48,.45);
   backdrop-filter:blur(10px); border-top:1px solid rgba(255,255,255,.15);
@@ -186,8 +244,30 @@ footer.sticky-nav{
 #footer-wait{display:none; align-items:center; gap:10px; color:#fff; font-weight:800}
 #footer-wait.show{display:flex}
 
+/* Icon-only footer button (PWA icon) */
+.btn-footer-icon{
+  padding-inline:10px;
+  min-width:42px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.btn-footer-icon i{
+  font-size:1.1rem;
+}
+
+/* ========== RESPONSIVE ========== */
 @media (max-width: 480px){
   .brand img{ height:64px }
+
+  .header-inner{
+    align-items:flex-start;
+  }
+  .header-right{
+    gap:4px;
+  }
+
   .summary-chips{
     overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
     gap:6px; padding-bottom:2px; scrollbar-width:thin;
@@ -205,8 +285,13 @@ footer.sticky-nav{
   .footer-brand{width:100%; justify-content:space-between}
   .footer-total{width:100%; justify-content:flex-start;}
   .btn-footer{min-height:58px; font-size:1.05rem}
+
+  #googleMap{
+    min-height:360px;
+  }
 }
 
+/* ========== INTL TEL INPUT (RTL tweak) ========== */
 .iti{ width:100%; }
 html[dir="rtl"] .iti--allow-dropdown .iti__flag-container{ left:8px; right:auto; }
 html[dir="rtl"] .iti--allow-dropdown input#mobile.form-control{
@@ -398,90 +483,4 @@ html[dir="rtl"] .iti--allow-dropdown input#mobile.form-control{
 .offer-apply-btn:hover{
   background:#01657A;
   transform:translateY(-1px);
-  box-shadow:0 4px 10px rgba(2,122,147,.3);
-}
-@media (max-width:480px){
-  .offers-dialog{
-    max-width:92%;
-    max-height:70vh;
-    padding:14px 14px 12px;
-  }
-}
-body.offers-open{
-  overflow:hidden;
-}
-
-/* 🔔 Toast container */
-#toastWrap{
-  position:fixed;
-  top:10px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:1050;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-
-/* 📲 Floating PWA install button */
-#installPwaBtn{
-  display:none;
-  position:fixed;
-  bottom:90px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:9999;
-  padding:10px 18px;
-  border-radius:999px;
-  border:none;
-  background:#027A93;
-  color:#fff;
-  font-weight:800;
-  box-shadow:0 6px 18px rgba(0,0,0,.25);
-}
-
-/* 🎁 Gift mode enhancements */
-#giftReceiverCard{
-  border:1px dashed rgba(2,122,147,.6);
-  box-shadow:var(--shadow-sm);
-}
-#giftReceiverCard h2{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-#giftReceiverCard h2::before{
-  content:"🎁";
-  font-size:1.1rem;
-}
-#isGiftToggle:checked + label{
-  font-weight:800;
-  color:var(--brand-700);
-}
-
-#googleMap {
-  width: 100%;
-  min-height: 320px;
-  border-radius: 16px;
-  overflow: hidden;
-  touch-action: manipulation;
-}
-
-@media (max-width: 576px) {
-  #googleMap {
-    min-height: 360px;
-  }
-}
-
-.btn-footer-icon {
-  padding-inline: 10px;
-  min-width: 42px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-footer-icon i {
-  font-size: 1.1rem;
-}
+  box-shadow:0 4px 10px rgba(2,122,
