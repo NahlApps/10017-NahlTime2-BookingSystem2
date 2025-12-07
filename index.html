@@ -372,7 +372,11 @@
               <input id="mapSearch" class="form-control" type="text" placeholder="ابحث عن برج، حي، أو عنوان داخل السعودية"/>
               <i class="fa-solid fa-magnifying-glass"></i>
             </div>
-            <div id="googleMap"></div>
+           <div id="googleMap"></div>
+              <!-- 🔒 Hidden fields to store map coordinates -->
+              <input type="hidden" id="locationLat">
+              <input type="hidden" id="locationLng">
+
           </div>
           <div class="card text-center">
             <button id="show-my-location" class="btn btn-outline-primary" type="button">إظهار موقعي</button>
